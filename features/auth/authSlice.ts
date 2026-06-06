@@ -1,13 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { tokenStorage, UserSession } from '../../services/tokenStorage';
-
-// ─── State Shape ──────────────────────────────────────────────────────────────
-
-export interface AuthState {
-  user: UserSession | null;
-  accessToken: string | null;
-  isAuthenticated: boolean;
-}
+import { AuthState } from './types';
 
 // ─── Initial State (hydrate from localStorage on first load) ──────────────────
 
@@ -49,6 +42,16 @@ const authSlice = createSlice({
       tokenStorage.setAccessToken(accessToken);
     },
 
+    updateUser(
+      state,
+      action: PayloadAction<Partial<UserSession>>
+    ) {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+        tokenStorage.setUser(state.user);
+      }
+    },
+
     /**
      * Called on logout. Clears both the Redux state and the localStorage entries
      * so the API client no longer attaches a Bearer token to outgoing requests.
@@ -63,7 +66,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, clearCredentials } = authSlice.actions;
+export const { setCredentials, clearCredentials, updateUser } = authSlice.actions;
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
 
@@ -72,3 +75,4 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.
 export const selectAccessToken = (state: { auth: AuthState }) => state.auth.accessToken;
 
 export default authSlice.reducer;
+export * from './types';

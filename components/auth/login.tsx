@@ -57,7 +57,7 @@ export default function Login() {
 
                 {/* Top: Logo & Title */}
                 <div className="flex items-center gap-3 relative z-10 select-none">
-                    <div className="w-11 h-11 rounded-xl bg-white/95 flex items-center justify-center shadow-lg shadow-black/15 border border-white/20 transition-transform duration-300 hover:scale-105">
+                    <div className="w-11 h-11 rounded-xl bg-white/95 flex items-center justify-center shadow-sm shadow-black/15 border border-white/20 transition-transform duration-300 hover:scale-105">
                         <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 10.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9.5M12 4v16m8-8H4" />
                         </svg>
@@ -217,7 +217,7 @@ export default function Login() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full mt-2 py-3.5 bg-primary text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-hover hover:shadow-primary/30 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 select-none"
+                                className="w-full mt-2 py-3.5 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm shadow-primary/20 hover:bg-primary-hover hover:shadow-sm transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 select-none"
                             >
                                 {isLoading ? (
                                     <>

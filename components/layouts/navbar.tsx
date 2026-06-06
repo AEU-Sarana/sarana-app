@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '../../stores';
-import { clearCredentials, selectCurrentUser } from '../../features/auth/authSlice';
+import { clearCredentials, selectCurrentUser, updateUser } from '../../features/auth/authSlice';
+import { authService } from '../../services/authService';
 import LogoutModal from '../ui/logout-modal';
 import ThemeToggle from '../ui/theme-toggle';
+import { getInitials } from '../../libs/utils';
 
 // ─── Page title map ───────────────────────────────────────────────────────────
 
@@ -31,13 +33,7 @@ function getPageInfo(pathname: string | null) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getInitials(name: string) {
-  if (!name) return 'AD';
-  const parts = name.trim().split(/\s+/);
-  return parts.length >= 2
-    ? (parts[0][0] + parts[1][0]).toUpperCase()
-    : parts[0].slice(0, 2).toUpperCase();
-}
+
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -46,6 +42,7 @@ export default function Navbar() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
+  const isAdmin = user?.role === 'ADMIN';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -61,6 +58,26 @@ export default function Navbar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Sync user profile details from /me endpoint on mount
+  useEffect(() => {
+    if (user) {
+      authService.getMe()
+        .then((res) => {
+          if (res?.success && res?.data) {
+            dispatch(
+              updateUser({
+                fullName: res.data.fullName,
+                email: res.data.email,
+              })
+            );
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to sync user session via /me:', err);
+        });
+    }
+  }, [dispatch]);
 
   const { title, subtitle } = getPageInfo(pathname);
   const initials = getInitials(user?.fullName || 'Admin');
@@ -146,17 +163,19 @@ export default function Navbar() {
                     Profile
                   </Link>
 
-                  <Link
-                    href="/admin/settings"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-foreground/85 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
-                  >
-                    <svg className="w-4 h-4 shrink-0 text-foreground/45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/settings"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-foreground/85 hover:text-foreground hover:bg-secondary/60 transition-all duration-150"
+                    >
+                      <svg className="w-4 h-4 shrink-0 text-foreground/45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Settings
+                    </Link>
+                  )}
 
                   <div className="h-[1px] bg-border/40 my-1" />
 

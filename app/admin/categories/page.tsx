@@ -100,7 +100,7 @@ export default function AdminCategoriesPage() {
         </div>
         <button
           onClick={handleAddCategory}
-          className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-sm rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
@@ -110,7 +110,7 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* Main Categories Panel */}
-      <div className="bg-card border border-border/40 rounded-3xl overflow-hidden shadow-md">
+      <div className="bg-card border border-border/40 rounded-3xl overflow-hidden shadow-sm">
         <CategoryList
           categories={categories}
           isLoading={isLoading}

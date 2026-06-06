@@ -127,3 +127,77 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* ─────────────── GLOBAL PRINT STYLES ─────────────── */
+@media print {
+  /* Hide the entire cashier layout chrome */
+  aside,
+  nav,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Strip the sidebar + flex wrapper so receipt fills the page */
+  body > div,
+  .min-h-screen {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Hide the card wrapper; show only the inner receipt content */
+  .receipt-card-wrapper {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Make the receipt content fill the page naturally */
+  #printable-receipt-content {
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 20px 24px !important;
+    margin: 0 auto !important;
+    max-width: 560px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Constrain logo wrapper — prevents image from expanding */
+  .receipt-logo-box {
+    width: 72px !important;
+    height: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    min-height: 72px !important;
+    max-height: 72px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Ensure the TOTAL box border prints */
+  .receipt-total-box {
+    border: 2px solid #000 !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 14mm 16mm;
+  }
+}

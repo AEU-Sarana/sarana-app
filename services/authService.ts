@@ -92,6 +92,25 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!tokenStorage.getAccessToken();
+  },
+
+  async changePassword(current_password: string, new_password: string, confirm_password: string): Promise<any> {
+    const response = await apiClient.post<any>('/auth/change-password', {
+      current_password,
+      new_password,
+      confirm_password,
+    });
+    return response;
+  },
+
+  async updateProfile(payload: { full_name?: string; email?: string; username?: string; phone?: string; bio?: string }): Promise<any> {
+    const response = await apiClient.put<any>('/auth/profile', payload);
+    return response;
+  },
+
+  async getMe(): Promise<any> {
+    const response = await apiClient.get<any>('/auth/me');
+    return response;
   }
 };
 

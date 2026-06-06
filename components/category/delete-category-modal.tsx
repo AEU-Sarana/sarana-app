@@ -45,7 +45,7 @@ export default function DeleteCategoryModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl shadow-md shadow-destructive/10 transition-all duration-150 cursor-pointer flex items-center gap-1.5"
+            className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl shadow-sm shadow-destructive/5 transition-all duration-150 cursor-pointer flex items-center gap-1.5"
             disabled={isDeleting}
           >
             {isDeleting && (
