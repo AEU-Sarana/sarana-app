@@ -26,4 +26,22 @@ export const saleService = {
     const response = await apiClient.get<ApiResponse<any>>(`/orders/${orderId}`);
     return response.data;
   },
+
+  async createOrder(data: {
+    payment_method: 'CASH' | 'BANK';
+    received_amount?: number;
+    discount_amount?: number;
+    tax_amount?: number;
+    service_fee?: number;
+    items: {
+      product_id: number;
+      quantity: number;
+      unit_price: number;
+      discount_amount?: number;
+      subtotal: number;
+    }[];
+  }): Promise<Order> {
+    const response = await apiClient.post<ApiResponse<any>>('/orders', data);
+    return response.data;
+  },
 };

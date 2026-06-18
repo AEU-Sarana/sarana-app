@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { reportService } from '../../../services/reportService';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type TabId       = 'daily' | 'sales' | 'income' | 'stock';
@@ -12,67 +13,12 @@ interface ShiftRow      { seller_id: number; seller_name: string; shift_count: n
 interface LowStockItem  { product_id: number; product_name: string; product_code: string; current_stock: number; low_stock_threshold: number; status: StockStatus; }
 interface SalesDay      { date: string; total_sales: number; total_orders: number; total_shifts: number; }
 interface StockItem     { product_id: number; product_name: string; product_code: string; category: string; current_stock: number; low_stock_threshold: number; status: StockStatus; }
-
-// ─── Mock Data (matches real API shapes) ───────────────────────────────────────
-const MOCK_DAILY = {
-  total_sales: 1420.5, total_orders: 38, total_shifts: 2, average_order_value: 37.38,
-  summary: { total_products_sold: 112, cash_collected: 1420.5, short_over_amount: 0 },
-  shifts_breakdown: [
-    { seller_id: 1, seller_name: 'Admin User', shift_count: 1, total_sales: 820.00, total_orders: 22, start_time: '08:00', end_time: '14:00' },
-    { seller_id: 2, seller_name: 'Cashier A',  shift_count: 1, total_sales: 600.50, total_orders: 16, start_time: '14:00', end_time: '20:00' },
-  ] as ShiftRow[],
-  top_products: [
-    { product_id: 1, product_name: 'Paracetamol 500mg',  product_code: 'PCM500', quantity_sold: 25, revenue: 187.5,  average_price: 7.5  },
-    { product_id: 2, product_name: 'Amoxicillin 250mg',  product_code: 'AMX250', quantity_sold: 18, revenue: 216.0,  average_price: 12.0 },
-    { product_id: 3, product_name: 'Vitamin C 1000mg',   product_code: 'VTC100', quantity_sold: 15, revenue: 112.5,  average_price: 7.5  },
-    { product_id: 4, product_name: 'Ibuprofen 400mg',    product_code: 'IBU400', quantity_sold: 12, revenue: 96.0,   average_price: 8.0  },
-    { product_id: 5, product_name: 'Omeprazole 20mg',    product_code: 'OMP020', quantity_sold: 10, revenue: 150.0,  average_price: 15.0 },
-  ] as TopProduct[],
-  low_stock_items: [
-    { product_id: 10, product_name: 'Metformin 500mg',    product_code: 'MET500', current_stock: 5, low_stock_threshold: 20, status: 'low_stock'    as StockStatus },
-    { product_id: 11, product_name: 'Aspirin 100mg',       product_code: 'ASP100', current_stock: 0, low_stock_threshold: 15, status: 'out_of_stock'  as StockStatus },
-    { product_id: 12, product_name: 'Chlorphenamine 4mg', product_code: 'CHP004', current_stock: 3, low_stock_threshold: 10, status: 'low_stock'    as StockStatus },
-  ] as LowStockItem[],
-};
-
-const MOCK_SALES = {
-  summary: { total_sales: 18420, total_orders: 487, average_daily_sales: 1842 },
-  sales: [
-    { date: '2026-05-22', total_sales: 1200, total_orders: 32, total_shifts: 2 },
-    { date: '2026-05-23', total_sales: 1580, total_orders: 41, total_shifts: 2 },
-    { date: '2026-05-24', total_sales: 940,  total_orders: 25, total_shifts: 1 },
-    { date: '2026-05-25', total_sales: 2100, total_orders: 56, total_shifts: 3 },
-    { date: '2026-05-26', total_sales: 1750, total_orders: 48, total_shifts: 2 },
-    { date: '2026-05-27', total_sales: 1320, total_orders: 35, total_shifts: 2 },
-    { date: '2026-05-28', total_sales: 1900, total_orders: 52, total_shifts: 2 },
-    { date: '2026-05-29', total_sales: 1680, total_orders: 45, total_shifts: 2 },
-    { date: '2026-05-30', total_sales: 2230, total_orders: 61, total_shifts: 3 },
-    { date: '2026-05-31', total_sales: 1420, total_orders: 38, total_shifts: 2 },
-  ] as SalesDay[],
-};
-
-const MOCK_INCOME = {
-  total_sales: 18420, total_orders: 487, totalItems: 1423,
-  cogs: 9800, profit: 8620, purchasesCost: 11200, purchasesQty: 850,
-};
-
-const MOCK_STOCK = {
-  summary: { total_products: 46, low_stock_count: 3, out_of_stock_count: 1, negative_stock_count: 0 },
-  items: [
-    { product_id: 1, product_name: 'Paracetamol 500mg',  product_code: 'PCM500', category: 'Analgesics',  current_stock: 150, low_stock_threshold: 20, status: 'in_stock'    as StockStatus },
-    { product_id: 2, product_name: 'Amoxicillin 250mg',  product_code: 'AMX250', category: 'Antibiotics', current_stock: 89,  low_stock_threshold: 15, status: 'in_stock'    as StockStatus },
-    { product_id: 3, product_name: 'Vitamin C 1000mg',   product_code: 'VTC100', category: 'Vitamins',    current_stock: 12,  low_stock_threshold: 20, status: 'low_stock'   as StockStatus },
-    { product_id: 4, product_name: 'Ibuprofen 400mg',    product_code: 'IBU400', category: 'Analgesics',  current_stock: 0,   low_stock_threshold: 10, status: 'out_of_stock' as StockStatus },
-    { product_id: 5, product_name: 'Metformin 500mg',    product_code: 'MET500', category: 'Diabetes',    current_stock: 5,   low_stock_threshold: 20, status: 'low_stock'   as StockStatus },
-    { product_id: 6, product_name: 'Omeprazole 20mg',    product_code: 'OMP020', category: 'Gastro',      current_stock: 67,  low_stock_threshold: 10, status: 'in_stock'    as StockStatus },
-    { product_id: 7, product_name: 'Cetirizine 10mg',    product_code: 'CTZ010', category: 'Allergy',     current_stock: 45,  low_stock_threshold: 10, status: 'in_stock'    as StockStatus },
-  ] as StockItem[],
-};
+interface SalesReportItem { date: string; total_sales: number; total_orders: number; total_shifts: number; }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-const fmtUSD   = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUSD   = (n: number) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtShort = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-const fmtFull  = (d: string) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtFull  = (d: string) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 const STATUS_CFG: Record<StockStatus, { label: string; textCls: string; bgCls: string; dotCls: string }> = {
   in_stock:     { label: 'In Stock',     textCls: 'text-emerald-600 dark:text-emerald-400', bgCls: 'bg-emerald-500/10', dotCls: 'bg-emerald-500' },
@@ -112,7 +58,7 @@ function StatCard({ label, value, sub, accent = 'emerald', icon }: {
 }
 
 function StatusBadge({ status }: { status: StockStatus }) {
-  const cfg = STATUS_CFG[status];
+  const cfg = STATUS_CFG[status] || STATUS_CFG.in_stock;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${cfg.bgCls} ${cfg.textCls}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dotCls}`} />
@@ -135,19 +81,26 @@ function SectionCard({ title, children, action }: { title?: string; children: Re
   );
 }
 
-// Table head helper
 const TH = ({ children }: { children: React.ReactNode }) => (
   <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{children}</th>
 );
 
 // ─── Bar Chart ─────────────────────────────────────────────────────────────────
-function SalesBarChart() {
-  const data  = MOCK_SALES.sales;
-  const MAX_V = 2500;
+function SalesBarChart({ data = [] }: { data: SalesReportItem[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[180px] text-xs font-bold text-foreground/45">
+        No sales data available for this range
+      </div>
+    );
+  }
+  
+  const maxSale = Math.max(...data.map(d => d.total_sales));
+  const MAX_V = maxSale > 0 ? Math.ceil(maxSale / 500) * 500 : 500;
   const BAR_W = 52, GAP = 26, L = 58, R = 16, CH = 180, CB = 215, CT = CB - CH;
   const VW    = L + data.length * BAR_W + (data.length - 1) * GAP + R;
   const VH    = CB + 38;
-  const ticks = [0, 500, 1000, 1500, 2000, 2500];
+  const ticks = Array.from({ length: 6 }, (_, i) => Math.round((MAX_V / 5) * i));
 
   return (
     <div className="w-full overflow-x-auto">
@@ -167,7 +120,7 @@ function SalesBarChart() {
               <g key={t}>
                 <line x1={L} y1={y} x2={VW - R} y2={y} stroke="currentColor" strokeWidth="1" className="text-foreground/10" />
                 <text x={L - 8} y={y + 4} textAnchor="end" className="text-[10px] font-bold fill-foreground/40 select-none">
-                  {t === 0 ? '$0' : `$${t / 1000}K`}
+                  {t === 0 ? '$0' : `$${(t / 1000).toFixed(1)}K`}
                 </text>
               </g>
             );
@@ -214,19 +167,61 @@ const BanIcon      = () => ic('M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A
 const AlertIcon    = () => ic('M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9');
 
 // ─── Daily Tab ─────────────────────────────────────────────────────────────────
-function DailyTab() {
-  const [date, setDate] = useState('2026-05-31');
-  const d = MOCK_DAILY;
+interface DailyTabProps {
+  date: string;
+  setDate: (d: string) => void;
+}
+
+function DailyTab({ date, setDate }: DailyTabProps) {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReport = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await reportService.getDailyReport(date);
+      setData(res);
+    } catch (err) {
+      console.error('Daily report fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [date]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
+        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Daily Report...</span>
+      </div>
+    );
+  }
+
+  const d = data || {
+    total_sales: 0,
+    total_orders: 0,
+    total_shifts: 0,
+    average_order_value: 0,
+    shifts_breakdown: [],
+    top_products: [],
+    low_stock_items: [],
+    summary: { total_products_sold: 0, cash_collected: 0, short_over_amount: 0 },
+  };
 
   return (
     <div className="space-y-5">
       {/* Controls */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap select-none">
         <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">Date</span>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
-        <button className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer">
-          Generate
+        <button onClick={fetchReport} disabled={isLoading}
+          className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
+          {isLoading ? 'Generating...' : 'Generate'}
         </button>
       </div>
 
@@ -240,63 +235,72 @@ function DailyTab() {
 
       {/* Top Products */}
       <SectionCard title="Top Selling Products">
-        <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-secondary/35 border-b border-border/30">
-                <TH>#</TH>
-                <TH>Product</TH>
-                <TH>Code</TH>
-                <TH>Qty Sold</TH>
-                <TH>Revenue</TH>
-                <TH>Avg Price</TH>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20">
-              {d.top_products.map((p, i) => (
-                <tr key={p.product_id} className="hover:bg-secondary/15 transition-colors duration-150">
-                  <td className="px-5 py-4 text-foreground/40 font-bold text-xs">
-                    {String(i + 1).padStart(2, '0')}
-                  </td>
-                  <td className="px-5 py-4 font-black text-foreground">
-                    {p.product_name}
-                  </td>
-                  <td className="px-5 py-4 font-mono text-xs text-foreground/50">
-                    {p.product_code}
-                  </td>
-                  <td className="px-5 py-4 font-bold text-foreground">
-                    {p.quantity_sold}
-                  </td>
-                  <td className="px-5 py-4 font-black text-emerald-500">
-                    {fmtUSD(p.revenue)}
-                  </td>
-                  <td className="px-5 py-4 font-bold text-foreground/70">
-                    {fmtUSD(p.average_price)}
-                  </td>
+        {d.top_products.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
+            No sales recorded for this date.
+          </div>
+        ) : (
+          <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-secondary/35 border-b border-border/30">
+                  <TH>#</TH>
+                  <TH>Product</TH>
+                  <TH>Code</TH>
+                  <TH>Qty Sold</TH>
+                  <TH>Revenue</TH>
+                  <TH>Avg Price</TH>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {d.top_products.map((p: any, i: number) => (
+                  <tr key={p.product_id} className="hover:bg-secondary/15 transition-colors duration-150">
+                    <td className="px-5 py-4 text-foreground/40 font-bold text-xs">
+                      {String(i + 1).padStart(2, '0')}
+                    </td>
+                    <td className="px-5 py-4 font-black text-foreground">
+                      {p.product_name}
+                    </td>
+                    <td className="px-5 py-4 font-mono text-xs text-foreground/50">
+                      {p.product_code}
+                    </td>
+                    <td className="px-5 py-4 font-bold text-foreground">
+                      {p.quantity_sold}
+                    </td>
+                    <td className="px-5 py-4 font-black text-emerald-500">
+                      {fmtUSD(p.revenue)}
+                    </td>
+                    <td className="px-5 py-4 font-bold text-foreground/70">
+                      {fmtUSD(p.average_price)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </SectionCard>
 
       {/* Shifts + Low Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SectionCard title="Cashier Sales Summary">
-          <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-secondary/35 border-b border-border/30">
-                  <TH>Cashier</TH>
-                  <TH>Orders</TH>
-                  <TH>Sales</TH>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {d.shifts_breakdown
-                  .filter(s => !s.seller_name.toLowerCase().includes('admin'))
-                  .map((s) => {
-                    const initials = s.seller_name.trim().split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+          {d.shifts_breakdown.length === 0 ? (
+            <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
+              No cashier orders recorded for this date.
+            </div>
+          ) : (
+            <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-secondary/35 border-b border-border/30">
+                    <TH>Cashier</TH>
+                    <TH>Orders</TH>
+                    <TH>Sales</TH>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {d.shifts_breakdown.map((s: any) => {
+                    const initials = s.seller_name.trim().split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                     return (
                       <tr key={s.seller_id} className="hover:bg-secondary/15 transition-colors duration-150">
                         <td className="px-5 py-4">
@@ -316,29 +320,36 @@ function DailyTab() {
                       </tr>
                     );
                   })}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard title="Low Stock Alerts">
-          <div className="divide-y divide-border/20 rounded-2xl border border-border/30 bg-secondary/5 overflow-hidden">
-            {d.low_stock_items.map(item => (
-              <div key={item.product_id} className="px-5 py-4 flex items-center justify-between gap-3 hover:bg-secondary/15 transition-colors duration-150">
-                <div className="min-w-0">
-                  <p className="text-sm font-black text-foreground truncate">{item.product_name}</p>
-                  <p className="text-[10px] font-bold text-foreground/40 font-mono mt-0.5">{item.product_code}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right">
-                    <p className="text-sm font-black text-foreground">{item.current_stock}</p>
-                    <p className="text-[9px] text-foreground/40 font-bold mt-0.5">/ {item.low_stock_threshold} min</p>
+          {d.low_stock_items.length === 0 ? (
+            <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
+              All active product inventory stocks are healthy.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/20 rounded-2xl border border-border/30 bg-secondary/5 overflow-hidden">
+              {d.low_stock_items.map((item: any) => (
+                <div key={item.product_id} className="px-5 py-4 flex items-center justify-between gap-3 hover:bg-secondary/15 transition-colors duration-150">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-foreground truncate">{item.product_name}</p>
+                    <p className="text-[10px] font-bold text-foreground/40 font-mono mt-0.5">{item.product_code}</p>
                   </div>
-                  <StatusBadge status={item.status} />
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-black text-foreground">{item.current_stock}</p>
+                      <p className="text-[9px] text-foreground/40 font-bold mt-0.5">/ {item.low_stock_threshold} min</p>
+                    </div>
+                    <StatusBadge status={item.status} />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </SectionCard>
       </div>
     </div>
@@ -346,23 +357,64 @@ function DailyTab() {
 }
 
 // ─── Sales History Tab ──────────────────────────────────────────────────────────
-function SalesHistoryTab() {
-  const [startDate, setStartDate] = useState('2026-05-22');
-  const [endDate, setEndDate]     = useState('2026-05-31');
-  const s = MOCK_SALES;
+interface SalesHistoryTabProps {
+  startDate: string;
+  setStartDate: (d: string) => void;
+  endDate: string;
+  setEndDate: (d: string) => void;
+}
+
+function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: SalesHistoryTabProps) {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReport = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await reportService.getSalesHistoryReport({
+        start_date: startDate,
+        end_date: endDate,
+        limit: 100,
+      });
+      setData(res);
+    } catch (err) {
+      console.error('Sales history report fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
+        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Sales History...</span>
+      </div>
+    );
+  }
+
+  const s = data || {
+    sales: [],
+    summary: { total_sales: 0, total_orders: 0, average_daily_sales: 0 },
+  };
 
   return (
     <div className="space-y-5">
       {/* Date range */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap select-none">
         <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">From</span>
         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50" />
+          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
         <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">To</span>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50" />
-        <button className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer">
-          Apply
+          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
+        <button onClick={fetchReport} disabled={isLoading}
+          className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
+          {isLoading ? 'Loading...' : 'Apply'}
         </button>
       </div>
 
@@ -376,39 +428,85 @@ function SalesHistoryTab() {
       {/* Bar chart */}
       <SectionCard title="Daily Revenue">
         <div className="p-5 pt-4">
-          <SalesBarChart />
+          <SalesBarChart data={s.sales} />
         </div>
       </SectionCard>
 
       {/* Daily table */}
       <SectionCard title="Day-by-Day Summary">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-secondary/20 border-b border-border/30">
-              <TH>Date</TH><TH>Orders</TH><TH>Revenue</TH>
-            </tr>
-          </thead>
-          <tbody>
-            {s.sales.map(row => (
-              <tr key={row.date} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
-                <td className="px-5 py-3.5 font-bold text-foreground">{fmtFull(row.date)}</td>
-                <td className="px-5 py-3.5 font-black text-foreground">{row.total_orders}</td>
-                <td className="px-5 py-3.5 font-black text-emerald-600 dark:text-emerald-400">{fmtUSD(row.total_sales)}</td>
+        {s.sales.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
+            No orders found within this date range.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-secondary/20 border-b border-border/30">
+                <TH>Date</TH><TH>Orders</TH><TH>Revenue</TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {s.sales.map((item: any) => (
+                <tr key={item.date} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
+                  <td className="px-5 py-4 font-black text-foreground">{fmtFull(item.date)}</td>
+                  <td className="px-5 py-4 font-bold text-foreground/70">{item.total_orders}</td>
+                  <td className="px-5 py-4 font-black text-emerald-500">{fmtUSD(item.total_sales)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </SectionCard>
     </div>
   );
 }
 
 // ─── Income Report Tab ──────────────────────────────────────────────────────────
-function IncomeTab() {
-  const [period, setPeriod] = useState<Period>('monthly');
-  const inc    = MOCK_INCOME;
-  const margin = Math.round((inc.profit / inc.total_sales) * 100);
-  const cogsPct = Math.round((inc.cogs / inc.total_sales) * 100);
+interface IncomeTabProps {
+  period: Period;
+  setPeriod: (p: Period) => void;
+}
+
+function IncomeTab({ period, setPeriod }: IncomeTabProps) {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReport = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await reportService.getIncomeReport(period);
+      setData(res);
+    } catch (err) {
+      console.error('Income report fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
+        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">Calculating Income Report...</span>
+      </div>
+    );
+  }
+
+  const inc    = data || {
+    total_sales: 0,
+    total_orders: 0,
+    totalItems: 0,
+    cogs: 0,
+    profit: 0,
+    purchasesCost: 0,
+    purchasesQty: 0,
+  };
+  const margin = inc.total_sales > 0 ? Math.round((inc.profit / inc.total_sales) * 100) : 0;
+  const cogsPct = inc.total_sales > 0 ? Math.round((inc.cogs / inc.total_sales) * 100) : 0;
 
   const periods: { id: Period; label: string }[] = [
     { id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' },
@@ -418,7 +516,7 @@ function IncomeTab() {
   return (
     <div className="space-y-5">
       {/* Period selector */}
-      <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl w-fit">
+      <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl w-fit select-none">
         {periods.map(p => (
           <button key={p.id} onClick={() => setPeriod(p.id)}
             className={`px-5 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer ${
@@ -453,7 +551,7 @@ function IncomeTab() {
           <div className="h-full bg-rose-500/60 transition-all duration-700" style={{ width: `${cogsPct}%` }} />
         </div>
 
-        <div className="flex gap-6 flex-wrap">
+        <div className="flex gap-6 flex-wrap select-none">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground/60">
             <div className="w-3 h-3 rounded-full bg-indigo-500 shrink-0" />
             Gross Profit ({margin}%) — {fmtUSD(inc.profit)}
@@ -483,15 +581,52 @@ function IncomeTab() {
 }
 
 // ─── Stock Report Tab ───────────────────────────────────────────────────────────
-function StockReportTab() {
-  const [lowOnly, setLowOnly] = useState(false);
-  const [search, setSearch]   = useState('');
-  const { summary, items }    = MOCK_STOCK;
+interface StockReportTabProps {
+  lowOnly: boolean;
+  setLowOnly: (l: boolean) => void;
+  search: string;
+  setSearch: (s: string) => void;
+}
 
-  const filtered = items.filter(item => {
-    if (lowOnly && item.status === 'in_stock') return false;
+function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportTabProps) {
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReport = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await reportService.getStockReport({
+        low_stock_only: lowOnly ? true : undefined,
+      });
+      setData(res);
+    } catch (err) {
+      console.error('Stock report fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [lowOnly]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
+        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Stock Report...</span>
+      </div>
+    );
+  }
+
+  const d = data || {
+    summary: { total_products: 0, low_stock_count: 0, out_of_stock_count: 0, negative_stock_count: 0 },
+    stock_report: [],
+  };
+
+  const filtered = d.stock_report.filter((item: any) => {
     const q = search.toLowerCase();
-    if (q && !item.product_name.toLowerCase().includes(q) && !item.product_code.toLowerCase().includes(q)) return false;
+    if (q && !item.product_name.toLowerCase().includes(q) && !(item.product_code || '').toLowerCase().includes(q)) return false;
     return true;
   });
 
@@ -514,39 +649,45 @@ function StockReportTab() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Products"  value={String(summary.total_products)}       sub="In inventory"    accent="sky"     icon={<BoxIcon />}     />
-        <StatCard label="Low Stock"        value={String(summary.low_stock_count)}       sub="Need reorder"    accent="amber"   icon={<WarningIcon />} />
-        <StatCard label="Out of Stock"     value={String(summary.out_of_stock_count)}    sub="Critical"        accent="rose"    icon={<BanIcon />}     />
-        <StatCard label="Negative Stock"   value={String(summary.negative_stock_count)}  sub="Check movement"  accent="indigo"  icon={<AlertIcon />}   />
+        <StatCard label="Total Products"  value={String(d.summary.total_products)}       sub="In inventory"    accent="sky"     icon={<BoxIcon />}     />
+        <StatCard label="Low Stock"        value={String(d.summary.low_stock_count)}       sub="Need reorder"    accent="amber"   icon={<WarningIcon />} />
+        <StatCard label="Out of Stock"     value={String(d.summary.out_of_stock_count)}    sub="Critical"        accent="rose"    icon={<BanIcon />}     />
+        <StatCard label="Negative Stock"   value={String(d.summary.negative_stock_count)}  sub="Check movement"  accent="indigo"  icon={<AlertIcon />}   />
       </div>
 
       {/* Table */}
       <SectionCard title={`Stock Inventory (${filtered.length})`}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-secondary/20 border-b border-border/30">
-              <TH>Product</TH><TH>Code</TH><TH>Category</TH><TH>Current Stock</TH><TH>Min Threshold</TH><TH>Status</TH>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(item => (
-              <tr key={item.product_id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
-                <td className="px-5 py-3.5 font-bold text-foreground">{item.product_name}</td>
-                <td className="px-5 py-3.5 font-mono text-xs text-foreground/50">{item.product_code}</td>
-                <td className="px-5 py-3.5 text-foreground/60 font-bold">{item.category}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`text-base font-black ${
-                    item.current_stock === 0            ? 'text-rose-500'
-                    : item.current_stock <= item.low_stock_threshold ? 'text-amber-500'
-                    : 'text-foreground'
-                  }`}>{item.current_stock}</span>
-                </td>
-                <td className="px-5 py-3.5 text-foreground/50 font-bold">{item.low_stock_threshold}</td>
-                <td className="px-5 py-3.5"><StatusBadge status={item.status} /></td>
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
+            No products found matching active filters.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-secondary/20 border-b border-border/30">
+                <TH>Product</TH><TH>Code</TH><TH>Category</TH><TH>Current Stock</TH><TH>Min Threshold</TH><TH>Status</TH>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((item: any) => (
+                <tr key={item.product_id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
+                  <td className="px-5 py-3.5 font-bold text-foreground">{item.product_name}</td>
+                  <td className="px-5 py-3.5 font-mono text-xs text-foreground/50">{item.product_code || 'N/A'}</td>
+                  <td className="px-5 py-3.5 text-foreground/60 font-bold">{item.category || 'Uncategorized'}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={`text-base font-black ${
+                      item.current_stock === 0            ? 'text-rose-500'
+                      : item.current_stock <= (item.low_stock_threshold || 0) ? 'text-amber-500'
+                      : 'text-foreground'
+                    }`}>{item.current_stock}</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-foreground/50 font-bold">{item.low_stock_threshold ?? 'N/A'}</td>
+                  <td className="px-5 py-3.5"><StatusBadge status={item.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </SectionCard>
     </div>
   );
@@ -556,7 +697,20 @@ function StockReportTab() {
 export default function AdminReportsPage() {
   const [activeTab,   setActiveTab]   = useState<TabId>('daily');
   const [showExport,  setShowExport]  = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+
+  // Lifted Shared Filter States
+  const [dailyDate, setDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [salesStartDate, setSalesStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 10);
+    return d.toISOString().slice(0, 10);
+  });
+  const [salesEndDate, setSalesEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [stockLowOnly, setStockLowOnly] = useState(false);
+  const [stockSearch, setStockSearch] = useState('');
+  const [incomePeriod, setIncomePeriod] = useState<Period>('monthly');
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -565,6 +719,43 @@ export default function AdminReportsPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleExport = async (format: 'CSV' | 'XLSX' | 'PDF') => {
+    setShowExport(false);
+    try {
+      setIsExporting(true);
+      let report_type: 'daily_sales' | 'sales_history' | 'stock_summary';
+      let exportParams: any = {};
+
+      if (activeTab === 'daily') {
+        report_type = 'daily_sales';
+        exportParams = { date: dailyDate };
+      } else if (activeTab === 'sales') {
+        report_type = 'sales_history';
+        exportParams = { start_date: salesStartDate, end_date: salesEndDate };
+      } else if (activeTab === 'stock') {
+        report_type = 'stock_summary';
+        exportParams = { low_stock_only: stockLowOnly };
+      } else {
+        return;
+      }
+
+      const res = await reportService.exportReport({
+        report_type,
+        format,
+        ...exportParams
+      });
+
+      if (res && res.file_url) {
+        window.open(res.file_url, '_blank');
+      }
+    } catch (err: any) {
+      console.error('Failed to export report:', err);
+      alert(err.message || 'Failed to export report. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'daily',  label: 'Daily Report'  },
@@ -578,7 +769,7 @@ export default function AdminReportsPage() {
       {/* Controls bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Tab switcher */}
-        <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl">
+        <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl select-none">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer ${
@@ -590,38 +781,54 @@ export default function AdminReportsPage() {
         </div>
 
         {/* Export dropdown */}
-        <div className="relative" ref={exportRef}>
-          <button onClick={() => setShowExport(!showExport)}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground text-xs font-black transition-all cursor-pointer">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export
-            <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showExport ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        {activeTab !== 'income' && (
+          <div className="relative" ref={exportRef}>
+            <button onClick={() => setShowExport(!showExport)} disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground text-xs font-black transition-all cursor-pointer disabled:opacity-50">
+              {isExporting ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 text-foreground/60" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export
+                  <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showExport ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </button>
 
-          {showExport && (
-            <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden z-20">
-              {['CSV', 'PDF'].map(fmt => (
-                <button key={fmt} onClick={() => setShowExport(false)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-foreground/70 hover:text-foreground hover:bg-secondary/40 transition-colors cursor-pointer">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${fmt === 'CSV' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                  Export as {fmt}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+            {showExport && (
+              <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden z-20">
+                {['CSV', 'XLSX', 'PDF'].map(fmt => (
+                  <button key={fmt} onClick={() => handleExport(fmt as any)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-foreground/70 hover:text-foreground hover:bg-secondary/40 transition-colors cursor-pointer">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      fmt === 'CSV' ? 'bg-emerald-500' : fmt === 'XLSX' ? 'bg-indigo-500' : 'bg-rose-500'
+                    }`} />
+                    Export as {fmt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'daily'  && <DailyTab />}
-      {activeTab === 'sales'  && <SalesHistoryTab />}
-      {activeTab === 'income' && <IncomeTab />}
-      {activeTab === 'stock'  && <StockReportTab />}
+      {activeTab === 'daily'  && <DailyTab date={dailyDate} setDate={setDailyDate} />}
+      {activeTab === 'sales'  && <SalesHistoryTab startDate={salesStartDate} setStartDate={setSalesStartDate} endDate={salesEndDate} setEndDate={setSalesEndDate} />}
+      {activeTab === 'income' && <IncomeTab period={incomePeriod} setPeriod={setIncomePeriod} />}
+      {activeTab === 'stock'  && <StockReportTab lowOnly={stockLowOnly} setLowOnly={setStockLowOnly} search={stockSearch} setSearch={setStockSearch} />}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { selectCurrentUser } from '../../../features/auth/authSlice';
 import { productService } from '../../../services/productService';
 import { categoryService } from '../../../services/categoryService';
 import { customerService } from '../../../services/customerService';
+import { saleService } from '../../../services/saleService';
 import { Product } from '../../../features/product/types';
 import { Category } from '../../../features/category/types';
 import ReceiptModal from '../../../components/sales/receipt-modal';
@@ -54,6 +55,7 @@ export default function CashierCheckoutPage() {
 
   // Receipt Modal State
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
@@ -223,9 +225,9 @@ export default function CashierCheckoutPage() {
   };
 
   // --- Submit POS Order ---
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isCheckingOut) return;
 
     // Validate new customer if enabled
     if (isNewCustomerMode) {
@@ -255,39 +257,62 @@ export default function CashierCheckoutPage() {
       }
     }
 
-    // Simulate Receipt Number
-    const prefix = 'RCP';
-    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randPart = Math.floor(1000 + Math.random() * 9000);
-    const receiptId = `${prefix}-${datePart}-${randPart}`;
-
     const subtotal = getSubtotal();
     const discount = getDiscountAmount();
     const tax = getVAT();
     const total = getGrandTotal();
 
-    setCompletedOrder({
-      receiptId,
-      items: [...cart],
-      subtotal,
-      discount,
-      tax,
-      total,
-      cashReceived: paymentMethod === 'CASH' ? cashNum : total,
-      change: paymentMethod === 'CASH' ? changeAmount : 0,
-      customerName,
-      customerPhone,
-      cashierName: currentUser?.fullName || 'Cashier One',
-      dateString: new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }),
-    });
+    const items = cart.map((item) => ({
+      product_id: item.product.product_id,
+      quantity: item.quantity,
+      unit_price: item.product.price,
+      discount_amount: 0,
+      subtotal: item.product.price * item.quantity,
+    }));
 
-    setIsReceiptOpen(true);
+    const payload = {
+      payment_method: (paymentMethod === 'CASH' ? 'CASH' : 'BANK') as 'CASH' | 'BANK',
+      received_amount: paymentMethod === 'CASH' ? cashNum : total,
+      discount_amount: discount,
+      tax_amount: tax,
+      service_fee: 0,
+      items,
+    };
+
+    try {
+      setIsCheckingOut(true);
+      const createdOrder = await saleService.createOrder(payload);
+
+      setCompletedOrder({
+        receiptId: createdOrder.receipt_number,
+        items: [...cart],
+        subtotal,
+        discount,
+        tax,
+        total,
+        cashReceived: paymentMethod === 'CASH' ? cashNum : total,
+        change: paymentMethod === 'CASH' ? changeAmount : 0,
+        customerName,
+        customerPhone,
+        cashierName: createdOrder.seller_name || currentUser?.fullName || 'Cashier One',
+        dateString: new Date(createdOrder.order_date).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }),
+      });
+
+      setIsReceiptOpen(true);
+      triggerToast('POS sale created successfully');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err.message || 'Failed to complete transaction.');
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   const handleNewOrder = () => {
     setIsReceiptOpen(false);
     setCompletedOrder(null);
     clearCart();
+    fetchProducts(productPage);
   };
 
   const handlePrint = () => {
@@ -474,6 +499,7 @@ export default function CashierCheckoutPage() {
             changeAmount={changeAmount}
             onClearCart={clearCart}
             onCheckout={handleCheckout}
+            isLoading={isCheckingOut}
           />
 
         </div>

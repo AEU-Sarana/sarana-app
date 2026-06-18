@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { settingService } from '../../../services/settingService';
+import { telegramService } from '../../../services/telegramService';
+import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
 
 const TIMEZONES = [
@@ -135,6 +137,38 @@ export default function AdminSettingsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Telegram forms and states
+  const [telegramForm, setTelegramForm] = useState<{
+    bot_token: string;
+    group_chat_id: string;
+    is_active: boolean;
+  } | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [telegramTestResult, setTelegramTestResult] = useState<{
+    success: boolean;
+    botName?: string;
+    error?: string;
+  } | null>(null);
+  const [testMessage, setTestMessage] = useState('');
+  const [isSendingTestMessage, setIsSendingTestMessage] = useState(false);
+  const [isTriggeringDailyReport, setIsTriggeringDailyReport] = useState(false);
+
+  // Backup states
+  const [backups, setBackups] = useState<BackupListItem[]>([]);
+  const [backupsPagination, setBackupsPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [isBackupsLoading, setIsBackupsLoading] = useState(false);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [isRestoring, setIsRestoring] = useState<number | null>(null);
+  const [confirmRestoreBackup, setConfirmRestoreBackup] = useState<BackupListItem | null>(null);
+
+  // Manual operations states
+  const [manualBackupName, setManualBackupName] = useState('');
+  const [includeData, setIncludeData] = useState(true);
+  const [exportFormat, setExportFormat] = useState<'CSV' | 'PDF'>('CSV');
+  const [exportTable, setExportTable] = useState<'orders' | 'products'>('orders');
+  const [isExporting, setIsExporting] = useState(false);
+
   const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -164,18 +198,70 @@ export default function AdminSettingsPage() {
     }
   }, []);
 
+  const fetchTelegramConfig = useCallback(async () => {
+    try {
+      const config = await telegramService.getTelegramConfig();
+      if (config) {
+        setTelegramForm({
+          bot_token: config.bot_token || '',
+          group_chat_id: config.group_chat_id || '',
+          is_active: config.is_active,
+        });
+      } else {
+        setTelegramForm({
+          bot_token: '',
+          group_chat_id: '',
+          is_active: false,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load Telegram configuration', err);
+    }
+  }, []);
+
+  const fetchBackups = useCallback(async (page = 1) => {
+    try {
+      setIsBackupsLoading(true);
+      const data = await backupService.listBackups(page, 5);
+      setBackups(data.backups);
+      setBackupsPagination({
+        page: data.pagination.page,
+        totalPages: data.pagination.totalPages,
+        total: data.pagination.total,
+      });
+    } catch (err) {
+      console.error('Failed to load backup list', err);
+    } finally {
+      setIsBackupsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchTelegramConfig();
+    fetchBackups();
+  }, [fetchSettings, fetchTelegramConfig, fetchBackups]);
 
-  // Single unified save — sends everything through PUT /settings
+  // Single unified save — sends everything through PUT /settings & POST /telegram/config
   const handleSave = async () => {
     try {
       setIsSaving(true);
       setErrorMessage(null);
       setSuccessMessage(null);
+
+      // Save app settings
       const updated = await settingService.updateSettings(form);
       setSettings(updated);
+
+      // Save Telegram settings
+      if (telegramForm) {
+        await telegramService.updateTelegramConfig({
+          bot_token: telegramForm.bot_token,
+          group_chat_id: telegramForm.group_chat_id,
+          is_active: telegramForm.is_active,
+        });
+      }
+
       setSuccessMessage('All settings saved successfully.');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
@@ -215,6 +301,117 @@ export default function AdminSettingsPage() {
       setErrorMessage(err.message || 'Failed to upload logo.');
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  // Manual Backup & Restore
+  const handleCreateBackup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = manualBackupName.trim() || `backup_${Date.now()}`;
+    try {
+      setIsCreatingBackup(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await backupService.createBackup({ backup_name: name, include_data: includeData });
+      setSuccessMessage(`Backup "${name}" created successfully.`);
+      setManualBackupName('');
+      fetchBackups(1);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to create backup.');
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  };
+
+  const handleRestoreBackup = async (backupId: number, name: string) => {
+    try {
+      setIsRestoring(backupId);
+      setConfirmRestoreBackup(null);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await backupService.restoreBackup(backupId);
+      setSuccessMessage(`Database restored successfully from "${name}".`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to restore backup.');
+    } finally {
+      setIsRestoring(null);
+    }
+  };
+
+  const handleExportData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsExporting(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      const res = await backupService.exportData(exportFormat, exportTable);
+      if (res.file_url) {
+        window.open(res.file_url, '_blank');
+        setSuccessMessage(`Data exported successfully. Downloading...`);
+        setTimeout(() => setSuccessMessage(null), 4000);
+      } else {
+        throw new Error('Export URL not returned');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to export table.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Telegram test triggers
+  const handleTestTelegramConnection = async () => {
+    if (!telegramForm) return;
+    try {
+      setIsTestingTelegram(true);
+      setTelegramTestResult(null);
+      const res = await telegramService.testConnection({
+        bot_token: telegramForm.bot_token,
+        group_chat_id: telegramForm.group_chat_id,
+      });
+      if (res.connected) {
+        setTelegramTestResult({ success: true, botName: res.bot_name });
+      } else {
+        setTelegramTestResult({ success: false, error: res.error || 'Connection failed' });
+      }
+    } catch (err: any) {
+      setTelegramTestResult({ success: false, error: err.message || 'Connection failed' });
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const handleSendTestMessage = async () => {
+    const msg = testMessage.trim() || '✅ Test message from Sarana POS settings page.';
+    try {
+      setIsSendingTestMessage(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await telegramService.sendTestMessage(msg);
+      setSuccessMessage('Test message sent to Telegram successfully.');
+      setTestMessage('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to send test message.');
+    } finally {
+      setIsSendingTestMessage(false);
+    }
+  };
+
+  const handleSendDailyReportNow = async () => {
+    try {
+      setIsTriggeringDailyReport(true);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await telegramService.sendDailyReport();
+      setSuccessMessage('Daily report sent to Telegram successfully.');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to send daily report.');
+    } finally {
+      setIsTriggeringDailyReport(false);
     }
   };
 
@@ -297,19 +494,20 @@ export default function AdminSettingsPage() {
         <div className="space-y-5">
 
           {/* ── Row 1: Backup & Daily Reports ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
             {/* Backup & Maintenance */}
             <SectionCard
               accentClass="bg-primary/10 text-primary"
               title="Backup & Maintenance"
-              description="Control automatic database backup scheduling."
+              description="Control automatic database backup scheduling and manage manual restore points."
               icon={
                 <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                 </svg>
               }
             >
+              {/* Part 1: Automated Backups */}
               <ToggleSwitch
                 checked={form.auto_backup}
                 onChange={(v) => updateForm('auto_backup', v)}
@@ -339,23 +537,236 @@ export default function AdminSettingsPage() {
                   ))}
                 </div>
               </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Part 2: Manual Operations */}
+              <div>
+                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">Manual Operations</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Create Manual Backup Form */}
+                  <form onSubmit={handleCreateBackup} className="space-y-3 p-4 rounded-2xl bg-secondary/10 border border-border/20">
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Create Backup Point</span>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Backup Name (e.g. manual_save)"
+                        value={manualBackupName}
+                        onChange={(e) => setManualBackupName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold focus:border-primary outline-none transition-all placeholder:text-foreground/30"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-foreground/60">Include data tables</span>
+                      <ToggleSwitch
+                        checked={includeData}
+                        onChange={setIncludeData}
+                        label=""
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isCreatingBackup}
+                      className="w-full py-2 bg-primary hover:bg-primary/90 text-white text-[10px] font-extrabold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    >
+                      {isCreatingBackup ? (
+                        <>
+                          <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                          </svg>
+                          Backup Now
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* Export Table Data Form */}
+                  <form onSubmit={handleExportData} className="space-y-3 p-4 rounded-2xl bg-secondary/10 border border-border/20">
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Export Raw Table Data</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[9px] text-foreground/45 block mb-1">Target Table</span>
+                        <select
+                          value={exportTable}
+                          onChange={(e) => setExportTable(e.target.value as any)}
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold outline-none cursor-pointer"
+                        >
+                          <option value="orders">Orders</option>
+                          <option value="products">Products</option>
+                        </select>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-foreground/45 block mb-1">Format</span>
+                        <select
+                          value={exportFormat}
+                          onChange={(e) => setExportFormat(e.target.value as any)}
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold outline-none cursor-pointer"
+                        >
+                          <option value="CSV">CSV File</option>
+                          <option value="PDF">PDF Report</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isExporting}
+                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-600/90 text-white text-[10px] font-extrabold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      >
+                        {isExporting ? (
+                          <>
+                            <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Exporting...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Export & Download
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Part 3: Backup History Table */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Backup History & Recovery</h3>
+                  <button
+                    type="button"
+                    onClick={() => fetchBackups(backupsPagination.page)}
+                    className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
+                    </svg>
+                    Refresh List
+                  </button>
+                </div>
+
+                {isBackupsLoading ? (
+                  <div className="flex justify-center items-center py-6">
+                    <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : backups.length === 0 ? (
+                  <p className="text-xs text-foreground/45 italic text-center py-4">No successful backups recorded.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-[11px]">
+                        <thead>
+                          <tr className="border-b border-border/20 text-foreground/45 font-bold uppercase tracking-wider">
+                            <th className="pb-1.5">Name</th>
+                            <th className="pb-1.5 text-right">Size</th>
+                            <th className="pb-1.5 text-center">Date</th>
+                            <th className="pb-1.5 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/10">
+                          {backups.map((item) => {
+                            const formattedSize =
+                              item.file_size > 1024 * 1024
+                                ? `${(item.file_size / (1024 * 1024)).toFixed(2)} MB`
+                                : `${(item.file_size / 1024).toFixed(1)} KB`;
+                            const date = new Date(item.created_at).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            });
+
+                            return (
+                              <tr key={item.backup_id} className="group hover:bg-secondary/5">
+                                <td className="py-2 font-bold text-foreground max-w-[150px] truncate" title={item.backup_name}>
+                                  {item.backup_name}
+                                </td>
+                                <td className="py-2 text-right font-medium text-foreground/60">{formattedSize}</td>
+                                <td className="py-2 text-center text-foreground/50">{date}</td>
+                                <td className="py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmRestoreBackup(item)}
+                                    disabled={isRestoring !== null}
+                                    className="px-2.5 py-1 text-[9px] font-extrabold bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded transition-colors disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {isRestoring === item.backup_id ? 'Restoring...' : 'Restore'}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {backupsPagination.totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2 border-t border-border/10">
+                        <span className="text-[10px] text-foreground/45 font-medium">
+                          Page {backupsPagination.page} of {backupsPagination.totalPages}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={backupsPagination.page <= 1}
+                            onClick={() => fetchBackups(backupsPagination.page - 1)}
+                            className="p-1 rounded bg-secondary/15 hover:bg-secondary/25 disabled:opacity-45 text-foreground cursor-pointer"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={backupsPagination.page >= backupsPagination.totalPages}
+                            onClick={() => fetchBackups(backupsPagination.page + 1)}
+                            className="p-1 rounded bg-secondary/15 hover:bg-secondary/25 disabled:opacity-45 text-foreground cursor-pointer"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </SectionCard>
 
             {/* Daily Reports */}
             <SectionCard
               accentClass="bg-accent/10 text-accent"
-              title="Daily Reports"
-              description="Configure automated daily summary report delivery."
+              title="Daily Reports & Telegram Alerts"
+              description="Configure automated daily summary report delivery and Telegram bot settings."
               icon={
                 <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               }
             >
+              {/* Part 1: Report Scheduling */}
               <ToggleSwitch
                 checked={form.report_send_enabled}
                 onChange={(v) => updateForm('report_send_enabled', v)}
-                label="Enable Daily Reports"
+                label="Enable Daily Reports Schedule"
                 description="Send automated daily summary reports via Telegram to the admin channel."
               />
               <div className="h-px bg-border/20" />
@@ -382,6 +793,193 @@ export default function AdminSettingsPage() {
                     ))}
                   </select>
                   <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">Delivery timezone for report</p>
+                </div>
+              </div>
+
+              <div className="h-px bg-border/20" />
+
+              {/* Part 2: Telegram Bot configuration */}
+              {telegramForm ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">Telegram Integration</span>
+                      <span className="text-[11px] text-foreground/50 mt-0.5 block">Enable Telegram bot alerts system.</span>
+                    </div>
+                    <ToggleSwitch
+                      checked={telegramForm.is_active}
+                      onChange={(v) => setTelegramForm(prev => prev ? { ...prev, is_active: v } : null)}
+                      label=""
+                    />
+                  </div>
+
+                  <div className={`space-y-3 ${!telegramForm.is_active ? 'opacity-40 pointer-events-none' : ''}`}>
+                    {/* Bot Token input */}
+                    <div>
+                      <FieldLabel>Telegram Bot Token</FieldLabel>
+                      <div className="relative">
+                        <input
+                          type={showToken ? 'text' : 'password'}
+                          value={telegramForm.bot_token}
+                          onChange={(e) => setTelegramForm(prev => prev ? { ...prev, bot_token: e.target.value } : null)}
+                          placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                          className="w-full px-4 py-3 pr-11 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowToken(!showToken)}
+                          className="absolute inset-y-0 right-3 flex items-center text-foreground/45 hover:text-foreground/75 cursor-pointer"
+                        >
+                          {showToken ? (
+                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
+                        Masked tokens will not be overridden on save unless changed.
+                      </p>
+                    </div>
+
+                    {/* Group Chat ID input */}
+                    <div>
+                      <FieldLabel>Group Chat ID / Channel ID</FieldLabel>
+                      <input
+                        type="text"
+                        value={telegramForm.group_chat_id}
+                        onChange={(e) => setTelegramForm(prev => prev ? { ...prev, group_chat_id: e.target.value } : null)}
+                        placeholder="e.g. -1001234567890"
+                        className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
+                      />
+                      <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
+                        Chat, channel, or user ID where reports will be posted.
+                      </p>
+                    </div>
+
+                    {/* Test Connection Row */}
+                    <div className="pt-1.5 space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleTestTelegramConnection}
+                        disabled={isTestingTelegram}
+                        className="px-4 py-2 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      >
+                        {isTestingTelegram ? (
+                          <>
+                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Testing Connection...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Test Connection
+                          </>
+                        )}
+                      </button>
+
+                      {telegramTestResult && (
+                        <div className={`flex items-start gap-2.5 p-3 rounded-xl border text-[11px] font-semibold leading-relaxed ${
+                          telegramTestResult.success
+                            ? 'bg-success/5 border-success/15 text-success'
+                            : 'bg-destructive/5 border-destructive/15 text-destructive'
+                        }`}>
+                          {telegramTestResult.success ? (
+                            <>
+                              <svg className="w-4 h-4 shrink-0 text-success mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Successfully connected to Telegram Bot: <strong>{telegramTestResult.botName}</strong></span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 shrink-0 text-destructive mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <span>Connection Failed: {telegramTestResult.error}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-center items-center py-6">
+                  <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
+                </div>
+              )}
+
+              <div className="h-px bg-border/20" />
+
+              {/* Part 3: Manual Bot Triggers */}
+              <div className={telegramForm?.is_active ? '' : 'opacity-40 pointer-events-none'}>
+                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">Manual Bot Triggers</h3>
+                <div className="space-y-3.5">
+                  {/* Send Test Message block */}
+                  <div className="p-4 rounded-2xl bg-secondary/10 border border-border/20 space-y-2.5">
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Send Custom Test Message</span>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type a test message..."
+                        value={testMessage}
+                        onChange={(e) => setTestMessage(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold focus:border-accent outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendTestMessage}
+                        disabled={isSendingTestMessage}
+                        className="px-4 py-2 bg-accent hover:bg-accent/90 text-white text-xs font-extrabold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer disabled:opacity-60"
+                      >
+                        {isSendingTestMessage ? 'Sending...' : 'Send'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Send Daily Report now block */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-secondary/10 border border-border/20">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Daily Report Dispatch</span>
+                      <span className="text-[10px] text-foreground/45 leading-relaxed mt-1 block">
+                        Instantly compile and send today's sales report to the Telegram chat.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSendDailyReportNow}
+                      disabled={isTriggeringDailyReport}
+                      className="px-4 py-2.5 bg-accent hover:bg-accent/90 text-white text-xs font-extrabold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-60"
+                    >
+                      {isTriggeringDailyReport ? (
+                        <>
+                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          Send Daily Report Now
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </SectionCard>
@@ -606,6 +1204,43 @@ export default function AdminSettingsPage() {
           <p className="text-[11px] text-foreground/45 font-semibold">
             All settings are saved together with the <strong>Save All Settings</strong> button. Backup schedules and logo uploads are processed server-side.
           </p>
+        </div>
+      )}
+
+      {/* ── Backup Restore Confirmation Modal ── */}
+      {confirmRestoreBackup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-card border border-border/40 rounded-3xl shadow-xl overflow-hidden p-6 space-y-4">
+            <div className="flex items-center gap-3 text-destructive">
+              <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-base font-extrabold tracking-tight">Confirm Database Restore</h3>
+            </div>
+            <p className="text-xs text-foreground/70 leading-relaxed">
+              Are you sure you want to restore the database to the savepoint <strong>"{confirmRestoreBackup.backup_name}"</strong>?
+              <br />
+              <span className="text-destructive font-bold mt-2 block">
+                ⚠️ WARNING: All active records will be overwritten with the snapshot data. This operation cannot be undone.
+              </span>
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRestoreBackup(null)}
+                className="px-4 py-2.5 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRestoreBackup(confirmRestoreBackup.backup_id, confirmRestoreBackup.backup_name)}
+                className="px-4 py-2.5 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Confirm Restore
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -241,14 +241,18 @@ export default function AdminDashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [overviewRes, stockRes] = await Promise.all([
+      const [overviewRes, stockRes, customersRes] = await Promise.all([
         dashboardService.getOverview(),
         stockService.getStockList({ limit: 1 }),
+        customerService.getCustomers({ limit: 100 }),
       ]);
       setData(overviewRes);
       setOutOfStockCount(stockRes.summary.out_of_stock_count || 0);
       setLowStockCount(stockRes.summary.low_stock_count || 0);
       setTotalProducts(stockRes.summary.total_products || 0);
+      if (customersRes && customersRes.customers) {
+        setCustomers(customersRes.customers);
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to retrieve dashboard statistics.');
     } finally {
