@@ -8,6 +8,7 @@ import { Product } from '../../../features/product/types';
 import { StockMovementItem } from '../../../features/stock/types';
 import { ProductSearch } from '../../../components/stocks/product-search';
 import { StockMovementTable } from '../../../components/stocks/stock-movement-table';
+import { useLanguage } from '../../../contexts/language-context';
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 export default function AdminStockInPage() {
+  const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,6 +127,13 @@ export default function AdminStockInPage() {
     setSubmitSuccess(null);
   };
 
+  const handleReset = () => {
+    setSelectedProduct(null);
+    setForm(DEFAULT_FORM);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) { setSubmitError('Please select a product.'); return; }
@@ -140,22 +149,16 @@ export default function AdminStockInPage() {
     setSubmitSuccess(null);
 
     try {
-      const payload: any = {
+      await stockService.stockIn({
         product_id: selectedProduct.product_id,
         quantity: qty,
-      };
-      if (form.cost) payload.cost = parseFloat(form.cost);
-      if (form.supplier.trim()) payload.supplier = form.supplier.trim();
-      if (form.expired_at) payload.expired_at = new Date(form.expired_at).toISOString();
+        cost: form.cost ? parseFloat(form.cost) : undefined,
+        supplier: form.supplier.trim() || undefined,
+        expired_at: form.expired_at ? new Date(form.expired_at).toISOString() : undefined,
+      });
 
-      await stockService.stockIn(payload);
-
-      setSubmitSuccess(`Successfully added ${qty} unit(s) of "${selectedProduct.product_name}" to stock.`);
-      setSelectedProduct(null);
-      setForm(DEFAULT_FORM);
-
-      // Refresh history
-      setHistoryPage(1);
+      setSubmitSuccess(t('stock_in_page.success', `Successfully added +${qty} units to "${selectedProduct.product_name}".`));
+      handleReset();
       fetchHistory(1);
     } catch (err: any) {
       setSubmitError(err?.response?.data?.message || err.message || 'Failed to submit stock in. Please try again.');
@@ -164,19 +167,12 @@ export default function AdminStockInPage() {
     }
   };
 
-  const handleReset = () => {
-    setSelectedProduct(null);
-    setForm(DEFAULT_FORM);
-    setSubmitError(null);
-    setSubmitSuccess(null);
-  };
-
   return (
     <div className="space-y-6">
 
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex items-center gap-3">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
           <Link
             href="/admin/stock"
             className="w-10 h-10 border border-border/50 hover:border-border rounded-xl transition-all text-foreground/50 hover:text-foreground hover:bg-secondary/30 flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 active:scale-95"
@@ -187,9 +183,9 @@ export default function AdminStockInPage() {
             </svg>
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-foreground tracking-tight">Stock In</h1>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">{t('stock_in_page.title', 'Stock In')}</h1>
             <p className="text-xs text-foreground/50 mt-1">
-              Receive new inventory and record it into the system.
+              {t('stock_in_page.subtitle', 'Receive new inventory and record it into the system.')}
             </p>
           </div>
         </div>
@@ -197,7 +193,7 @@ export default function AdminStockInPage() {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
           </svg>
-          Stock In Movement
+          {t('stock_in_page.movement_badge', 'Stock In Movement')}
         </div>
       </div>
 
@@ -228,8 +224,8 @@ export default function AdminStockInPage() {
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-extrabold text-foreground tracking-tight">Receive Stock</h2>
-            <p className="text-[11px] text-foreground/50 mt-0.5">Fill in the details for the incoming stock.</p>
+            <h2 className="text-sm font-extrabold text-foreground tracking-tight">{t('stock_in_page.receive_stock', 'Receive Stock')}</h2>
+            <p className="text-[11px] text-foreground/50 mt-0.5">{t('stock_in_page.receive_stock_subtitle', 'Fill in the details for the incoming stock.')}</p>
           </div>
         </div>
 
@@ -242,38 +238,38 @@ export default function AdminStockInPage() {
           {/* Quantity + Cost + Expiry Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <FieldLabel required>Quantity</FieldLabel>
+              <FieldLabel required>{t('stock_in_page.quantity', 'Quantity')}</FieldLabel>
               <InputField
                 id="quantity"
                 type="number"
                 value={form.quantity}
                 onChange={(v) => setField('quantity', v)}
-                placeholder="e.g. 50"
+                placeholder={t('stock_in_page.quantity_placeholder', 'e.g. 50')}
                 min="1"
               />
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Number of units received</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_in_page.quantity_help', 'Number of units received')}</p>
             </div>
             <div>
-              <FieldLabel>Cost per Unit ($)</FieldLabel>
+              <FieldLabel>{t('stock_in_page.cost_per_unit', 'Cost per Unit ($)')}</FieldLabel>
               <InputField
                 id="cost"
                 type="number"
                 value={form.cost}
                 onChange={(v) => setField('cost', v)}
-                placeholder="e.g. 2.50"
+                placeholder={t('stock_in_page.cost_placeholder', 'e.g. 2.50')}
                 min="0"
                 step="0.01"
               />
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Optional — purchase cost per unit</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_in_page.cost_help', 'Optional — purchase cost per unit')}</p>
             </div>
 
             {/* Expiry Date — sits below Cost per Unit in the right column */}
             <div className={selectedProduct?.has_expiry ? 'relative' : ''}>
               <FieldLabel required={!!selectedProduct?.has_expiry}>
-                Expiry Date
+                {t('stock_in_page.expiry_date', 'Expiry Date')}
                 {selectedProduct?.has_expiry && (
                   <span className="ml-1.5 text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 rounded-md normal-case tracking-normal font-bold">
-                    Required for this product
+                    {t('stock_in_page.expiry_required', 'Required for this product')}
                   </span>
                 )}
               </FieldLabel>
@@ -286,21 +282,21 @@ export default function AdminStockInPage() {
               />
               <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">
                 {selectedProduct?.has_expiry
-                  ? 'This product tracks expiry — date is mandatory.'
-                  : 'Only applicable for products with expiry tracking.'}
+                  ? t('stock_in_page.expiry_help_mandatory', 'This product tracks expiry — date is mandatory.')
+                  : t('stock_in_page.expiry_help_optional', 'Only applicable for products with expiry tracking.')}
               </p>
             </div>
 
             {/* Supplier */}
             <div>
-              <FieldLabel>Supplier</FieldLabel>
+              <FieldLabel>{t('stock_in_page.supplier', 'Supplier')}</FieldLabel>
               <InputField
                 id="supplier"
                 value={form.supplier}
                 onChange={(v) => setField('supplier', v)}
-                placeholder="e.g. ABC Distributor Co."
+                placeholder={t('stock_in_page.supplier_placeholder', 'e.g. ABC Distributor Co.')}
               />
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Optional — supplier name</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_in_page.supplier_help', 'Optional — supplier name')}</p>
             </div>
           </div>
 
@@ -317,14 +313,14 @@ export default function AdminStockInPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Processing…
+                  {t('stock_in_page.processing', 'Processing…')}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                   </svg>
-                  Confirm Stock In
+                  {t('stock_in_page.confirm_stock_in', 'Confirm Stock In')}
                 </>
               )}
             </button>
@@ -334,7 +330,7 @@ export default function AdminStockInPage() {
               disabled={isSubmitting}
               className="px-5 py-3 border border-border/50 hover:border-border text-xs font-bold text-foreground/60 hover:text-foreground rounded-xl transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
-              Reset
+              {t('stock_in_page.reset', 'Reset')}
             </button>
           </div>
         </form>

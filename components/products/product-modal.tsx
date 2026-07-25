@@ -5,6 +5,7 @@ import { Product, CreateProductRequest } from '../../features/product/types';
 import { Category } from '../../features/category/types';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface ProductModalProps {
 }
 
 export default function ProductModal({ isOpen, onClose, onSave, product }: ProductModalProps) {
+  const { t } = useLanguage();
   const isEditMode = !!product;
 
   // Form Fields State
@@ -206,10 +208,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
         <div className="px-6 py-5 border-b border-border/40 flex justify-between items-center bg-secondary/10">
           <div>
             <h2 className="text-xl font-extrabold text-foreground leading-tight">
-              {isEditMode ? 'Edit Product Details' : 'Add New Product'}
+              {isEditMode ? t('products.edit_product_details', 'Edit Product Details') : t('products.add_new_product', 'Add New Product')}
             </h2>
             <p className="text-xs text-foreground/50 mt-1">
-              {isEditMode ? 'Modify specific details and updates for this product catalog entry.' : 'Provide details below to catalog a new pharmacy product.'}
+              {isEditMode ? t('products.edit_product_subtitle', 'Modify specific details and updates for this product catalog entry.') : t('products.add_product_subtitle', 'Provide details below to catalog a new pharmacy product.')}
             </p>
           </div>
           <button
@@ -239,11 +241,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {/* Product Name */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                  Product Name <span className="text-destructive">*</span>
+                  {t('products.product_name', 'Product Name')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Paracetamol 500mg"
+                  placeholder={t('products.product_name_placeholder', 'e.g. Paracetamol 500mg')}
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
@@ -254,35 +256,23 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {/* Barcode / SKU */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                  Barcode / SKU <span className="text-destructive">*</span>
+                  {t('products.barcode_sku', 'Barcode / SKU')} <span className="text-destructive">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Scan or enter barcode"
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={generateBarcode}
-                    className="px-3 rounded-xl bg-secondary/80 hover:bg-secondary text-xs font-bold text-foreground transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                    Gen Barcode
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  placeholder={t('products.scan_or_enter_barcode', 'Scan or enter barcode')}
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
+                  required
+                />
               </div>
 
               {/* Price & Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                    Unit Price ($) <span className="text-destructive">*</span>
+                    {t('products.unit_price', 'Unit Price ($)')} <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="number"
@@ -298,7 +288,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                    Category
+                    {t('products.col_category', 'Category')}
                   </label>
                   <select
                     value={categoryId}
@@ -306,7 +296,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                     className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150 cursor-pointer"
                     disabled={isCategoriesLoading}
                   >
-                    <option value="">Uncategorized</option>
+                    <option value="">{t('products.uncategorized', 'Uncategorized')}</option>
                     {categories.map((cat) => (
                       <option key={cat.categoryId} value={cat.categoryId}>
                         {cat.name}
@@ -319,11 +309,11 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {/* Description */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                  Product Description
+                  {t('products.product_description', 'Product Description')}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Describe indications, dosage, ingredients, usage..."
+                  placeholder={t('products.description_placeholder', 'Describe indications, dosage, ingredients, usage...')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150 resize-none"
@@ -337,7 +327,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {!isEditMode && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                    Initial Stock Quantity
+                    {t('products.initial_stock_quantity', 'Initial Stock Quantity')}
                   </label>
                   <input
                     type="number"
@@ -353,7 +343,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {/* Low Stock Alert Threshold */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                  Low Stock Threshold
+                  {t('products.low_stock_threshold', 'Low Stock Threshold')}
                 </label>
                 <input
                   type="number"
@@ -369,8 +359,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               <div className="p-4 bg-secondary/15 rounded-2xl border border-border/40">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-xs font-extrabold text-foreground tracking-tight">Expiry Tracking</span>
-                    <span className="text-[10px] text-foreground/50">Does this product carry an expiration date?</span>
+                    <span className="text-xs font-extrabold text-foreground tracking-tight">{t('products.expiry_tracking', 'Expiry Tracking')}</span>
+                    <span className="text-[10px] text-foreground/50">{t('products.expiry_tracking_desc', 'Does this product carry an expiration date?')}</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
                     <input
@@ -386,7 +376,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                 {hasExpiry && (
                   <div className="mt-4 animate-fade-in">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-foreground/60 mb-1.5">
-                      Expiration Date <span className="text-destructive">*</span>
+                      {t('products.expiration_date', 'Expiration Date')} <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="date"
@@ -402,8 +392,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
               {/* Status Switch */}
               <div className="flex items-center justify-between p-4 bg-secondary/15 rounded-2xl border border-border/40">
                 <div className="flex flex-col">
-                  <span className="text-xs font-extrabold text-foreground tracking-tight">Product Status</span>
-                  <span className="text-[10px] text-foreground/50">Make this product searchable and buyable at POS.</span>
+                  <span className="text-xs font-extrabold text-foreground tracking-tight">{t('products.product_status', 'Product Status')}</span>
+                  <span className="text-[10px] text-foreground/50">{t('products.product_status_desc', 'Make this product searchable and buyable at POS.')}</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer select-none">
                   <input
@@ -421,7 +411,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
           {/* Product Image section */}
           <div className="border-t border-border/40 pt-5">
             <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-3">
-              Product Image
+              {t('products.product_image', 'Product Image')}
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
               
@@ -451,7 +441,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                     <svg className="w-10 h-10 text-foreground/20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span className="text-[10px] text-foreground/40 font-semibold mt-1.5 block">No Product Image</span>
+                    <span className="text-[10px] text-foreground/40 font-semibold mt-1.5 block">{t('products.no_product_image', 'No Product Image')}</span>
                   </div>
                 )}
               </div>
@@ -465,10 +455,10 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                       <p className="text-xs text-foreground font-bold leading-normal">
-                        Click to upload or drag & drop
+                        {t('products.click_upload_drag', 'Click to upload or drag & drop')}
                       </p>
                       <p className="text-[10px] text-foreground/40 mt-1">
-                        PNG, JPG, JPEG or WEBP (Max 5MB)
+                        {t('products.image_format_note', 'PNG, JPG, JPEG or WEBP (Max 5MB)')}
                       </p>
                     </div>
                     <input
@@ -494,7 +484,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
             className="px-5 py-2.5 rounded-xl border border-border bg-card text-sm font-semibold text-foreground/75 hover:text-foreground hover:bg-secondary/40 transition-all duration-150 cursor-pointer"
             disabled={isSaving}
           >
-            Cancel
+            {t('products.cancel', 'Cancel')}
           </button>
           <button
             type="button"
@@ -508,7 +498,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             )}
-            {isSaving ? 'Saving...' : isEditMode ? 'Update Product' : 'Add Product'}
+            {isSaving ? t('products.saving', 'Saving...') : isEditMode ? t('products.update_product', 'Update Product') : t('products.add_product', 'Add Product')}
           </button>
         </div>
       </div>

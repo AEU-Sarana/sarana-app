@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Category } from '../../features/category/types';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductFiltersProps {
   search: string;
@@ -18,12 +19,14 @@ export default function ProductFilters({
   selectedCategory,
   onSelectCategory,
 }: ProductFiltersProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-card border border-border/40 rounded-3xl p-5 shadow-sm space-y-4">
       <div className="relative">
         <input
           type="text"
-          placeholder="Search products by medicine name, barcode, or code..."
+          placeholder={t('pos.search_placeholder', 'Search products by medicine name, barcode, or code...')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary/80 focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
@@ -43,7 +46,7 @@ export default function ProductFilters({
               : 'bg-secondary/40 text-foreground/75 border-border/40 hover:bg-secondary hover:text-foreground'
           }`}
         >
-          All Medicines
+          {t('pos.all_medicines', 'All Medicines')}
         </button>
         {categories.map((cat) => (
           <button

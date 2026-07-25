@@ -13,9 +13,12 @@ export interface LoginResponse {
       email: string;
       role: 'ADMIN' | 'CASHIER';
       isActive: boolean;
+      permissions?: string[];
     };
   };
 }
+
+let activeRefreshPromise: Promise<boolean> | null = null;
 
 export const authService = {
   async login(email: string, password: string): Promise<UserSession> {
@@ -37,6 +40,7 @@ export const authService = {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        permissions: user.permissions || [],
       };
       tokenStorage.setUser(sessionUser);
       
@@ -46,40 +50,57 @@ export const authService = {
     throw new Error(response?.message || 'Login failed');
   },
 
+  handleSessionExpired(): void {
+    tokenStorage.clear();
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
+  },
+
   async refreshAccessToken(): Promise<boolean> {
-    const refreshToken = tokenStorage.getRefreshToken();
-    if (!refreshToken) {
-      tokenStorage.clear();
-      return false;
+    if (activeRefreshPromise) {
+      return activeRefreshPromise;
     }
 
-    try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (!res.ok) {
-        tokenStorage.clear();
+    activeRefreshPromise = (async () => {
+      const refreshToken = tokenStorage.getRefreshToken();
+      if (!refreshToken) {
+        this.handleSessionExpired();
         return false;
       }
 
-      const data = await res.json();
-      if (data?.success && data?.data?.token) {
-        tokenStorage.setAccessToken(data.data.token);
-        if (data.data.refresh_token) {
-          tokenStorage.setRefreshToken(data.data.refresh_token);
-        }
-        return true;
-      }
+      try {
+        const res = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
 
-      tokenStorage.clear();
-      return false;
-    } catch {
-      tokenStorage.clear();
-      return false;
-    }
+        if (!res.ok) {
+          this.handleSessionExpired();
+          return false;
+        }
+
+        const data = await res.json();
+        if (data?.success && data?.data?.token) {
+          tokenStorage.setAccessToken(data.data.token);
+          if (data.data.refresh_token) {
+            tokenStorage.setRefreshToken(data.data.refresh_token);
+          }
+          return true;
+        }
+
+        this.handleSessionExpired();
+        return false;
+      } catch {
+        this.handleSessionExpired();
+        return false;
+      } finally {
+        activeRefreshPromise = null;
+      }
+    })();
+
+    return activeRefreshPromise;
   },
 
   logout(): void {
@@ -111,6 +132,18 @@ export const authService = {
   async getMe(): Promise<any> {
     const response = await apiClient.get<any>('/auth/me');
     return response;
+  },
+
+  async getSystemFeatures(): Promise<any> {
+    return await apiClient.get<any>('/permissions/features');
+  },
+
+  async getUserPermissions(userId: number): Promise<any> {
+    return await apiClient.get<any>(`/users/${userId}/permissions`);
+  },
+
+  async updateUserPermissions(userId: number, permissions: string[]): Promise<any> {
+    return await apiClient.put<any>(`/users/${userId}/permissions`, { permissions });
   }
 };
 

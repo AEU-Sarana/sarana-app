@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductDeleteModalProps {
   isOpen: boolean;
@@ -17,7 +18,14 @@ export default function ProductDeleteModal({
   productName,
   isDeleting,
 }: ProductDeleteModalProps) {
+  const { t } = useLanguage();
+
   if (!isOpen) return null;
+
+  const confirmDescText = t(
+    'products.confirm_delete_desc',
+    'Are you sure you want to remove {{name}}? This action soft-deletes the product from the active POS system.'
+  ).replace('{{name}}', productName);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
@@ -28,9 +36,11 @@ export default function ProductDeleteModal({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </div>
-          <h3 className="text-lg font-black text-foreground">Confirm Product Deletion</h3>
+          <h3 className="text-lg font-black text-foreground">
+            {t('products.confirm_delete_title', 'Confirm Product Deletion')}
+          </h3>
           <p className="text-xs text-foreground/50 mt-2 leading-relaxed">
-            Are you sure you want to remove <strong className="text-foreground">{productName}</strong>? This action soft-deletes the product from the active POS system.
+            {confirmDescText}
           </p>
         </div>
         <div className="px-6 py-4 border-t border-border/40 bg-secondary/10 flex justify-end gap-2.5">
@@ -40,7 +50,7 @@ export default function ProductDeleteModal({
             className="px-4 py-2 border border-border bg-card text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/40 rounded-xl transition-all duration-150 cursor-pointer"
             disabled={isDeleting}
           >
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </button>
           <button
             type="button"
@@ -54,7 +64,7 @@ export default function ProductDeleteModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             )}
-            Confirm Delete
+            {isDeleting ? t('products.deleting', 'Deleting...') : t('products.confirm_delete_btn', 'Confirm Delete')}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { reportService } from '../../../services/reportService';
+import { useLanguage } from '../../../contexts/language-context';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type TabId       = 'daily' | 'sales' | 'income' | 'stock';
@@ -19,13 +20,6 @@ interface SalesReportItem { date: string; total_sales: number; total_orders: num
 const fmtUSD   = (n: number) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtShort = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 const fmtFull  = (d: string) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
-
-const STATUS_CFG: Record<StockStatus, { label: string; textCls: string; bgCls: string; dotCls: string }> = {
-  in_stock:     { label: 'In Stock',     textCls: 'text-emerald-600 dark:text-emerald-400', bgCls: 'bg-emerald-500/10', dotCls: 'bg-emerald-500' },
-  low_stock:    { label: 'Low Stock',    textCls: 'text-amber-600 dark:text-amber-400',     bgCls: 'bg-amber-500/10',   dotCls: 'bg-amber-500'   },
-  out_of_stock: { label: 'Out of Stock', textCls: 'text-rose-600 dark:text-rose-400',       bgCls: 'bg-rose-500/10',    dotCls: 'bg-rose-500'    },
-  negative:     { label: 'Negative',     textCls: 'text-red-600 dark:text-red-400',         bgCls: 'bg-red-500/10',     dotCls: 'bg-red-500'     },
-};
 
 // ─── Shared UI Components ──────────────────────────────────────────────────────
 function StatCard({ label, value, sub, accent = 'emerald', icon }: {
@@ -58,11 +52,18 @@ function StatCard({ label, value, sub, accent = 'emerald', icon }: {
 }
 
 function StatusBadge({ status }: { status: StockStatus }) {
-  const cfg = STATUS_CFG[status] || STATUS_CFG.in_stock;
+  const { t } = useLanguage();
+  const statusCfgMap: Record<StockStatus, { labelKey: string; defaultLabel: string; textCls: string; bgCls: string; dotCls: string }> = {
+    in_stock:     { labelKey: 'dashboard.in_stock', defaultLabel: 'In Stock', textCls: 'text-emerald-600 dark:text-emerald-400', bgCls: 'bg-emerald-500/10', dotCls: 'bg-emerald-500' },
+    low_stock:    { labelKey: 'dashboard.low_stock', defaultLabel: 'Low Stock', textCls: 'text-amber-600 dark:text-amber-400', bgCls: 'bg-amber-500/10', dotCls: 'bg-amber-500' },
+    out_of_stock: { labelKey: 'dashboard.out_of_stock', defaultLabel: 'Out of Stock', textCls: 'text-rose-600 dark:text-rose-400', bgCls: 'bg-rose-500/10', dotCls: 'bg-rose-500' },
+    negative:     { labelKey: 'reports.negative_stock', defaultLabel: 'Negative', textCls: 'text-red-600 dark:text-red-400', bgCls: 'bg-red-500/10', dotCls: 'bg-red-500' },
+  };
+  const cfg = statusCfgMap[status] || statusCfgMap.in_stock;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${cfg.bgCls} ${cfg.textCls}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dotCls}`} />
-      {cfg.label}
+      {t(cfg.labelKey, cfg.defaultLabel)}
     </span>
   );
 }
@@ -87,10 +88,11 @@ const TH = ({ children }: { children: React.ReactNode }) => (
 
 // ─── Bar Chart ─────────────────────────────────────────────────────────────────
 function SalesBarChart({ data = [] }: { data: SalesReportItem[] }) {
+  const { t } = useLanguage();
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[180px] text-xs font-bold text-foreground/45">
-        No sales data available for this range
+        {t('reports.no_orders_range', 'No sales data available for this range')}
       </div>
     );
   }
@@ -173,6 +175,7 @@ interface DailyTabProps {
 }
 
 function DailyTab({ date, setDate }: DailyTabProps) {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -196,7 +199,7 @@ function DailyTab({ date, setDate }: DailyTabProps) {
     return (
       <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
         <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Daily Report...</span>
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.generating', 'Generating Daily Report...')}</span>
       </div>
     );
   }
@@ -216,28 +219,28 @@ function DailyTab({ date, setDate }: DailyTabProps) {
     <div className="space-y-5">
       {/* Controls */}
       <div className="flex items-center gap-3 flex-wrap select-none">
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">Date</span>
+        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.date', 'Date')}</span>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
         <button onClick={fetchReport} disabled={isLoading}
           className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
-          {isLoading ? 'Generating...' : 'Generate'}
+          {isLoading ? t('reports.generating', 'Generating...') : t('reports.generate', 'Generate')}
         </button>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Sales"     value={fmtUSD(d.total_sales)}           sub={`${d.total_orders} orders`}              accent="emerald" icon={<DollarIcon />} />
-        <StatCard label="Total Orders"    value={String(d.total_orders)}            sub="POS transactions"                        accent="indigo"  icon={<CartIcon />}   />
-        <StatCard label="Cash Collected"  value={fmtUSD(d.summary.cash_collected)} sub="Drawer total"                            accent="sky"     icon={<CashIcon />}   />
-        <StatCard label="Avg Order Value" value={fmtUSD(d.average_order_value)}    sub={`${d.summary.total_products_sold} items sold`} accent="amber" icon={<BarIcon />} />
+        <StatCard label={t('reports.total_sales', 'Total Sales')}     value={fmtUSD(d.total_sales)}           sub={`${d.total_orders} ${t('reports.orders', 'orders')}`}              accent="emerald" icon={<DollarIcon />} />
+        <StatCard label={t('reports.total_orders', 'Total Orders')}    value={String(d.total_orders)}            sub={t('reports.pos_transactions', 'POS transactions')}                        accent="indigo"  icon={<CartIcon />}   />
+        <StatCard label={t('reports.cash_collected', 'Cash Collected')}  value={fmtUSD(d.summary.cash_collected)} sub={t('reports.drawer_total', 'Drawer total')}                            accent="sky"     icon={<CashIcon />}   />
+        <StatCard label={t('reports.avg_order_value', 'Avg Order Value')} value={fmtUSD(d.average_order_value)}    sub={`${d.summary.total_products_sold} ${t('reports.items_sold', 'items sold')}`} accent="amber" icon={<BarIcon />} />
       </div>
 
       {/* Top Products */}
-      <SectionCard title="Top Selling Products">
+      <SectionCard title={t('reports.top_selling_products', 'Top Selling Products')}>
         {d.top_products.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-            No sales recorded for this date.
+            {t('reports.no_sales_date', 'No sales recorded for this date.')}
           </div>
         ) : (
           <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
@@ -245,7 +248,7 @@ function DailyTab({ date, setDate }: DailyTabProps) {
               <thead>
                 <tr className="bg-secondary/35 border-b border-border/30">
                   <TH>#</TH>
-                  <TH>Product</TH>
+                  <TH>{t('dashboard.col_name', 'Product')}</TH>
                   <TH>Code</TH>
                   <TH>Qty Sold</TH>
                   <TH>Revenue</TH>
@@ -283,10 +286,10 @@ function DailyTab({ date, setDate }: DailyTabProps) {
 
       {/* Shifts + Low Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <SectionCard title="Cashier Sales Summary">
+        <SectionCard title={t('reports.cashier_sales_summary', 'Cashier Sales Summary')}>
           {d.shifts_breakdown.length === 0 ? (
             <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-              No cashier orders recorded for this date.
+              {t('reports.no_cashier_orders', 'No cashier orders recorded for this date.')}
             </div>
           ) : (
             <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
@@ -365,6 +368,7 @@ interface SalesHistoryTabProps {
 }
 
 function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: SalesHistoryTabProps) {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -392,7 +396,7 @@ function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: Sales
     return (
       <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
         <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Sales History...</span>
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.loading', 'Loading...')}</span>
       </div>
     );
   }
@@ -406,43 +410,43 @@ function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: Sales
     <div className="space-y-5">
       {/* Date range */}
       <div className="flex items-center gap-3 flex-wrap select-none">
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">From</span>
+        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.from', 'From')}</span>
         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
           className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">To</span>
+        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.to', 'To')}</span>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
           className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
         <button onClick={fetchReport} disabled={isLoading}
           className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
-          {isLoading ? 'Loading...' : 'Apply'}
+          {isLoading ? t('reports.loading', 'Loading...') : t('reports.apply', 'Apply')}
         </button>
       </div>
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label="Total Revenue"     value={fmtUSD(s.summary.total_sales)}        sub="In selected range" accent="emerald" icon={<DollarIcon />} />
-        <StatCard label="Total Orders"      value={String(s.summary.total_orders)}         sub="Total transactions"        accent="indigo"  icon={<CartIcon />}   />
-        <StatCard label="Avg Daily Revenue" value={fmtUSD(s.summary.average_daily_sales)} sub="Per trading day"   accent="sky"     icon={<BarIcon />}    />
+        <StatCard label={t('reports.total_revenue', 'Total Revenue')}     value={fmtUSD(s.summary.total_sales)}        sub={t('reports.in_selected_range', 'In selected range')} accent="emerald" icon={<DollarIcon />} />
+        <StatCard label={t('reports.total_orders', 'Total Orders')}      value={String(s.summary.total_orders)}         sub={t('reports.total_transactions', 'Total transactions')}        accent="indigo"  icon={<CartIcon />}   />
+        <StatCard label={t('reports.avg_daily_revenue', 'Avg Daily Revenue')} value={fmtUSD(s.summary.average_daily_sales)} sub={t('reports.per_trading_day', 'Per trading day')}   accent="sky"     icon={<BarIcon />}    />
       </div>
 
       {/* Bar chart */}
-      <SectionCard title="Daily Revenue">
+      <SectionCard title={t('reports.daily_revenue', 'Daily Revenue')}>
         <div className="p-5 pt-4">
           <SalesBarChart data={s.sales} />
         </div>
       </SectionCard>
 
       {/* Daily table */}
-      <SectionCard title="Day-by-Day Summary">
+      <SectionCard title={t('reports.day_by_day_summary', 'Day-by-Day Summary')}>
         {s.sales.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-            No orders found within this date range.
+            {t('reports.no_orders_range', 'No orders found within this date range.')}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-secondary/20 border-b border-border/30">
-                <TH>Date</TH><TH>Orders</TH><TH>Revenue</TH>
+                <TH>{t('reports.date', 'Date')}</TH><TH>{t('reports.orders', 'Orders')}</TH><TH>{t('reports.total_revenue', 'Revenue')}</TH>
               </tr>
             </thead>
             <tbody>
@@ -468,6 +472,7 @@ interface IncomeTabProps {
 }
 
 function IncomeTab({ period, setPeriod }: IncomeTabProps) {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -491,7 +496,7 @@ function IncomeTab({ period, setPeriod }: IncomeTabProps) {
     return (
       <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
         <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">Calculating Income Report...</span>
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.loading', 'Calculating Income Report...')}</span>
       </div>
     );
   }
@@ -529,18 +534,18 @@ function IncomeTab({ period, setPeriod }: IncomeTabProps) {
 
       {/* Main cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Revenue"   value={fmtUSD(inc.total_sales)}    sub={`${inc.total_orders} orders`}        accent="emerald" icon={<DollarIcon />} />
-        <StatCard label="COGS"            value={fmtUSD(inc.cogs)}            sub="Cost of goods sold"                  accent="rose"    icon={<BarIcon />}    />
-        <StatCard label="Gross Profit"    value={fmtUSD(inc.profit)}          sub={`${margin}% margin`}                 accent="indigo"  icon={<TrendIcon />}  />
-        <StatCard label="Purchases Cost"  value={fmtUSD(inc.purchasesCost)}   sub={`${inc.purchasesQty} units bought`}  accent="amber"   icon={<BoxIcon />}    />
+        <StatCard label={t('reports.total_revenue', 'Total Revenue')}   value={fmtUSD(inc.total_sales)}    sub={`${inc.total_orders} ${t('reports.orders', 'orders')}`}        accent="emerald" icon={<DollarIcon />} />
+        <StatCard label={t('reports.cogs', 'COGS')}            value={fmtUSD(inc.cogs)}            sub="Cost of goods sold"                  accent="rose"    icon={<BarIcon />}    />
+        <StatCard label={t('reports.gross_profit', 'Gross Profit')}    value={fmtUSD(inc.profit)}          sub={`${margin}% margin`}                 accent="indigo"  icon={<TrendIcon />}  />
+        <StatCard label={t('reports.purchases_cost', 'Purchases Cost')}  value={fmtUSD(inc.purchasesCost)}   sub={`${inc.purchasesQty} units bought`}  accent="amber"   icon={<BoxIcon />}    />
       </div>
 
       {/* Profit Margin visual */}
       <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-black text-foreground">Profit Margin</h3>
-            <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">Revenue breakdown</p>
+            <h3 className="text-sm font-black text-foreground">{t('reports.profit_margin', 'Profit Margin')}</h3>
+            <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">{t('reports.revenue_breakdown', 'Revenue breakdown')}</p>
           </div>
           <span className="text-3xl font-black text-indigo-500">{margin}%</span>
         </div>
@@ -554,11 +559,11 @@ function IncomeTab({ period, setPeriod }: IncomeTabProps) {
         <div className="flex gap-6 flex-wrap select-none">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground/60">
             <div className="w-3 h-3 rounded-full bg-indigo-500 shrink-0" />
-            Gross Profit ({margin}%) — {fmtUSD(inc.profit)}
+            {t('reports.gross_profit', 'Gross Profit')} ({margin}%) — {fmtUSD(inc.profit)}
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-foreground/60">
             <div className="w-3 h-3 rounded-full bg-rose-500/60 shrink-0" />
-            COGS ({cogsPct}%) — {fmtUSD(inc.cogs)}
+            {t('reports.cogs', 'COGS')} ({cogsPct}%) — {fmtUSD(inc.cogs)}
           </div>
         </div>
       </div>
@@ -566,14 +571,14 @@ function IncomeTab({ period, setPeriod }: IncomeTabProps) {
       {/* Extra stats */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-card border border-border/40 rounded-3xl p-5 shadow-sm">
-          <p className="text-[10px] uppercase font-black text-foreground/45 tracking-widest">Total Items Sold</p>
+          <p className="text-[10px] uppercase font-black text-foreground/45 tracking-widest">{t('reports.total_items_sold', 'Total Items Sold')}</p>
           <p className="text-3xl font-black text-foreground mt-2">{inc.totalItems.toLocaleString()}</p>
           <p className="text-[9px] font-bold text-foreground/35 mt-1">{period} period</p>
         </div>
         <div className="bg-card border border-border/40 rounded-3xl p-5 shadow-sm">
-          <p className="text-[10px] uppercase font-black text-foreground/45 tracking-widest">Purchases Qty</p>
+          <p className="text-[10px] uppercase font-black text-foreground/45 tracking-widest">{t('reports.purchases_qty', 'Purchases Qty')}</p>
           <p className="text-3xl font-black text-foreground mt-2">{inc.purchasesQty.toLocaleString()}</p>
-          <p className="text-[9px] font-bold text-foreground/35 mt-1">units restocked</p>
+          <p className="text-[9px] font-bold text-foreground/35 mt-1">{t('reports.units_restocked', 'units restocked')}</p>
         </div>
       </div>
     </div>
@@ -589,6 +594,7 @@ interface StockReportTabProps {
 }
 
 function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportTabProps) {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -614,7 +620,7 @@ function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportT
     return (
       <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
         <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">Generating Stock Report...</span>
+        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.loading', 'Generating Stock Report...')}</span>
       </div>
     );
   }
@@ -635,7 +641,7 @@ function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportT
       {/* Filter row */}
       <div className="flex items-center gap-3 flex-wrap">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search product or code…"
+          placeholder={t('reports.search_product_code', 'Search product or code…')}
           className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-emerald-500/50 w-56" />
         <button onClick={() => setLowOnly(!lowOnly)}
           className={`px-4 py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
@@ -643,29 +649,29 @@ function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportT
               ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25'
               : 'bg-secondary/40 text-foreground/60 border-border/40 hover:border-border/80'
           }`}>
-          {lowOnly ? '⚠ Low / Out Only' : 'Show All'}
+          {lowOnly ? t('reports.low_out_only', '⚠ Low / Out Only') : t('reports.show_all', 'Show All')}
         </button>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Products"  value={String(d.summary.total_products)}       sub="In inventory"    accent="sky"     icon={<BoxIcon />}     />
-        <StatCard label="Low Stock"        value={String(d.summary.low_stock_count)}       sub="Need reorder"    accent="amber"   icon={<WarningIcon />} />
-        <StatCard label="Out of Stock"     value={String(d.summary.out_of_stock_count)}    sub="Critical"        accent="rose"    icon={<BanIcon />}     />
-        <StatCard label="Negative Stock"   value={String(d.summary.negative_stock_count)}  sub="Check movement"  accent="indigo"  icon={<AlertIcon />}   />
+        <StatCard label={t('reports.total_products', 'Total Products')}  value={String(d.summary.total_products)}       sub={t('reports.in_inventory', 'In inventory')}    accent="sky"     icon={<BoxIcon />}     />
+        <StatCard label={t('reports.low_stock', 'Low Stock')}        value={String(d.summary.low_stock_count)}       sub={t('reports.need_reorder', 'Need reorder')}    accent="amber"   icon={<WarningIcon />} />
+        <StatCard label={t('reports.out_of_stock', 'Out of Stock')}     value={String(d.summary.out_of_stock_count)}    sub={t('reports.critical', 'Critical')}        accent="rose"    icon={<BanIcon />}     />
+        <StatCard label={t('reports.negative_stock', 'Negative Stock')}   value={String(d.summary.negative_stock_count)}  sub={t('reports.check_movement', 'Check movement')}  accent="indigo"  icon={<AlertIcon />}   />
       </div>
 
       {/* Table */}
-      <SectionCard title={`Stock Inventory (${filtered.length})`}>
+      <SectionCard title={`${t('reports.stock_inventory', 'Stock Inventory')} (${filtered.length})`}>
         {filtered.length === 0 ? (
           <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-            No products found matching active filters.
+            {t('reports.no_products_filter', 'No products found matching active filters.')}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-secondary/20 border-b border-border/30">
-                <TH>Product</TH><TH>Code</TH><TH>Category</TH><TH>Current Stock</TH><TH>Min Threshold</TH><TH>Status</TH>
+                <TH>{t('dashboard.col_name', 'Product')}</TH><TH>Code</TH><TH>{t('products.col_category', 'Category')}</TH><TH>{t('stock.current_stock', 'Current Stock')}</TH><TH>{t('stock.low_stock_threshold', 'Min Threshold')}</TH><TH>{t('products.col_status', 'Status')}</TH>
               </tr>
             </thead>
             <tbody>
@@ -695,6 +701,7 @@ function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportT
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminReportsPage() {
+  const { t } = useLanguage();
   const [activeTab,   setActiveTab]   = useState<TabId>('daily');
   const [showExport,  setShowExport]  = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -757,11 +764,11 @@ export default function AdminReportsPage() {
     }
   };
 
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'daily',  label: 'Daily Report'  },
-    { id: 'sales',  label: 'Sales History' },
-    { id: 'income', label: 'Income Report' },
-    { id: 'stock',  label: 'Stock Report'  },
+  const tabs: { id: TabId; labelKey: string; defaultLabel: string }[] = [
+    { id: 'daily',  labelKey: 'reports.tab_daily',  defaultLabel: 'Daily Report'  },
+    { id: 'sales',  labelKey: 'reports.tab_sales',  defaultLabel: 'Sales History' },
+    { id: 'income', labelKey: 'reports.tab_income', defaultLabel: 'Income Report' },
+    { id: 'stock',  labelKey: 'reports.tab_stock',  defaultLabel: 'Stock Report'  },
   ];
 
   return (
@@ -770,12 +777,12 @@ export default function AdminReportsPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Tab switcher */}
         <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl select-none">
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)}
+          {tabs.map(tItem => (
+            <button key={tItem.id} onClick={() => setActiveTab(tItem.id)}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer ${
-                activeTab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-foreground/50 hover:text-foreground'
+                activeTab === tItem.id ? 'bg-card text-foreground shadow-sm' : 'text-foreground/50 hover:text-foreground'
               }`}>
-              {t.label}
+              {t(tItem.labelKey, tItem.defaultLabel)}
             </button>
           ))}
         </div>
@@ -791,14 +798,14 @@ export default function AdminReportsPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Exporting...
+                  {t('reports.exporting', 'Exporting...')}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Export
+                  {t('reports.export', 'Export')}
                   <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showExport ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

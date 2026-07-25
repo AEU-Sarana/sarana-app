@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { User } from '../../features/user/types';
+import { useLanguage } from '../../contexts/language-context';
 
 const PAGE_LIMIT = 10;
 
@@ -15,6 +16,8 @@ interface UserListTableProps {
   onPageChange: (page: number) => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
+  onManagePermissions?: (user: User) => void;
+  onViewDetails?: (user: User) => void;
   currentUserId?: number | null;
 }
 
@@ -28,8 +31,12 @@ export function UserListTable({
   onPageChange,
   onEdit,
   onDeactivate,
+  onManagePermissions,
+  onViewDetails,
   currentUserId,
 }: UserListTableProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
       {/* Error Message */}
@@ -70,8 +77,8 @@ export function UserListTable({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <p className="text-sm font-bold text-foreground/35">No users found</p>
-              <p className="text-xs text-foreground/25 font-semibold">Try adjusting your search filters or add a new user</p>
+              <p className="text-sm font-bold text-foreground/35">{t('users.title', 'No users found')}</p>
+              <p className="text-xs text-foreground/25 font-semibold">{t('pos.no_products_desc', 'Try adjusting your search filters or add a new user')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -79,12 +86,11 @@ export function UserListTable({
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
                     <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45 w-16">ID</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">User Info</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Contact</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Role</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Status</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Device</th>
-                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Actions</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('users.user_info', 'User Info')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('users.contact', 'Contact')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('users.role', 'Role')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('users.status', 'Status')}</th>
+                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('common.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/10">
@@ -136,14 +142,14 @@ export function UserListTable({
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
-                              Administrator
+                              {t('common.administrator', 'Administrator')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold border border-success/15">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                               </svg>
-                              Cashier
+                              {t('common.cashier', 'Cashier')}
                             </span>
                           )}
                         </td>
@@ -153,33 +159,46 @@ export function UserListTable({
                           {user.status === 'active' ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-extrabold select-none">
                               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                              Active
+                              {t('common.active', 'Active')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-extrabold select-none">
                               <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
-                              Inactive
+                              {t('common.inactive', 'Inactive')}
                             </span>
-                          )}
-                        </td>
-
-                        {/* Device */}
-                        <td className="px-6 py-4">
-                          {user.deviceId ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-foreground/75 font-semibold" title={`Bound ID: ${user.deviceId}`}>
-                              <svg className="w-3.5 h-3.5 text-success shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                              Authorized
-                            </span>
-                          ) : (
-                            <span className="text-foreground/30 font-medium text-xs">—</span>
                           )}
                         </td>
 
                         {/* Actions */}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {onViewDetails && (
+                              <button
+                                onClick={() => onViewDetails(user)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/40 text-foreground/75 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="View User Information Details"
+                              >
+                                <svg className="w-3.5 h-3.5 text-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                {t('common.view', 'View')}
+                              </button>
+                            )}
+
+                            {onManagePermissions && user.role !== 'ADMIN' && (
+                              <button
+                                onClick={() => onManagePermissions(user)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Manage Feature Permissions"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                {t('common.permissions', 'Permissions')}
+                              </button>
+                            )}
+
                             <button
                               onClick={() => onEdit(user)}
                               className="flex items-center gap-1 px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/40 text-foreground/75 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"
@@ -188,7 +207,7 @@ export function UserListTable({
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
-                              Edit
+                              {t('common.edit', 'Edit')}
                             </button>
 
                             <button
@@ -208,14 +227,14 @@ export function UserListTable({
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                   </svg>
-                                  Deactivate
+                                  {t('common.deactivate', 'Deactivate')}
                                 </>
                               ) : (
                                 <>
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4" />
                                   </svg>
-                                  Reactivate
+                                  {t('common.reactivate', 'Reactivate')}
                                 </>
                               )}
                             </button>
@@ -233,7 +252,10 @@ export function UserListTable({
           {totalPages > 1 && total > PAGE_LIMIT && (
             <div className="px-6 py-4.5 border-t border-border/20 bg-secondary/5 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
               <span className="text-xs text-foreground/45 font-semibold">
-                Showing page {page} of {totalPages} ({total} entries found)
+                {t('common.showing_page', 'Showing page {{page}} of {{totalPages}} ({{total}} entries found)')
+                  .replace('{{page}}', String(page))
+                  .replace('{{totalPages}}', String(totalPages))
+                  .replace('{{total}}', String(total))}
               </span>
               <div className="flex items-center gap-1.5">
                 <button

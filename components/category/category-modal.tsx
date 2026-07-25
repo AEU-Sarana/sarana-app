@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Category } from '../../features/category/types';
 import { categoryService } from '../../services/categoryService';
+import { useLanguage } from '../../contexts/language-context';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface CategoryModalProps {
 }
 
 export default function CategoryModal({ isOpen, onClose, onSave, category }: CategoryModalProps) {
+  const { t } = useLanguage();
   const isEditMode = !!category;
 
   const [name, setName] = useState('');
@@ -77,10 +79,10 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
         <div className="px-6 py-5 border-b border-border/40 flex justify-between items-center bg-secondary/10">
           <div>
             <h2 className="text-lg font-extrabold text-foreground leading-tight">
-              {isEditMode ? 'Edit Category' : 'Create Category'}
+              {isEditMode ? t('categories.edit_category', 'Edit Category') : t('categories.create_category', 'Create Category')}
             </h2>
             <p className="text-[11px] text-foreground/50 mt-1.5">
-              {isEditMode ? 'Modify category details and description.' : 'Add a new category classification to organize products.'}
+              {isEditMode ? t('categories.edit_category_subtitle', 'Modify category details and description.') : t('categories.create_category_subtitle', 'Add a new category classification to organize products.')}
             </p>
           </div>
           <button
@@ -107,11 +109,11 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
           {/* Category Name */}
           <div>
             <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/60 mb-2">
-              Category Name <span className="text-destructive">*</span>
+              {t('categories.category_name', 'Category Name')} <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. Antibiotics, Pain Relievers"
+              placeholder={t('categories.category_name_placeholder', 'e.g. Antibiotics, Pain Relievers')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
@@ -123,11 +125,11 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
           {/* Description */}
           <div>
             <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/60 mb-2">
-              Description
+              {t('categories.description', 'Description')}
             </label>
             <textarea
               rows={3}
-              placeholder="Describe medicines classified in this category..."
+              placeholder={t('categories.description_placeholder', 'Describe medicines classified in this category...')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150 resize-none"
@@ -144,7 +146,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
             className="px-4 py-2 rounded-xl border border-border bg-card text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/40 transition-all duration-150 cursor-pointer"
             disabled={isSaving}
           >
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </button>
           <button
             type="button"
@@ -158,7 +160,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             )}
-            {isSaving ? 'Saving...' : isEditMode ? 'Update' : 'Create'}
+            {isSaving ? t('products.saving', 'Saving...') : isEditMode ? t('categories.update', 'Update') : t('categories.create', 'Create')}
           </button>
         </div>
       </div>

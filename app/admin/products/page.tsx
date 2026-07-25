@@ -9,8 +9,10 @@ import ProductModal from '../../../components/products/product-modal';
 import ProductList from '../../../components/products/product-list';
 import ProductDeleteModal from '../../../components/products/product-delete-modal';
 import ProductDetailModal from '../../../components/products/product-detail-modal';
+import { useLanguage } from '../../../contexts/language-context';
 
 export default function AdminProductsPage() {
+  const { t } = useLanguage();
   // Products listing state
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState({
@@ -62,91 +64,72 @@ export default function AdminProductsPage() {
     expiringCount: 0,
   });
 
-
-  // Fetch all active categories & counts
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [cats, counts] = await Promise.all([
-          categoryService.listCategories(),
-          categoryService.listCategoryCounts(),
-        ]);
-        setCategoriesList(cats);
-        setCategoryCounts(counts);
-      } catch (err) {
-        console.error('Failed to fetch categories list/counts', err);
-      }
-    };
-    fetchMetadata();
-  }, []);
-
-  // Fetch Products Handler
+  // Load products list from API backend
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      
-      // 1. Fetch filtered & paginated products list for the table
       const response = await productService.listProducts({
         page: pagination.page,
         limit: pagination.limit,
         search: searchQuery.trim() || undefined,
-        category_id: selectedCategory || undefined,
-        status: selectedStatus || undefined,
+        category_id: selectedCategory ? Number(selectedCategory) : undefined,
+        status: (selectedStatus as ProductStatus) || undefined,
       });
 
-      setProducts(response.products);
-      setPagination(response.pagination);
-
-      // 2. Fetch all products in pages of 100 to compute overall counts
-      let allProducts: Product[] = [];
-      let page = 1;
-      let hasMore = true;
-      let totalCount = 0;
-
-      while (hasMore) {
-        const statsResponse = await productService.listProducts({
-          page,
-          limit: 100, // Maximum allowed limit by backend validation
-        });
-        allProducts = [...allProducts, ...statsResponse.products];
-        totalCount = statsResponse.pagination.total;
-
-        if (page >= statsResponse.pagination.totalPages) {
-          hasMore = false;
-        } else {
-          page++;
-        }
+      setProducts(response.products || []);
+      if (response.pagination) {
+        setPagination((prev) => ({
+          ...prev,
+          total: response.pagination.total,
+          totalPages: response.pagination.totalPages,
+        }));
       }
-
-      const lowStock = allProducts.filter(
-        (p) => p.low_stock_threshold !== null && p.stock_quantity < p.low_stock_threshold
-      ).length;
-      const expiring = allProducts.filter((p) => p.has_expiry).length;
-
-      setStatsData({
-        totalCount,
-        lowStockCount: lowStock,
-        expiringCount: expiring,
-      });
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || 'Failed to retrieve products. Please refresh and try again.');
+      setErrorMessage(err.message || 'Failed to retrieve products list from server.');
     } finally {
       setIsLoading(false);
     }
   }, [pagination.page, pagination.limit, searchQuery, selectedCategory, selectedStatus]);
 
-  // Sync products list when filters or pages change
+  // Load Metadata (Categories list & Stock stats)
+  const fetchMetadata = useCallback(async () => {
+    try {
+      const [cats, counts, stockRes] = await Promise.all([
+        categoryService.listCategories(false),
+        categoryService.listCategoryCounts(),
+        productService.listProducts({ limit: 1000 }),
+      ]);
+      setCategoriesList(cats);
+      setCategoryCounts(counts);
+
+      if (stockRes && stockRes.products) {
+        const allProds = stockRes.products;
+        const lowStock = allProds.filter(
+          (p) => p.low_stock_threshold !== null && p.stock_quantity < p.low_stock_threshold
+        ).length;
+        setStatsData({
+          totalCount: stockRes.pagination?.total || allProds.length,
+          lowStockCount: lowStock,
+          expiringCount: 0,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load products metadata:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetadata();
+  }, [fetchMetadata]);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Page index handlers
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      setPagination((prev) => ({ ...prev, page: newPage }));
-    }
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   // Clear Filters
@@ -222,9 +205,9 @@ export default function AdminProductsPage() {
       {/* 1. Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 select-none">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Products & Medicines</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">{t('header.products_title', 'Products & Medicines')}</h1>
           <p className="text-xs text-foreground/50 mt-1">
-            Manage your pharmacy catalog, check inventory levels, and register medicine parameters.
+            {t('header.products_subtitle', 'Manage your pharmacy catalog, check inventory levels, and register medicine parameters.')}
           </p>
         </div>
         
@@ -238,7 +221,7 @@ export default function AdminProductsPage() {
             <svg className={`w-4 h-4 text-foreground/50 transition-transform duration-500 ease-out ${isLoading ? 'animate-spin' : 'group-hover:rotate-180'}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
-            <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+            <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
           
           <button
@@ -248,7 +231,7 @@ export default function AdminProductsPage() {
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
             </svg>
-            Add Product
+            {t('products.add_product', 'Add Product')}
           </button>
         </div>
       </div>
@@ -264,9 +247,9 @@ export default function AdminProductsPage() {
             </svg>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">Total Products</span>
+            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">{t('products.total_products', 'Total Products')}</span>
             <span className="text-2xl font-black text-foreground mt-1 block tracking-tight leading-none">{statsData.totalCount}</span>
-            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">Active catalog items</span>
+            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">{t('products.active_products', 'Active catalog items')}</span>
           </div>
         </div>
 
@@ -279,11 +262,11 @@ export default function AdminProductsPage() {
             </svg>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">Low Stock Items</span>
+            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">{t('products.low_stock_warnings', 'Low Stock Items')}</span>
             <span className="text-2xl font-black text-foreground mt-1 block tracking-tight leading-none">
               {statsData.lowStockCount}
             </span>
-            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">Require restock attention</span>
+            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">{t('reports.need_reorder', 'Require restock attention')}</span>
           </div>
         </div>
 
@@ -296,9 +279,9 @@ export default function AdminProductsPage() {
             </svg>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">Categories</span>
+            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">{t('products.categories_count', 'Categories')}</span>
             <span className="text-2xl font-black text-foreground mt-1 block tracking-tight leading-none">{categoriesList.length}</span>
-            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">Medicine groups</span>
+            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">{t('header.categories_subtitle', 'Medicine groups')}</span>
           </div>
         </div>
 
@@ -311,11 +294,11 @@ export default function AdminProductsPage() {
             </svg>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">Expiring Tracked</span>
+            <span className="text-[10px] uppercase font-black text-foreground/40 tracking-widest block">{t('dashboard.expired', 'Expiring Tracked')}</span>
             <span className="text-2xl font-black text-foreground mt-1 block tracking-tight leading-none">
               {statsData.expiringCount}
             </span>
-            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">Under strict tracking</span>
+            <span className="text-[9px] font-semibold text-foreground/35 mt-1 block">{t('reports.critical', 'Under strict tracking')}</span>
           </div>
         </div>
       </div>
@@ -328,7 +311,7 @@ export default function AdminProductsPage() {
           <div className="lg:col-span-7 relative">
             <input
               type="text"
-              placeholder="Search product by name or barcode..."
+              placeholder={t('products.search_placeholder', 'Search medicine name, barcode, or code...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary/80 focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
@@ -348,7 +331,7 @@ export default function AdminProductsPage() {
               }}
               className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
             >
-              <option value="">All Categories</option>
+              <option value="">{t('products.all_categories', 'All Categories')}</option>
               {categoriesList.map((cat) => (
                 <option key={cat.categoryId} value={cat.categoryId}>
                   {cat.name}
@@ -367,9 +350,9 @@ export default function AdminProductsPage() {
               }}
               className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('products.all_statuses', 'All Status')}</option>
+              <option value="active">{t('common.active', 'Active')}</option>
+              <option value="inactive">{t('common.inactive', 'Inactive')}</option>
             </select>
           </div>
 
@@ -386,7 +369,7 @@ export default function AdminProductsPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Clear active filters
+              {t('common.clear', 'Clear active filters')}
             </button>
           </div>
         )}

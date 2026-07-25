@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '../../contexts/language-context';
 
 export interface Customer {
   customerId: number;
@@ -43,11 +44,13 @@ export default function CustomerSelector({
   setSelectedCustomerId,
   customers,
 }: CustomerSelectorProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-3 select-none border-b border-border/40 pb-4 shrink-0">
       <div className="flex justify-between items-center">
         <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/50">
-          Customer Association
+          {t('pos.customer_association', 'CUSTOMER ASSOCIATION')}
         </label>
         <button
           type="button"
@@ -57,7 +60,7 @@ export default function CustomerSelector({
           }}
           className="text-[10px] font-bold text-primary hover:underline cursor-pointer focus:outline-none"
         >
-          {isNewCustomerMode ? 'Select Existing' : '+ Register New'}
+          {isNewCustomerMode ? t('pos.select_existing', 'Select Existing') : t('pos.register_new', '+ Register New')}
         </button>
       </div>
 
@@ -66,7 +69,7 @@ export default function CustomerSelector({
           <div>
             <input
               type="text"
-              placeholder="Customer Full Name"
+              placeholder={t('pos.customer_full_name', 'Customer Full Name')}
               value={newCustomerName}
               onChange={(e) => {
                 setNewCustomerName(e.target.value);
@@ -83,7 +86,7 @@ export default function CustomerSelector({
           <div>
             <input
               type="text"
-              placeholder="Phone Number (e.g. 012345678)"
+              placeholder={t('pos.customer_phone_placeholder', 'Phone Number (e.g. 012345678)')}
               value={newCustomerPhone}
               onChange={(e) => {
                 setNewCustomerPhone(e.target.value);
@@ -103,7 +106,7 @@ export default function CustomerSelector({
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by name or phone number..."
+              placeholder={t('pos.search_customer_placeholder', 'Search by name or phone number...')}
               value={customerSearch}
               onFocus={() => setIsCustomerDropdownOpen(true)}
               onChange={(e) => {
@@ -160,7 +163,7 @@ export default function CustomerSelector({
                         : 'text-foreground/75 hover:bg-secondary/60 hover:text-foreground'
                     }`}
                   >
-                    Walk-in Customer (Guest)
+                    {t('pos.walk_in_customer', 'Walk-in Customer (Guest)')}
                   </button>
 
                   {customers
@@ -202,7 +205,7 @@ export default function CustomerSelector({
                     return c.fullName.toLowerCase().includes(query) || (c.phone?.toLowerCase().includes(query) ?? false);
                   }).length === 0 && (
                     <div className="px-3 py-2 text-center text-[10px] font-bold text-foreground/40 select-none">
-                      No customers found
+                      {t('pos.no_customers_found', 'No customers found')}
                     </div>
                   )}
                 </div>

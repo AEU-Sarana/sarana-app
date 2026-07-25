@@ -44,8 +44,22 @@ class ApiClient {
 
     // 5. Handle HTTP Errors
     if (!response.ok) {
-      // Handle automatic token refresh if 401 and we have a refresh handler registered
-      if (response.status === 401 && this.onTokenRefresh) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: 'An unexpected error occurred' };
+      }
+
+      const isAuthError =
+        response.status === 401 ||
+        errorData?.code === 'AUTH_TOKEN_EXPIRED' ||
+        errorData?.code === 'UNAUTHORIZED' ||
+        errorData?.code === 'INVALID_TOKEN' ||
+        errorData?.code === 'TOKEN_REUSE_DETECTED';
+
+      // Handle automatic token refresh if 401 / auth error and we have a refresh handler registered
+      if (isAuthError && this.onTokenRefresh) {
         const refreshed = await this.onTokenRefresh();
         if (refreshed) {
           // Retry the original request with new token
@@ -57,15 +71,22 @@ class ApiClient {
           if (retryResponse.ok) {
             return (await retryResponse.json()) as T;
           }
+          try {
+            errorData = await retryResponse.json();
+          } catch {
+            // Keep existing errorData
+          }
         }
       }
 
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = { message: 'An unexpected error occurred' };
+      // If auth token expired and refresh failed / is impossible, force clear session & redirect to /login
+      if (isAuthError) {
+        tokenStorage.clear();
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
       }
+
       throw new Error(errorData?.message || errorData?.error || 'HTTP request failed');
     }
 

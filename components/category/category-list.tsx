@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Category } from '../../features/category/types';
+import { useLanguage } from '../../contexts/language-context';
 
 interface CategoryListProps {
   categories: Category[];
@@ -22,6 +23,8 @@ export default function CategoryList({
   getProductCount,
   onRetry,
 }: CategoryListProps) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
@@ -29,7 +32,7 @@ export default function CategoryList({
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        <span className="text-sm font-semibold text-foreground/50">Retrieving category index...</span>
+        <span className="text-sm font-semibold text-foreground/50">{t('pos.retrieving_catalog', 'Retrieving category index...')}</span>
       </div>
     );
   }
@@ -60,9 +63,9 @@ export default function CategoryList({
         <svg className="w-16 h-16 text-foreground/15 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <h3 className="text-lg font-bold text-foreground">No Categories Found</h3>
+        <h3 className="text-lg font-bold text-foreground">{t('categories.no_categories_found', 'No Categories Found')}</h3>
         <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed">
-          You haven't defined any medicine groups yet. Register a new category classification above to populate this panel.
+          {t('categories.description', 'You haven\'t defined any medicine groups yet. Register a new category classification above to populate this panel.')}
         </p>
       </div>
     );
@@ -74,11 +77,11 @@ export default function CategoryList({
         <thead>
           <tr className="border-b border-border/30 bg-secondary/10">
             <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45 w-20">ID</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">Category Name</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">Description</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">Products Count</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">Status</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45 text-right w-24">Actions</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('categories.category_name', 'Category Name')}</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('categories.description', 'Description')}</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('categories.col_products_count', 'Products Count')}</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_status', 'Status')}</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45 text-right w-24">{t('common.actions', 'Actions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/20">
@@ -99,13 +102,13 @@ export default function CategoryList({
 
                 {/* Description */}
                 <td className="px-6 py-4 text-sm text-foreground/60 max-w-sm truncate">
-                  {cat.description || <span className="text-foreground/35 italic font-medium">No description provided</span>}
+                  {cat.description || <span className="text-foreground/35 italic font-medium">-</span>}
                 </td>
 
                 {/* Associated Products count */}
                 <td className="px-6 py-4">
                   <span className="px-2.5 py-1 bg-secondary text-foreground text-xs font-bold rounded-lg border border-border/20">
-                    {productCount} products
+                    {productCount} {t('dashboard.products', 'products')}
                   </span>
                 </td>
 
@@ -116,7 +119,7 @@ export default function CategoryList({
                       ? 'text-success bg-success/10 border-success/15'
                       : 'text-destructive bg-destructive/10 border-destructive/15'
                   }`}>
-                    {cat.isActive ? 'Active' : 'Inactive'}
+                    {cat.isActive ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
                   </span>
                 </td>
 

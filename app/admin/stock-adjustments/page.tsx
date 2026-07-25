@@ -7,6 +7,7 @@ import { Product } from '../../../features/product/types';
 import { StockMovementItem } from '../../../features/stock/types';
 import { ProductSearch } from '../../../components/stocks/product-search';
 import { StockMovementTable } from '../../../components/stocks/stock-movement-table';
+import { useLanguage } from '../../../contexts/language-context';
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -66,6 +67,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 export default function AdminStockAdjustmentsPage() {
+  const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,9 +188,9 @@ export default function AdminStockAdjustmentsPage() {
             </svg>
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-foreground tracking-tight">Stock Adjustments</h1>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">{t('stock_adjustments_page.title', 'Stock Adjustments')}</h1>
             <p className="text-xs text-foreground/50 mt-1">
-              Manually adjust stock quantities and reconcile differences.
+              {t('stock_adjustments_page.subtitle', 'Manually adjust stock quantities and reconcile differences.')}
             </p>
           </div>
         </div>
@@ -196,7 +198,7 @@ export default function AdminStockAdjustmentsPage() {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
-          Adjustment Movement
+          {t('stock_adjustments_page.movement_badge', 'Adjustment Movement')}
         </div>
       </div>
 
@@ -227,8 +229,8 @@ export default function AdminStockAdjustmentsPage() {
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-extrabold text-foreground tracking-tight">Reconcile Stock</h2>
-            <p className="text-[11px] text-foreground/50 mt-0.5">Enter details to manually adjust the current inventory count.</p>
+            <h2 className="text-sm font-extrabold text-foreground tracking-tight">{t('stock_adjustments_page.reconcile_stock', 'Reconcile Stock')}</h2>
+            <p className="text-[11px] text-foreground/50 mt-0.5">{t('stock_adjustments_page.reconcile_stock_subtitle', 'Enter details to manually adjust the current inventory count.')}</p>
           </div>
         </div>
 
@@ -241,38 +243,38 @@ export default function AdminStockAdjustmentsPage() {
           {/* Type + Quantity + Reason */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <div>
-              <FieldLabel required>Adjustment Type</FieldLabel>
+              <FieldLabel required>{t('stock_adjustments_page.adjustment_type', 'Adjustment Type')}</FieldLabel>
               <select
                 value={form.type}
                 onChange={(e) => setField('type', e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
               >
-                <option value="increase">Increase (+)</option>
-                <option value="decrease">Decrease (-)</option>
+                <option value="increase">{t('stock_adjustments_page.increase', 'Increase (+)')}</option>
+                <option value="decrease">{t('stock_adjustments_page.decrease', 'Decrease (-)')}</option>
               </select>
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Add to or subtract from shelves</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_adjustments_page.type_help', 'Add to or subtract from shelves')}</p>
             </div>
             <div>
-              <FieldLabel required>Quantity</FieldLabel>
+              <FieldLabel required>{t('stock_adjustments_page.quantity', 'Quantity')}</FieldLabel>
               <InputField
                 id="quantity"
                 type="number"
                 value={form.quantity}
                 onChange={(v) => setField('quantity', v)}
-                placeholder="e.g. 5"
+                placeholder={t('stock_adjustments_page.quantity_placeholder', 'e.g. 5')}
                 min="1"
               />
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Number of units to adjust</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_adjustments_page.quantity_help', 'Number of units to adjust')}</p>
             </div>
             <div>
-              <FieldLabel>Reason / Note</FieldLabel>
+              <FieldLabel>{t('stock_adjustments_page.reason', 'Reason / Note')}</FieldLabel>
               <InputField
                 id="reason"
                 value={form.reason}
                 onChange={(v) => setField('reason', v)}
-                placeholder="e.g. Damage, inventory audit"
+                placeholder={t('stock_adjustments_page.reason_placeholder', 'e.g. Damage, inventory audit')}
               />
-              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">Optional — reason for discrepancy</p>
+              <p className="text-[10px] text-foreground/35 font-semibold mt-1.5">{t('stock_adjustments_page.reason_help', 'Optional — reason for discrepancy')}</p>
             </div>
           </div>
 
@@ -289,14 +291,14 @@ export default function AdminStockAdjustmentsPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Processing…
+                  {t('stock_in_page.processing', 'Processing…')}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                   </svg>
-                  Confirm Adjustment
+                  {t('stock_adjustments_page.confirm_adjustment', 'Confirm Adjustment')}
                 </>
               )}
             </button>
@@ -306,7 +308,7 @@ export default function AdminStockAdjustmentsPage() {
               disabled={isSubmitting}
               className="px-5 py-3 border border-border/50 hover:border-border text-xs font-bold text-foreground/60 hover:text-foreground rounded-xl transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
-              Reset
+              {t('stock_in_page.reset', 'Reset')}
             </button>
           </div>
         </form>

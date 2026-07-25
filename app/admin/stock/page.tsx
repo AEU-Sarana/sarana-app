@@ -9,23 +9,25 @@ import { StockListItem, StockStatus, StockSummary } from '../../../features/stoc
 import { Category } from '../../../features/category/types';
 import { StatCard } from '../../../components/stocks/stat-card';
 import { StockListTable } from '../../../components/stocks/stock-list-table';
+import { useLanguage } from '../../../contexts/language-context';
 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const PAGE_LIMIT = 10;
 
-const STOCK_STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'All Status' },
-  { value: 'in_stock', label: 'In Stock' },
-  { value: 'low_stock', label: 'Low Stock' },
-  { value: 'out_of_stock', label: 'Out of Stock' },
-  { value: 'negative', label: 'Negative' },
-];
-
 function StockPageContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const initialStatus = searchParams?.get('status') || '';
+
+  const STOCK_STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: '', label: t('products.all_statuses', 'All Status') },
+    { value: 'in_stock', label: t('dashboard.in_stock', 'In Stock') },
+    { value: 'low_stock', label: t('dashboard.low_stock', 'Low Stock') },
+    { value: 'out_of_stock', label: t('dashboard.out_of_stock', 'Out of Stock') },
+    { value: 'negative', label: t('reports.negative_stock', 'Negative') },
+  ];
 
   // ── Data ────────────────────────────────────────────────────────────────────
   const [stocks, setStocks] = useState<StockListItem[]>([]);
@@ -125,9 +127,9 @@ function StockPageContent() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Stock Inventory</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">{t('header.stock_title', 'Stock Inventory')}</h1>
           <p className="text-xs text-foreground/50 mt-1">
-            Monitor real-time stock levels across all active products.
+            {t('header.stock_subtitle', 'Monitor real-time stock levels across all active products.')}
           </p>
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
@@ -140,7 +142,7 @@ function StockPageContent() {
             <svg className={`w-4 h-4 text-foreground/50 transition-transform duration-500 ease-out ${isLoading ? 'animate-spin' : 'group-hover:rotate-180'}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
-            <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+            <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
           <Link
             href="/admin/stock-in"
@@ -149,7 +151,7 @@ function StockPageContent() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
             </svg>
-            Stock In
+            {t('stock.stock_in', 'Stock In')}
           </Link>
           <Link
             href="/admin/stock-adjustments"
@@ -158,7 +160,7 @@ function StockPageContent() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
-            Adjust
+            {t('stock.adjust_stock', 'Adjust')}
           </Link>
         </div>
       </div>
@@ -166,9 +168,9 @@ function StockPageContent() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Products"
+          label={t('stock.total_products', 'Total Products')}
           value={summary.total_products}
-          subtext="Active catalog items"
+          subtext={t('stock.total_products_sub', 'Active catalog items')}
           accentCls="text-primary"
           bgCls="bg-primary/10"
           hoverShadowCls="hover:shadow-primary/5"
@@ -181,9 +183,9 @@ function StockPageContent() {
           }
         />
         <StatCard
-          label="Total Stock Qty"
+          label={t('stock.total_stock_qty', 'Total Stock Qty')}
           value={summary.total_stock_quantity.toLocaleString()}
-          subtext="Items currently on shelves"
+          subtext={t('stock.total_stock_qty_sub', 'Items currently on shelves')}
           accentCls="text-accent"
           bgCls="bg-accent/10"
           hoverShadowCls="hover:shadow-accent/5"
@@ -191,14 +193,14 @@ function StockPageContent() {
           borderCls="border-accent/5"
           icon={
             <svg className="w-6.5 h-6.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
             </svg>
           }
         />
         <StatCard
-          label="Low Stock"
+          label={t('dashboard.low_stock', 'Low Stock')}
           value={summary.low_stock_count}
-          subtext="Require restock attention"
+          subtext={t('stock.low_stock_sub', 'Require restock attention')}
           accentCls="text-warning"
           bgCls="bg-warning/10"
           hoverShadowCls="hover:shadow-warning/5"
@@ -211,9 +213,9 @@ function StockPageContent() {
           }
         />
         <StatCard
-          label="Out of Stock"
+          label={t('dashboard.out_of_stock', 'Out of Stock')}
           value={summary.out_of_stock_count}
-          subtext="Currently empty"
+          subtext={t('stock.out_of_stock_sub', 'Currently empty')}
           accentCls="text-destructive"
           bgCls="bg-destructive/10"
           hoverShadowCls="hover:shadow-destructive/5"
@@ -235,7 +237,7 @@ function StockPageContent() {
           <div className="lg:col-span-7 relative">
             <input
               type="text"
-              placeholder="Search product by name or barcode..."
+              placeholder={t('stock.search_placeholder', 'Search medicine, SKU, barcode...')}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary/80 focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
@@ -252,7 +254,7 @@ function StockPageContent() {
               onChange={(e) => handleFilterChange('category', e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
             >
-              <option value="">All Categories</option>
+              <option value="">{t('products.all_categories', 'All Categories')}</option>
               {categories.map((c) => (
                 <option key={c.categoryId} value={String(c.categoryId)}>{c.name}</option>
               ))}
@@ -285,7 +287,7 @@ function StockPageContent() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Clear active filters
+              {t('products.clear_filters', 'Clear active filters')}
             </button>
           </div>
         )}

@@ -3,6 +3,7 @@
 import React from 'react';
 import { StockMovementItem } from '../../features/stock/types';
 import { MovementBadge } from './movement-badge';
+import { useLanguage } from '../../contexts/language-context';
 
 const HISTORY_LIMIT = 10;
 
@@ -37,6 +38,8 @@ export function StockMovementTable({
   onPageChange,
   type,
 }: StockMovementTableProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-7 py-5 border-b border-border/20 bg-secondary/10">
@@ -48,10 +51,10 @@ export function StockMovementTable({
           </div>
           <div>
             <h2 className="text-sm font-extrabold text-foreground tracking-tight">
-              {type === 'stock-in' ? 'Recent Stock In' : 'Recent Adjustments'}
+              {type === 'stock-in' ? t('stock_in_page.recent_stock_in', 'Recent Stock In') : t('stock_adjustments_page.recent_adjustments', 'Recent Adjustments')}
             </h2>
             <p className="text-[11px] text-foreground/50 mt-0.5">
-              {isLoading ? 'Loading…' : `${total} record${total !== 1 ? 's' : ''} total`}
+              {isLoading ? t('stock_in_page.loading', 'Loading…') : t('common.records_total', '{{count}} records total').replace('{{count}}', String(total))}
             </p>
           </div>
         </div>
@@ -69,7 +72,7 @@ export function StockMovementTable({
             </svg>
           </div>
           <p className="text-sm font-bold text-foreground/35">
-            {type === 'stock-in' ? 'No stock in records yet' : 'No adjustment records yet'}
+            {type === 'stock-in' ? t('stock_in_page.no_records', 'No stock in records yet') : t('stock_adjustments_page.no_records', 'No adjustment records yet')}
           </p>
         </div>
       ) : (
@@ -79,20 +82,20 @@ export function StockMovementTable({
               <thead>
                 <tr className="border-b border-border/20 bg-secondary/15 select-none">
                   <th className="px-6 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40 w-16">ID</th>
-                  <th className="px-6 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Product</th>
-                  <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Type</th>
-                  <th className="px-4 py-3.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Qty</th>
+                  <th className="px-6 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('stock.col_product', 'Product')}</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('common.type', 'Type')}</th>
+                  <th className="px-4 py-3.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('stock_in_page.quantity', 'Qty')}</th>
                   {type === 'stock-in' && (
                     <>
-                      <th className="px-4 py-3.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Cost/Unit</th>
-                      <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Supplier</th>
-                      <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Expiry</th>
+                      <th className="px-4 py-3.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('stock_in_page.cost_per_unit', 'Cost/Unit')}</th>
+                      <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('stock_in_page.supplier', 'Supplier')}</th>
+                      <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('stock_in_page.expiry_date', 'Expiry')}</th>
                     </>
                   )}
                   {type === 'adjustment' && (
-                    <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Reason / Note</th>
+                    <th className="px-4 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('products.description_note', 'Reason / Note')}</th>
                   )}
-                  <th className="px-6 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">Date</th>
+                  <th className="px-6 py-3.5 text-left text-[10px] font-extrabold uppercase tracking-wider text-foreground/40">{t('sales.col_date', 'Date')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/10">
@@ -168,7 +171,10 @@ export function StockMovementTable({
           {totalPages > 1 && total > HISTORY_LIMIT && (
             <div className="px-6 py-4.5 border-t border-border/20 bg-secondary/5 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
               <span className="text-xs text-foreground/45 font-semibold">
-                Showing page {page} of {totalPages} ({total} entries found)
+                {t('common.showing_page', 'Showing page {{page}} of {{totalPages}} ({{total}} entries found)')
+                  .replace('{{page}}', String(page))
+                  .replace('{{totalPages}}', String(totalPages))
+                  .replace('{{total}}', String(total))}
               </span>
               <div className="flex items-center gap-1.5">
                 <button

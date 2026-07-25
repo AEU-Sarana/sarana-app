@@ -8,32 +8,36 @@ import { clearCredentials, selectCurrentUser, updateUser } from '../../features/
 import { authService } from '../../services/authService';
 import LogoutModal from '../ui/logout-modal';
 import ThemeToggle from '../ui/theme-toggle';
+import LanguageSwitcher from '../ui/language-switcher';
 import { getInitials } from '../../libs/utils';
+import { useLanguage } from '../../contexts/language-context';
 
 // ─── Page title map ───────────────────────────────────────────────────────────
 
-const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/admin/dashboard':         { title: 'Dashboard',          subtitle: 'Overview of your pharmacy operations' },
-  '/admin/reports':           { title: 'Reports & Analytics', subtitle: 'Sales performance and business insights' },
-  '/admin/products':          { title: 'Products',            subtitle: 'Manage your product catalog' },
-  '/admin/categories':        { title: 'Product Categories',   subtitle: 'Organize and classify your medicine catalog' },
-  '/admin/stock':             { title: 'Stock Inventory',     subtitle: 'Track stock levels and expiry dates' },
-  '/admin/suppliers':         { title: 'Suppliers',           subtitle: 'Manage supplier relationships' },
-  '/admin/stock-in':          { title: 'Stock In',            subtitle: 'Record incoming inventory' },
-  '/admin/stock-adjustments': { title: 'Stock Adjustments',   subtitle: 'Correct inventory discrepancies' },
-  '/admin/sales':             { title: 'Sales History',       subtitle: 'Review past transactions' },
-  '/admin/users':             { title: 'Users & Cashiers',    subtitle: 'Manage staff access and roles' },
+const PAGE_TITLES: Record<string, { titleKey: string; defaultTitle: string; subtitleKey: string; defaultSubtitle: string }> = {
+  '/admin/dashboard':         { titleKey: 'header.dashboard_title',  defaultTitle: 'Dashboard',          subtitleKey: 'header.dashboard_subtitle',  defaultSubtitle: 'Overview of your pharmacy operations' },
+  '/admin/reports':           { titleKey: 'header.reports_title',    defaultTitle: 'Reports & Analytics', subtitleKey: 'header.reports_subtitle',    defaultSubtitle: 'Sales performance and business insights' },
+  '/admin/products':          { titleKey: 'header.products_title',   defaultTitle: 'Products',            subtitleKey: 'header.products_subtitle',   defaultSubtitle: 'Manage your product catalog' },
+  '/admin/categories':        { titleKey: 'header.categories_title', defaultTitle: 'Product Categories',   subtitleKey: 'header.categories_subtitle', defaultSubtitle: 'Organize and classify your medicine catalog' },
+  '/admin/stock':             { titleKey: 'header.stock_title',      defaultTitle: 'Stock Inventory',     subtitleKey: 'header.stock_subtitle',      defaultSubtitle: 'Track stock levels and expiry dates' },
+  '/admin/sales':             { titleKey: 'header.sales_title',      defaultTitle: 'Sales History',       subtitleKey: 'header.sales_subtitle',      defaultSubtitle: 'Review past transactions' },
+  '/admin/users':             { titleKey: 'header.users_title',      defaultTitle: 'Users & Cashiers',    subtitleKey: 'header.users_subtitle',      defaultSubtitle: 'Manage staff access and roles' },
+  '/admin/settings':          { titleKey: 'settings.title',          defaultTitle: 'Application Settings', subtitleKey: 'settings.subtitle',         defaultSubtitle: 'Configure backup, report delivery, and invoice information.' },
+  '/admin/profile':           { titleKey: 'profile.title',           defaultTitle: 'Account Profile',     subtitleKey: 'profile.subtitle',         defaultSubtitle: 'Manage your personal account information, bio details, and update security passwords.' },
+  '/cashier/checkout':        { titleKey: 'pos.title',               defaultTitle: 'Checkout POS Terminal', subtitleKey: 'header.checkout_subtitle', defaultSubtitle: 'Search products, manage cart items, associate customer accounts, and record retail pharmacy sales' },
+  '/cashier/dashboard':       { titleKey: 'header.dashboard_title',  defaultTitle: 'Dashboard',          subtitleKey: 'header.dashboard_subtitle',  defaultSubtitle: 'Overview of your pharmacy operations' },
 };
 
-function getPageInfo(pathname: string | null) {
-  if (!pathname) return { title: 'Dashboard', subtitle: '' };
+function getPageInfo(pathname: string | null, t: (key: string, def?: string) => string) {
+  if (!pathname) return { title: t('header.dashboard_title', 'Dashboard'), subtitle: '' };
   const match = Object.keys(PAGE_TITLES).find((key) => pathname.startsWith(key));
-  return match ? PAGE_TITLES[match] : { title: 'Dashboard', subtitle: '' };
+  if (!match) return { title: t('header.dashboard_title', 'Dashboard'), subtitle: '' };
+  const info = PAGE_TITLES[match];
+  return {
+    title: t(info.titleKey, info.defaultTitle),
+    subtitle: t(info.subtitleKey, info.defaultSubtitle),
+  };
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -43,6 +47,7 @@ export default function Navbar() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
   const isAdmin = user?.role === 'ADMIN';
+  const { t } = useLanguage();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -79,7 +84,7 @@ export default function Navbar() {
     }
   }, [dispatch]);
 
-  const { title, subtitle } = getPageInfo(pathname);
+  const { title, subtitle } = getPageInfo(pathname, t);
   const initials = getInitials(user?.fullName || 'Admin');
 
   const handleConfirmLogout = () => {
@@ -105,8 +110,9 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* RIGHT — Theme selector & Avatar dropdown */}
-        <div className="flex items-center gap-4 shrink-0">
+        {/* RIGHT — Theme selector, Language Switcher & Avatar dropdown */}
+        <div className="flex items-center gap-3 shrink-0">
+          <LanguageSwitcher />
           <ThemeToggle />
 
           {/* Avatar + dropdown */}

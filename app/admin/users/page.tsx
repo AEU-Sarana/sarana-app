@@ -8,10 +8,14 @@ import { User } from '../../../features/user/types';
 import { UserListTable } from '../../../components/users/user-list-table';
 import { UserModal } from '../../../components/users/user-modal';
 import DeactivateUserModal from '../../../components/users/deactivate-user-modal';
+import UserPermissionsModal from '../../../components/admin/user-permissions-modal';
+import { UserDetailsModal } from '../../../components/users/user-details-modal';
+import { useLanguage } from '../../../contexts/language-context';
 
 const PAGE_LIMIT = 10;
 
 export default function AdminUsersPage() {
+  const { t } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const currentUserId = currentUser?.userId;
 
@@ -33,6 +37,8 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [permissionsTarget, setPermissionsTarget] = useState<User | null>(null);
+  const [viewDetailUserId, setViewDetailUserId] = useState<number | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -144,19 +150,11 @@ export default function AdminUsersPage() {
     }
   };
 
-
-
   return (
     <div className="space-y-6">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">User Management</h1>
-          <p className="text-xs text-foreground/50 mt-1">
-            Create, update, and manage administrators and POS cashier accounts.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto select-none">
+      {/* Action Bar (Top Right buttons) */}
+      <div className="flex justify-end items-center select-none">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={handleRefresh}
             disabled={isLoading}
@@ -174,7 +172,7 @@ export default function AdminUsersPage() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
-            <span>Refresh</span>
+            <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
           <button
             onClick={handleAddUser}
@@ -183,12 +181,10 @@ export default function AdminUsersPage() {
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
-            Add User
+            {t('users.add_user', 'Add User')}
           </button>
         </div>
       </div>
-
-
 
       {/* Filter and Search Section */}
       <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-3.5 select-none">
@@ -197,7 +193,7 @@ export default function AdminUsersPage() {
           <div className="lg:col-span-7 relative">
             <input
               type="text"
-              placeholder="Search users by name, username, email, phone..."
+              placeholder={t('users.search_placeholder', 'Search users by name, username, email, phone...')}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
@@ -214,9 +210,9 @@ export default function AdminUsersPage() {
               onChange={(e) => handleFilterChange('role', e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
             >
-              <option value="">All Roles</option>
-              <option value="ADMIN">Administrator</option>
-              <option value="CASHIER">Cashier</option>
+              <option value="">{t('users.all_roles', 'All Roles')}</option>
+              <option value="ADMIN">{t('common.administrator', 'Administrator')}</option>
+              <option value="CASHIER">{t('common.cashier', 'Cashier')}</option>
             </select>
           </div>
 
@@ -227,9 +223,9 @@ export default function AdminUsersPage() {
               onChange={(e) => handleFilterChange('status', e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('products.all_statuses', 'All Statuses')}</option>
+              <option value="active">{t('common.active', 'Active')}</option>
+              <option value="inactive">{t('common.inactive', 'Inactive')}</option>
             </select>
           </div>
         </div>
@@ -245,7 +241,7 @@ export default function AdminUsersPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Clear active filters
+              {t('products.clear_filters', 'Clear active filters')}
             </button>
           </div>
         )}
@@ -262,6 +258,8 @@ export default function AdminUsersPage() {
         onPageChange={setPage}
         onEdit={handleEditUser}
         onDeactivate={handleDeactivateToggle}
+        onManagePermissions={(user) => setPermissionsTarget(user)}
+        onViewDetails={(user) => setViewDetailUserId(user.userId)}
         currentUserId={currentUserId}
       />
 
@@ -284,6 +282,21 @@ export default function AdminUsersPage() {
         username={deactivateTarget?.username || ''}
         fullName={deactivateTarget?.fullName || ''}
         isDeactivating={isDeactivating}
+      />
+
+      {/* Feature Access Permissions Modal */}
+      <UserPermissionsModal
+        isOpen={!!permissionsTarget}
+        user={permissionsTarget}
+        onClose={() => setPermissionsTarget(null)}
+        onSaved={handleRefresh}
+      />
+
+      {/* User Information Details View Modal */}
+      <UserDetailsModal
+        isOpen={!!viewDetailUserId}
+        userId={viewDetailUserId}
+        onClose={() => setViewDetailUserId(null)}
       />
     </div>
   );

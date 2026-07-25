@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Product } from '../../features/product/types';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductCardProps {
   product: Product;
@@ -31,6 +32,7 @@ export default function ProductCard({
   cartQty,
   onAddToCart,
 }: ProductCardProps) {
+  const { t } = useLanguage();
   const isOutOfStock = product.stock_quantity <= 0;
   const isCartLimitReached = cartQty >= product.stock_quantity;
   const lowStock = product.low_stock_threshold !== null && product.stock_quantity < product.low_stock_threshold;
@@ -54,7 +56,7 @@ export default function ProductCard({
       {/* Cart Quantity Indicator Badge */}
       {cartQty > 0 && (
         <div className="absolute top-2.5 right-2.5 bg-primary text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-sm shadow-primary/20 z-10 animate-scale-up">
-          {cartQty} in Cart
+          {cartQty} {t('pos.in_cart', 'in Cart')}
         </div>
       )}
 
@@ -90,15 +92,15 @@ export default function ProductCard({
           {/* Stock status indicator */}
           {isOutOfStock ? (
             <span className="text-[9px] font-bold uppercase tracking-wider text-rose-600 bg-rose-500/10 px-1.5 py-0.5 rounded-md border border-rose-500/10">
-              Out of Stock
+              {t('pos.out_of_stock', 'Out of Stock')}
             </span>
           ) : lowStock ? (
             <span className="text-[9px] font-bold uppercase tracking-wider text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/10">
-              Low: {product.stock_quantity}
+              {t('pos.low_stock', 'Low')}: {product.stock_quantity}
             </span>
           ) : (
             <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/10">
-              Stock: {product.stock_quantity}
+              {t('pos.stock', 'Stock')}: {product.stock_quantity}
             </span>
           )}
         </div>

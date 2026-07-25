@@ -12,6 +12,7 @@ import DashboardCard from '../../../components/dashboard/dashboard-card';
 import SplineChart from '../../../components/dashboard/spline-chart';
 import ProductHealthDonut from '../../../components/dashboard/product-health-donut';
 import { getInitials } from '../../../libs/utils';
+import { useLanguage } from '../../../contexts/language-context';
 
 export interface CustomerPurchase {
   productId: number;
@@ -138,6 +139,7 @@ const mockCustomers: CustomerWithPurchases[] = [
 ];
 
 function RevenueGrowthChart() {
+  const { t } = useLanguage();
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const values = [1200, 1800, 2300, 1950, 2100, 1700, 1500, 1900, 2400, 2800, 2200, 3000];
   const maxValue = 3500;
@@ -153,9 +155,9 @@ function RevenueGrowthChart() {
 
   return (
     <SplineChart
-      title="Revenue Growth"
-      subtitle="Monthly analytics overview"
-      badgeText="Real-time"
+      title={t('dashboard.revenue_growth', 'Revenue Growth')}
+      subtitle={t('dashboard.monthly_overview', 'Monthly analytics overview')}
+      badgeText={t('dashboard.realtime', 'Real-time')}
       badgeAccentColor="emerald"
       labels={months}
       values={values}
@@ -174,16 +176,16 @@ function RevenueGrowthChart() {
 
 // ─── Customer UI Helper Functions ───────────────────────────────────────────
 
-
 function getAvatarColor(name: string | null): string {
   return 'from-indigo-500 to-indigo-600 text-white';
 }
 
-function formatBuyAt(dateStr: string | null): React.ReactNode {
+function FormatBuyAtCell({ dateStr }: { dateStr: string | null }) {
+  const { t } = useLanguage();
   if (!dateStr) {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black bg-secondary/35 text-foreground/30 border border-border/10 uppercase tracking-wider select-none">
-        Never
+        {t('dashboard.buy_never', 'Never')}
       </span>
     );
   }
@@ -194,15 +196,15 @@ function formatBuyAt(dateStr: string | null): React.ReactNode {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   let relativeStr = '';
-  if (diffDays === 0) relativeStr = 'Today';
-  else if (diffDays === 1) relativeStr = 'Yesterday';
-  else if (diffDays <= 7) relativeStr = `${diffDays} days ago`;
+  if (diffDays === 0) relativeStr = t('dashboard.buy_today', 'Today');
+  else if (diffDays === 1) relativeStr = t('dashboard.buy_yesterday', 'Yesterday');
+  else if (diffDays <= 7) relativeStr = `${diffDays} ${t('dashboard.buy_days_ago', 'days ago')}`;
   else if (diffDays <= 30) {
     const weeks = Math.floor(diffDays / 7);
-    relativeStr = `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    relativeStr = `${weeks} ${t('dashboard.buy_weeks_ago', 'weeks ago')}`;
   } else {
     const months = Math.floor(diffDays / 30);
-    relativeStr = `${months} month${months > 1 ? 's' : ''} ago`;
+    relativeStr = `${months} ${t('dashboard.buy_months_ago', 'months ago')}`;
   }
 
   return (
@@ -224,6 +226,7 @@ function formatBuyAt(dateStr: string | null): React.ReactNode {
 export default function AdminDashboardPage() {
   const currentUser = useSelector(selectCurrentUser);
   const isAdmin = currentUser?.role === 'ADMIN';
+  const { t } = useLanguage();
 
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
   const [customers, setCustomers] = useState<CustomerWithPurchases[]>(mockCustomers);
@@ -272,9 +275,9 @@ export default function AdminDashboardPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dashboard.greeting_morning', 'Good morning');
+    if (hour < 17) return t('dashboard.greeting_afternoon', 'Good afternoon');
+    return t('dashboard.greeting_evening', 'Good evening');
   };
 
   return (
@@ -286,7 +289,7 @@ export default function AdminDashboardPage() {
             {getGreeting()}, {currentUser?.fullName || 'User'}!
           </h1>
           <p className="text-xs text-foreground/50 mt-1">
-            Here's an overview of today's operational stats and stock health.
+            {t('dashboard.header_subtitle', "Here's an overview of today's operational stats and stock health.")}
           </p>
         </div>
         <button
@@ -305,7 +308,7 @@ export default function AdminDashboardPage() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          <span>Refresh</span>
+          <span>{t('common.refresh', 'Refresh')}</span>
         </button>
       </div>
 
@@ -362,9 +365,9 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Today's Sales Amount */}
               <DashboardCard
-                label="Today's Sales"
+                label={t('dashboard.todays_sales', "Today's Sales")}
                 value={formatUSD(salesAmount)}
-                subtext="Accumulated today"
+                subtext={t('dashboard.accumulated_today', 'Accumulated today')}
                 trend="+14.2%"
                 trendType="up"
                 accentColor="emerald"
@@ -378,9 +381,9 @@ export default function AdminDashboardPage() {
 
               {/* Today's Sales Count */}
               <DashboardCard
-                label="Today's Orders"
-                value={`${salesCount} Receipts`}
-                subtext="POS transactions synced"
+                label={t('dashboard.todays_orders', "Today's Orders")}
+                value={`${salesCount} ${t('dashboard.receipts', 'Receipts')}`}
+                subtext={t('dashboard.pos_synced', 'POS transactions synced')}
                 trend="+8.6%"
                 trendType="up"
                 accentColor="indigo"
@@ -394,10 +397,10 @@ export default function AdminDashboardPage() {
 
               {/* Total Customers count */}
               <DashboardCard
-                label="Total Customers"
-                value={`${customers.length} Customers`}
-                subtext="Registered in directory"
-                trend="Directory"
+                label={t('dashboard.total_customers', 'Total Customers')}
+                value={`${customers.length}`}
+                subtext={t('dashboard.registered_directory', 'Registered in directory')}
+                trend={t('dashboard.directory', 'Directory')}
                 trendType="up"
                 accentColor="sky"
                 icon={
@@ -410,9 +413,9 @@ export default function AdminDashboardPage() {
               {/* Expected Drawer Cash (Cashier) or Low Stock Warnings (Admin) */}
               {isAdmin ? (
                 <DashboardCard
-                  label="Low Stock Alert"
-                  value={`${data?.low_stock_warnings?.length || 0} Alert Items`}
-                  subtext=" replenishment needed"
+                  label={t('dashboard.low_stock_alert', 'Low Stock Alert')}
+                  value={`${data?.low_stock_warnings?.length || 0} ${t('dashboard.alert_items', 'Alert Items')}`}
+                  subtext={t('dashboard.replenishment_needed', 'replenishment needed')}
                   trend="-2 items"
                   trendType="up"
                   accentColor="amber"
@@ -425,10 +428,10 @@ export default function AdminDashboardPage() {
                 />
               ) : (
                 <DashboardCard
-                  label="Expected Cash Drawer"
+                  label={t('dashboard.expected_cash_drawer', 'Expected Cash Drawer')}
                   value={formatUSD(data?.today_summary?.expected_cash || 0)}
-                  subtext="Total cash in drawer"
-                  trend="Balanced"
+                  subtext={t('dashboard.total_cash_drawer', 'Total cash in drawer')}
+                  trend={t('dashboard.balanced', 'Balanced')}
                   trendType="neutral"
                   accentColor="amber"
                   icon={
@@ -451,7 +454,7 @@ export default function AdminDashboardPage() {
                     total={totalProducts}
                     lowStock={lowStockCount}
                     outOfStock={outOfStockCount}
-                    expired={0}  // TODO: wire to backend when expired_count is added to StockSummary
+                    expired={0}
                   />
                 </div>
               </div>
@@ -460,8 +463,8 @@ export default function AdminDashboardPage() {
               <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/30 pb-4">
                   <div>
-                    <h2 className="text-base font-black text-foreground tracking-tight">Customer Directory & Purchases</h2>
-                    <p className="text-[10px] font-bold text-foreground/45 uppercase tracking-widest mt-0.5">Overview of customer contact info and pharmacy purchases</p>
+                    <h2 className="text-base font-black text-foreground tracking-tight">{t('dashboard.customer_directory', 'Customer Directory & Purchases')}</h2>
+                    <p className="text-[10px] font-bold text-foreground/45 uppercase tracking-widest mt-0.5">{t('dashboard.customer_subtitle', 'Overview of customer contact info and pharmacy purchases')}</p>
                   </div>
                   
                   {/* Search and Filters */}
@@ -474,7 +477,7 @@ export default function AdminDashboardPage() {
                       </span>
                       <input
                         type="text"
-                        placeholder="Search name, phone, email..."
+                        placeholder={t('dashboard.search_customer_placeholder', 'Search name, phone, email...')}
                         value={searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
@@ -498,7 +501,7 @@ export default function AdminDashboardPage() {
                               : 'text-foreground/50 hover:text-foreground'
                           }`}
                         >
-                          {filter === 'all' ? 'All' : filter === 'linked' ? 'Linked' : 'Not Linked'}
+                          {filter === 'all' ? t('dashboard.filter_all', 'All') : filter === 'linked' ? t('dashboard.filter_linked', 'Linked') : t('dashboard.filter_not_linked', 'Not Linked')}
                         </button>
                       ))}
                     </div>
@@ -510,14 +513,14 @@ export default function AdminDashboardPage() {
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-secondary/35 border-b border-border/30">
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Customer ID</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Name</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Contact Info</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Purchased Price</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Customer Paid</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Telegram Status</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">Buy At</th>
-                        <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase tracking-widest text-foreground/45">Actions</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_customer_id', 'Customer ID')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_name', 'Name')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_contact', 'Contact Info')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_purchased_price', 'Purchased Price')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_customer_paid', 'Customer Paid')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_telegram_status', 'Telegram Status')}</th>
+                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_buy_at', 'Buy At')}</th>
+                        <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_actions', 'Actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/20">
@@ -577,21 +580,21 @@ export default function AdminDashboardPage() {
                               {customer.telegramLinked ? (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full text-[10px] font-black tracking-wide">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  LINKED
+                                  {t('dashboard.status_linked', 'LINKED')}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-foreground/5 border border-border/30 text-foreground/40 rounded-full text-[10px] font-black tracking-wide">
                                   <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
-                                  NOT LINKED
+                                  {t('dashboard.status_not_linked', 'NOT LINKED')}
                                 </span>
                               )}
                             </td>
                             <td className="px-5 py-4">
-                              {formatBuyAt(customer.lastBuyAt)}
+                              <FormatBuyAtCell dateStr={customer.lastBuyAt} />
                             </td>
                             <td className="px-5 py-4 text-right">
                               <button className="px-3 py-1.5 bg-secondary/40 hover:bg-indigo-600 hover:text-white border border-border/40 hover:border-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm active:scale-95">
-                                Details
+                                {t('dashboard.details', 'Details')}
                               </button>
                             </td>
                           </tr>
@@ -599,7 +602,7 @@ export default function AdminDashboardPage() {
                       ) : (
                         <tr>
                           <td colSpan={8} className="px-5 py-12 text-center text-xs font-bold text-foreground/35 italic">
-                            No customers found matching filters.
+                            {t('dashboard.no_customers_found', 'No customers found matching filters.')}
                           </td>
                         </tr>
                       )}

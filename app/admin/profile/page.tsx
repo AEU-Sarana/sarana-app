@@ -7,8 +7,10 @@ import { authService } from '../../../services/authService';
 import { userService } from '../../../services/userService';
 import { getInitials } from '../../../libs/utils';
 import Alert from '../../../components/ui/alert';
+import { useLanguage } from '../../../contexts/language-context';
 
 export default function AdminProfilePage() {
+  const { t } = useLanguage();
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector(selectCurrentUser);
 
@@ -181,21 +183,13 @@ export default function AdminProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center py-28 gap-4">
         <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-sm font-bold text-foreground/50 tracking-wide">Loading user session...</span>
+        <span className="text-sm font-bold text-foreground/50 tracking-wide">{t('common.loading', 'Loading...')}</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header & Page Title */}
-      <div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight">Account Profile</h1>
-        <p className="text-xs text-foreground/50 mt-1">
-          Manage your personal account information, bio details, and update security passwords.
-        </p>
-      </div>
-
       {/* Global Alerts */}
       {errorMsg && <Alert type="error" message={errorMsg} />}
       {successMsg && <Alert type="success" message={successMsg} />}
@@ -215,12 +209,12 @@ export default function AdminProfilePage() {
                 @{profileForm.username || 'admin'}
               </span>
               <span className="w-1 h-1 rounded-full bg-foreground/20" />
-              <span className="text-[10px] uppercase font-black tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                {currentUser.role || 'ADMIN'}
+              <span className="text-[10px] uppercase font-black tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                {currentUser.role === 'ADMIN' ? t('common.administrator', 'Administrator') : t('common.cashier', 'Cashier')}
               </span>
-              <span className="text-[10px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-[10px] font-semibold text-success bg-success/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                Active Account
+                {t('user_details_modal.active_account', 'Active Account')}
               </span>
             </div>
           </div>
@@ -239,7 +233,7 @@ export default function AdminProfilePage() {
                 : 'border-transparent text-foreground/60 hover:text-foreground'
             }`}
           >
-            Profile Information
+            {t('profile.tab_information', 'Profile Information')}
           </button>
           <button
             onClick={() => setActiveTab('password')}
@@ -249,7 +243,6 @@ export default function AdminProfilePage() {
                 : 'border-transparent text-foreground/60 hover:text-foreground'
             }`}
           >
-            Change Password
           </button>
         </div>
 
@@ -259,7 +252,7 @@ export default function AdminProfilePage() {
             {isLoadingDetails ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <div className="w-9 h-9 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-                <span className="text-xs font-bold text-foreground/50">Fetching profile details...</span>
+                <span className="text-xs font-bold text-foreground/50">{t('profile.fetching_details', 'Fetching profile details...')}</span>
               </div>
             ) : (
               <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -267,7 +260,7 @@ export default function AdminProfilePage() {
                   {/* Full Name */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Full Name
+                      {t('profile.full_name', 'Full Name')}
                     </label>
                     <input
                       type="text"
@@ -279,7 +272,7 @@ export default function AdminProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 ${
                         profileErrors.fullName ? 'border-destructive focus:border-destructive' : 'border-border/60 focus:border-primary'
                       }`}
-                      placeholder="e.g. John Doe"
+                      placeholder={t('profile.full_name_placeholder', 'e.g. John Doe')}
                     />
                     {profileErrors.fullName && (
                       <p className="text-[11px] text-destructive font-bold mt-1.5">{profileErrors.fullName}</p>
@@ -289,7 +282,7 @@ export default function AdminProfilePage() {
                   {/* Username */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Username
+                      {t('profile.username', 'Username')}
                     </label>
                     <input
                       type="text"
@@ -301,7 +294,7 @@ export default function AdminProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 ${
                         profileErrors.username ? 'border-destructive focus:border-destructive' : 'border-border/60 focus:border-primary'
                       }`}
-                      placeholder="e.g. johndoe"
+                      placeholder={t('profile.username_placeholder', 'e.g. johndoe')}
                     />
                     {profileErrors.username && (
                       <p className="text-[11px] text-destructive font-bold mt-1.5">{profileErrors.username}</p>
@@ -311,7 +304,7 @@ export default function AdminProfilePage() {
                   {/* Email */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Email Address
+                      {t('profile.email_address', 'Email Address')}
                     </label>
                     <input
                       type="email"
@@ -323,7 +316,7 @@ export default function AdminProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 ${
                         profileErrors.email ? 'border-destructive focus:border-destructive' : 'border-border/60 focus:border-primary'
                       }`}
-                      placeholder="e.g. john@example.com"
+                      placeholder={t('profile.email_placeholder', 'e.g. john@example.com')}
                     />
                     {profileErrors.email && (
                       <p className="text-[11px] text-destructive font-bold mt-1.5">{profileErrors.email}</p>
@@ -333,7 +326,7 @@ export default function AdminProfilePage() {
                   {/* Phone */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Phone Number
+                      {t('profile.phone_number', 'Phone Number')}
                     </label>
                     <input
                       type="text"
@@ -345,7 +338,7 @@ export default function AdminProfilePage() {
                       className={`w-full px-4 py-3 rounded-xl border bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 ${
                         profileErrors.phone ? 'border-destructive focus:border-destructive' : 'border-border/60 focus:border-primary'
                       }`}
-                      placeholder="e.g. +855 12 345 678"
+                      placeholder={t('profile.phone_placeholder', 'e.g. +855 12 345 678')}
                     />
                     {profileErrors.phone && (
                       <p className="text-[11px] text-destructive font-bold mt-1.5">{profileErrors.phone}</p>
@@ -356,7 +349,7 @@ export default function AdminProfilePage() {
                 {/* Bio */}
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                    Bio Description
+                    {t('profile.bio_description', 'Bio Description')}
                   </label>
                   <textarea
                     rows={4}
@@ -368,14 +361,14 @@ export default function AdminProfilePage() {
                     className={`w-full px-4 py-3 rounded-xl border bg-secondary/15 dark:bg-secondary/5 text-sm font-medium focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 resize-none ${
                       profileErrors.bio ? 'border-destructive focus:border-destructive' : 'border-border/60 focus:border-primary'
                     }`}
-                    placeholder="Tell us a little bit about yourself..."
+                    placeholder={t('profile.bio_placeholder', 'Tell us a little bit about yourself...')}
                   />
                   <div className="flex justify-between mt-1.5">
                     {profileErrors.bio ? (
                       <p className="text-[11px] text-destructive font-bold">{profileErrors.bio}</p>
                     ) : (
                       <span className="text-[10px] text-foreground/35 font-semibold">
-                        Maximum 500 characters
+                        {t('profile.max_characters', 'Maximum 500 characters')}
                       </span>
                     )}
                     <span className="text-[10px] text-foreground/35 font-semibold">
@@ -397,14 +390,14 @@ export default function AdminProfilePage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Saving Details...
+                        {t('profile.saving_details', 'Saving Details...')}
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                         </svg>
-                        Save Details
+                        {t('profile.save_details', 'Save Details')}
                       </>
                     )}
                   </button>
@@ -422,7 +415,7 @@ export default function AdminProfilePage() {
                   {/* Current Password */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Current Password
+                      {t('profile.current_password', 'Current Password')}
                     </label>
                     <div className="relative">
                       <input
@@ -454,7 +447,7 @@ export default function AdminProfilePage() {
                   {/* New Password */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      New Password
+                      {t('profile.new_password', 'New Password')}
                     </label>
                     <div className="relative">
                       <input
@@ -486,7 +479,7 @@ export default function AdminProfilePage() {
                   {/* Confirm Password */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/55 mb-2">
-                      Confirm Password
+                      {t('profile.confirm_password', 'Confirm Password')}
                     </label>
                     <div className="relative">
                       <input
@@ -519,7 +512,7 @@ export default function AdminProfilePage() {
                 {/* Validation Checklist Right Side */}
                 <div className="bg-secondary/10 dark:bg-secondary/5 border border-border/30 rounded-2xl p-5 space-y-3.5 select-none h-fit self-end">
                   <h3 className="text-xs font-black text-foreground/80 uppercase tracking-wider">
-                    Password Requirements
+                    {t('profile.password_requirements', 'Password Requirements')}
                   </h3>
                   
                   <ul className="space-y-2.5">
@@ -529,7 +522,7 @@ export default function AdminProfilePage() {
                         {pwdLengthValid ? '✓' : '•'}
                       </span>
                       <span className={pwdLengthValid ? 'text-success/90' : 'text-foreground/50'}>
-                        At least 6 characters
+                        {t('profile.at_least_6_chars', 'At least 6 characters')}
                       </span>
                     </li>
                     {/* Lowercase check */}
@@ -538,7 +531,7 @@ export default function AdminProfilePage() {
                         {pwdHasLower ? '✓' : '•'}
                       </span>
                       <span className={pwdHasLower ? 'text-success/90' : 'text-foreground/50'}>
-                        At least one lowercase letter
+                        {t('profile.one_lowercase', 'At least one lowercase letter')}
                       </span>
                     </li>
                     {/* Uppercase check */}
@@ -547,7 +540,7 @@ export default function AdminProfilePage() {
                         {pwdHasUpper ? '✓' : '•'}
                       </span>
                       <span className={pwdHasUpper ? 'text-success/90' : 'text-foreground/50'}>
-                        At least one uppercase letter
+                        {t('profile.one_uppercase', 'At least one uppercase letter')}
                       </span>
                     </li>
                     {/* Number check */}
@@ -556,7 +549,7 @@ export default function AdminProfilePage() {
                         {pwdHasNumber ? '✓' : '•'}
                       </span>
                       <span className={pwdHasNumber ? 'text-success/90' : 'text-foreground/50'}>
-                        At least one number
+                        {t('profile.one_number', 'At least one number')}
                       </span>
                     </li>
                     {/* Match confirmation */}
@@ -565,7 +558,7 @@ export default function AdminProfilePage() {
                         {pwdMatches ? '✓' : '•'}
                       </span>
                       <span className={pwdMatches ? 'text-success/90' : 'text-foreground/50'}>
-                        Passwords must match
+                        {t('profile.passwords_match', 'Passwords must match')}
                       </span>
                     </li>
                   </ul>
@@ -585,14 +578,14 @@ export default function AdminProfilePage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Changing Password...
+                      {t('profile.changing_password', 'Changing Password...')}
                     </>
                   ) : (
                     <>
                       <svg className="w-4.5 h-4.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4" />
                       </svg>
-                      Change Password
+                      {t('profile.change_password', 'Change Password')}
                     </>
                   )}
                 </button>

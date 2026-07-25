@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '../../contexts/language-context';
 
 interface DeactivateUserModalProps {
   isOpen: boolean;
@@ -19,7 +20,16 @@ export default function DeactivateUserModal({
   fullName,
   isDeactivating,
 }: DeactivateUserModalProps) {
+  const { t } = useLanguage();
+
   if (!isOpen) return null;
+
+  const confirmDescText = t(
+    'users.confirm_deactivate_desc',
+    'Are you sure you want to deactivate {{name}} (@{{username}})?'
+  )
+    .replace('{{name}}', fullName)
+    .replace('{{username}}', username);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
@@ -30,12 +40,14 @@ export default function DeactivateUserModal({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           </div>
-          <h3 className="text-lg font-black text-foreground">Deactivate User Account</h3>
+          <h3 className="text-lg font-black text-foreground">
+            {t('users.confirm_deactivate_title', 'Deactivate User Account')}
+          </h3>
           <p className="text-xs text-foreground/50 mt-2 leading-relaxed">
-            Are you sure you want to deactivate <strong className="text-foreground">{fullName}</strong> (<strong>@{username}</strong>)?
+            {confirmDescText}
           </p>
           <p className="text-[11px] text-destructive/80 mt-2.5 font-semibold bg-destructive/5 border border-destructive/10 px-3 py-2 rounded-xl">
-            Warning: The user will no longer be able to log in, register POS devices, or process sales transactions.
+            {t('users.confirm_deactivate_warning', 'Warning: The user will no longer be able to log in, register POS devices, or process sales transactions.')}
           </p>
         </div>
         <div className="px-6 py-4 border-t border-border/40 bg-secondary/10 flex justify-end gap-2.5">
@@ -45,7 +57,7 @@ export default function DeactivateUserModal({
             className="px-4 py-2 border border-border bg-card text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/40 rounded-xl transition-all duration-150 cursor-pointer"
             disabled={isDeactivating}
           >
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </button>
           <button
             type="button"
@@ -59,7 +71,7 @@ export default function DeactivateUserModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             )}
-            Deactivate User
+            {isDeactivating ? t('users.deactivating', 'Deactivating...') : t('users.deactivate_user', 'Deactivate User')}
           </button>
         </div>
       </div>

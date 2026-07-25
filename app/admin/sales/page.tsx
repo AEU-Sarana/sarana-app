@@ -9,10 +9,12 @@ import { Order } from '../../../features/sale/types';
 import { User } from '../../../features/user/types';
 import { SalesListTable } from '../../../components/sales/sales-list-table';
 import OrderDetailModal from '../../../components/sales/order-detail-modal';
+import { useLanguage } from '../../../contexts/language-context';
 
 const PAGE_LIMIT = 10;
 
 export default function AdminSalesPage() {
+  const { t } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
   const isAdmin = currentUser?.role === 'ADMIN';
 
@@ -72,7 +74,6 @@ export default function AdminSalesPage() {
       if (opts.search) params.search = opts.search;
       if (opts.startDate) params.start_date = new Date(opts.startDate).toISOString();
       if (opts.endDate) {
-        // Set to end of day to make filter inclusive
         const endOfDay = new Date(opts.endDate);
         endOfDay.setHours(23, 59, 59, 999);
         params.end_date = endOfDay.toISOString();
@@ -146,36 +147,6 @@ export default function AdminSalesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Sales History</h1>
-          <p className="text-xs text-foreground/50 mt-1">
-            Browse, search, and audit POS transaction invoices and payment records.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto select-none">
-          <button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            title="Refresh Transactions"
-            className="group flex-1 sm:flex-initial px-4.5 py-2.5 bg-secondary/50 hover:bg-secondary dark:bg-secondary/20 dark:hover:bg-secondary/35 border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground font-extrabold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-sm disabled:opacity-50"
-          >
-            <svg
-              className={`w-4 h-4 text-foreground/50 transition-transform duration-500 ease-out ${
-                isLoading ? 'animate-spin' : 'group-hover:rotate-180'
-              }`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
 
       {/* Filter and Search Section */}
       <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-3.5 select-none">
@@ -184,7 +155,7 @@ export default function AdminSalesPage() {
           <div className="lg:col-span-4 relative">
             <input
               type="text"
-              placeholder="Search receipt number (e.g. RCP-)..."
+              placeholder={t('sales.search_placeholder', 'Search receipt number (e.g. RCP-)...')}
               value={receiptSearch}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
@@ -224,7 +195,7 @@ export default function AdminSalesPage() {
                 onChange={(e) => { setPage(1); setSelectedSeller(e.target.value); }}
                 className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer"
               >
-                <option value="">All Cashiers & Admins</option>
+                <option value="">{t('sales.all_cashiers_admins', 'All Cashiers & Admins')}</option>
                 {sellersList.map((seller) => (
                   <option key={seller.userId} value={seller.userId}>
                     {seller.fullName} (@{seller.username})
@@ -233,7 +204,7 @@ export default function AdminSalesPage() {
               </select>
             ) : (
               <div className="w-full px-4 py-3 rounded-xl border border-border/20 bg-secondary/10 text-xs font-semibold text-foreground/45 select-none">
-                Viewing: Your sales records only
+                {t('sales.viewing_own_records', 'Viewing: Your sales records only')}
               </div>
             )}
           </div>
@@ -250,7 +221,7 @@ export default function AdminSalesPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Clear active filters
+              {t('products.clear_filters', 'Clear active filters')}
             </button>
           </div>
         )}

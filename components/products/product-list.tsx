@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Product } from '../../features/product/types';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductListProps {
   products: Product[];
@@ -52,6 +53,7 @@ export default function ProductList({
   totalEntries,
   onPageChange,
 }: ProductListProps) {
+  const { t } = useLanguage();
   const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
   
   // Expiry date helper text & styling
@@ -68,21 +70,21 @@ export default function ProductList({
     
     if (diffDays < 0) {
       return { 
-        label: 'Expired', 
-        color: 'bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/15', 
+        label: t('dashboard.expired', 'Expired'), 
+        color: 'text-destructive bg-destructive/10 border-destructive/20', 
         isWarning: true 
       };
     } else if (diffDays <= 30) {
       return { 
-        label: `Expires in ${diffDays}d`, 
-        color: 'bg-warning/10 text-warning border-warning/20 dark:bg-warning/15', 
+        label: `${diffDays} days left`, 
+        color: 'text-warning bg-warning/10 border-warning/20', 
         isWarning: true 
       };
     }
     
     return { 
-      label: `Exp: ${expiryDate.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })}`, 
-      color: 'bg-secondary/60 text-foreground/50 border-border/20 dark:bg-secondary/40', 
+      label: expiryDate.toLocaleDateString(), 
+      color: 'text-foreground/45 bg-secondary/35 border-border/20', 
       isWarning: false 
     };
   };
@@ -123,7 +125,7 @@ export default function ProductList({
           <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <div className="w-6 h-6 rounded-full bg-primary/10 absolute animate-ping" />
         </div>
-        <span className="text-sm font-bold text-foreground/50 tracking-wide mt-2">Retrieving pharmacy catalog...</span>
+        <span className="text-sm font-bold text-foreground/50 tracking-wide mt-2">{t('pos.retrieving_catalog', 'Retrieving pharmacy catalog...')}</span>
       </div>
     );
   }
@@ -156,15 +158,15 @@ export default function ProductList({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2M5 13V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2" />
           </svg>
         </div>
-        <h3 className="text-lg font-black text-foreground tracking-tight">No Products Found</h3>
+        <h3 className="text-lg font-black text-foreground tracking-tight">{t('products.no_products_found', 'No Products Found')}</h3>
         <p className="text-xs text-foreground/50 mt-2 leading-relaxed">
-          No medicines match your query. Try resetting filters or register a new product to populate the catalog list.
+          {t('pos.no_products_desc', 'No medicines match your query. Try resetting filters or register a new product to populate the catalog list.')}
         </p>
         <button
           onClick={onResetFilters}
           className="mt-6 px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer hover:scale-102 active:scale-98"
         >
-          Reset Filters
+          {t('common.clear', 'Reset Filters')}
         </button>
       </div>
     );
@@ -177,13 +179,13 @@ export default function ProductList({
           <thead>
             <tr className="border-b border-border/30 bg-secondary/15 select-none">
               <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45 w-16">ID</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Product & Barcode</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Category</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Unit Price</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Stock Level</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Expired At</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">Status</th>
-              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45 text-right w-32">Actions</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_product', 'Product & Barcode')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_category', 'Category')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_price', 'Unit Price')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_stock', 'Stock Level')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('dashboard.expired', 'Expired At')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_status', 'Status')}</th>
+              <th className="px-6 py-4.5 text-xs font-bold uppercase tracking-wider text-foreground/45 text-right w-32">{t('common.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/10">
@@ -269,12 +271,12 @@ export default function ProductList({
                     {product.status === 'active' ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-success/15 text-success border border-success/20 dark:bg-success/10 select-none">
                         <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shrink-0"></span>
-                        Active
+                        {t('common.active', 'Active')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-secondary/65 text-foreground/40 border border-border/20 dark:bg-secondary/40 select-none">
                         <span className="w-1.5 h-1.5 rounded-full bg-foreground/30 shrink-0"></span>
-                        Inactive
+                        {t('common.inactive', 'Inactive')}
                       </span>
                     )}
                   </td>
@@ -329,7 +331,7 @@ export default function ProductList({
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              View Details
+                              {t('common.view', 'View Details')}
                             </button>
                             
                             <button
@@ -342,10 +344,8 @@ export default function ProductList({
                               <svg className="w-4 h-4 text-foreground/40" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                               </svg>
-                              Edit Product
+                              {t('products.edit_product', 'Edit Product')}
                             </button>
-
-
 
                             <button
                               onClick={() => {
@@ -357,7 +357,7 @@ export default function ProductList({
                               <svg className="w-4 h-4 text-current" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
-                              Delete Product
+                              {t('products.delete_product', 'Delete Product')}
                             </button>
                           </div>
                         </>

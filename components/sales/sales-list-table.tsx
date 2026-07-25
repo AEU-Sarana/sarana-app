@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Order } from '../../features/sale/types';
+import { useLanguage } from '../../contexts/language-context';
 
 const PAGE_LIMIT = 10;
 
@@ -26,6 +27,7 @@ export function SalesListTable({
   onPageChange,
   onViewDetails,
 }: SalesListTableProps) {
+  const { t } = useLanguage();
   const formatUSD = (n: number) => `$${Number(n).toFixed(2)}`;
   const formatKHR = (n: number, rate: number = 4000) => {
     const khr = Math.round(n * rate);
@@ -90,21 +92,21 @@ export function SalesListTable({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <p className="text-sm font-bold text-foreground/35">No transactions found</p>
-              <p className="text-xs text-foreground/25 font-semibold">Try adjusting your filters or date range</p>
+              <p className="text-sm font-bold text-foreground/35">{t('sales.no_sales_found', 'No transactions found')}</p>
+              <p className="text-xs text-foreground/25 font-semibold">{t('reports.no_orders_range', 'Try adjusting your filters or date range')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Receipt Number</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Date & Time</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Seller</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Payment Method</th>
-                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Discount</th>
-                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Total Amount</th>
-                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45 w-24">Actions</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_receipt_id', 'Receipt Number')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_date', 'Date & Time')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_cashier', 'Seller')}</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_payment_method', 'Payment Method')}</th>
+                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('pos.discount', 'Discount')}</th>
+                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_total', 'Total Amount')}</th>
+                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45 w-24">{t('common.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/10">

@@ -6,8 +6,10 @@ import { categoryService } from '../../../services/categoryService';
 import CategoryModal from '../../../components/category/category-modal';
 import CategoryList from '../../../components/category/category-list';
 import DeleteCategoryModal from '../../../components/category/delete-category-modal';
+import { useLanguage } from '../../../contexts/language-context';
 
 export default function AdminCategoriesPage() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryCounts, setCategoryCounts] = useState<CategoryCount[]>([]);
   
@@ -93,9 +95,9 @@ export default function AdminCategoriesPage() {
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Product Categories</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">{t('header.categories_title', 'Product Categories')}</h1>
           <p className="text-xs text-foreground/50 mt-1">
-            Group, classify, and organize your pharmacy medicine catalog for easier searching and POS checkouts.
+            {t('header.categories_subtitle', 'Group, classify, and organize your pharmacy medicine catalog for easier searching and POS checkouts.')}
           </p>
         </div>
         <button
@@ -105,7 +107,7 @@ export default function AdminCategoriesPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
           </svg>
-          Add Category
+          {t('categories.add_category', 'Add Category')}
         </button>
       </div>
 

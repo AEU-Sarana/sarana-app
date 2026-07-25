@@ -5,6 +5,7 @@ import { settingService } from '../../../services/settingService';
 import { telegramService } from '../../../services/telegramService';
 import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
+import { useLanguage } from '../../../contexts/language-context';
 
 const TIMEZONES = [
   'Asia/Phnom_Penh',
@@ -110,6 +111,8 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminSettingsPage() {
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'backup' | 'reports' | 'invoice'>('backup');
   const [settings, setSettings] = useState<AppSetting | null>(null);
   const [form, setForm] = useState<UpdateSettingsRequest>({
     auto_backup: true,
@@ -142,7 +145,11 @@ export default function AdminSettingsPage() {
     bot_token: string;
     group_chat_id: string;
     is_active: boolean;
-  } | null>(null);
+  }>({
+    bot_token: '',
+    group_chat_id: '',
+    is_active: false,
+  });
   const [showToken, setShowToken] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [telegramTestResult, setTelegramTestResult] = useState<{
@@ -424,44 +431,36 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 select-none">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Application Settings</h1>
-          <p className="text-xs text-foreground/50 mt-1">
-            Configure backup, report delivery, and invoice information. All changes are saved together.
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          {lastUpdated && (
-            <span className="text-[10px] text-foreground/35 font-semibold hidden sm:block">
-              Last saved: {lastUpdated}
-            </span>
+      {/* ── Top Action Bar ── */}
+      <div className="flex justify-end items-center gap-2.5 select-none">
+        {lastUpdated && (
+          <span className="text-[10px] text-foreground/35 font-semibold hidden sm:block">
+            Last saved: {lastUpdated}
+          </span>
+        )}
+        <button
+          id="save-settings-btn"
+          onClick={handleSave}
+          disabled={isSaving || isLoading}
+          className="px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSaving ? (
+            <>
+              <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {t('user_modal.saving', 'Saving...')}
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              {t('settings.save_all', 'Save All Settings')}
+            </>
           )}
-          <button
-            id="save-settings-btn"
-            onClick={handleSave}
-            disabled={isSaving || isLoading}
-            className="flex-1 sm:flex-initial px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <>
-                <svg className="animate-spin w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Saving...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                </svg>
-                Save All Settings
-              </>
-            )}
-          </button>
-        </div>
+        </button>
       </div>
 
       {/* ── Feedback banners ── */}
@@ -482,25 +481,70 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
+      {/* ── Navigation Tabs ── */}
+      <div className="flex items-center gap-2 p-1.5 bg-card border border-border/40 rounded-2xl shadow-sm select-none overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('backup')}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === 'backup'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          {t('settings.tab_backup', 'Backup & Maintenance')}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('reports')}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === 'reports'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          {t('settings.tab_reports', 'Daily Reports & Telegram')}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('invoice')}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === 'invoice'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {t('settings.tab_invoice', 'Invoice & Store Info')}
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-28 gap-4">
           <div className="relative flex items-center justify-center">
             <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
             <div className="w-6 h-6 rounded-full bg-primary/10 absolute animate-ping" />
           </div>
-          <span className="text-sm font-bold text-foreground/50 tracking-wide mt-2">Loading settings...</span>
+          <span className="text-sm font-bold text-foreground/50 tracking-wide mt-2">{t('settings.loading', 'Loading settings...')}</span>
         </div>
       ) : (
         <div className="space-y-5">
-
-          {/* ── Row 1: Backup & Daily Reports ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-
-            {/* Backup & Maintenance */}
+          {/* ── TAB 1: Backup & Maintenance ── */}
+          {activeTab === 'backup' && (
             <SectionCard
               accentClass="bg-primary/10 text-primary"
-              title="Backup & Maintenance"
-              description="Control automatic database backup scheduling and manage manual restore points."
+              title={t('settings.backup_title', 'Backup & Maintenance')}
+              description={t('settings.backup_desc', 'Control automatic database backup scheduling and manage manual restore points.')}
               icon={
                 <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -511,18 +555,22 @@ export default function AdminSettingsPage() {
               <ToggleSwitch
                 checked={form.auto_backup}
                 onChange={(v) => updateForm('auto_backup', v)}
-                label="Enable Automatic Backups"
-                description="Automatically back up the database on a scheduled basis to prevent data loss."
+                label={t('settings.auto_backup_label', 'Enable Automatic Backups')}
+                description={t('settings.auto_backup_desc', 'Automatically back up the database on a scheduled basis to prevent data loss.')}
               />
               <div className="h-px bg-border/20" />
               <div className={form.auto_backup ? '' : 'opacity-40 pointer-events-none'}>
-                <FieldLabel>Backup Frequency</FieldLabel>
+                <FieldLabel>{t('settings.frequency_label', 'Backup Frequency')}</FieldLabel>
                 <div className="grid grid-cols-3 gap-2.5">
-                  {BACKUP_FREQUENCIES.map(({ value, label, desc }) => (
+                  {[
+                    { value: 'daily', label: t('settings.freq_daily', 'Daily'), desc: t('settings.freq_daily_desc', 'Back up data every day at scheduled time') },
+                    { value: 'weekly', label: t('settings.freq_weekly', 'Weekly'), desc: t('settings.freq_weekly_desc', 'Back up data once per week') },
+                    { value: 'monthly', label: t('settings.freq_monthly', 'Monthly'), desc: t('settings.freq_monthly_desc', 'Back up data once per month') },
+                  ].map(({ value, label, desc }) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => updateForm('backup_frequency', value)}
+                      onClick={() => updateForm('backup_frequency', value as BackupFrequency)}
                       className={`flex flex-col gap-1 px-3.5 py-3 rounded-2xl border text-left transition-all duration-150 cursor-pointer ${
                         form.backup_frequency === value
                           ? 'border-primary/60 bg-primary/8 shadow-sm shadow-primary/10'
@@ -542,22 +590,22 @@ export default function AdminSettingsPage() {
 
               {/* Part 2: Manual Operations */}
               <div>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">Manual Operations</h3>
+                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">{t('settings.manual_operations', 'Manual Operations')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Create Manual Backup Form */}
                   <form onSubmit={handleCreateBackup} className="space-y-3 p-4 rounded-2xl bg-secondary/10 border border-border/20">
-                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Create Backup Point</span>
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.create_backup_point', 'Create Backup Point')}</span>
                     <div>
                       <input
                         type="text"
-                        placeholder="Backup Name (e.g. manual_save)"
+                        placeholder={t('settings.backup_name_placeholder', 'Backup Name (e.g. manual_save)')}
                         value={manualBackupName}
                         onChange={(e) => setManualBackupName(e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold focus:border-primary outline-none transition-all placeholder:text-foreground/30"
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-foreground/60">Include data tables</span>
+                      <span className="text-[10px] font-bold text-foreground/60">{t('settings.include_data_tables', 'Include data tables')}</span>
                       <ToggleSwitch
                         checked={includeData}
                         onChange={setIncludeData}
@@ -575,14 +623,14 @@ export default function AdminSettingsPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          Creating...
+                          {t('settings.creating', 'Creating...')}
                         </>
                       ) : (
                         <>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                           </svg>
-                          Backup Now
+                          {t('settings.backup_now', 'Backup Now')}
                         </>
                       )}
                     </button>
@@ -590,28 +638,28 @@ export default function AdminSettingsPage() {
 
                   {/* Export Table Data Form */}
                   <form onSubmit={handleExportData} className="space-y-3 p-4 rounded-2xl bg-secondary/10 border border-border/20">
-                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Export Raw Table Data</span>
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.export_raw_table', 'Export Raw Table Data')}</span>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <span className="text-[9px] text-foreground/45 block mb-1">Target Table</span>
+                        <span className="text-[9px] text-foreground/45 block mb-1">{t('settings.target_table', 'Target Table')}</span>
                         <select
                           value={exportTable}
                           onChange={(e) => setExportTable(e.target.value as any)}
                           className="w-full px-2.5 py-1.5 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold outline-none cursor-pointer"
                         >
-                          <option value="orders">Orders</option>
-                          <option value="products">Products</option>
+                          <option value="orders">{t('settings.orders', 'Orders')}</option>
+                          <option value="products">{t('settings.products', 'Products')}</option>
                         </select>
                       </div>
                       <div>
-                        <span className="text-[9px] text-foreground/45 block mb-1">Format</span>
+                        <span className="text-[9px] text-foreground/45 block mb-1">{t('settings.format', 'Format')}</span>
                         <select
                           value={exportFormat}
                           onChange={(e) => setExportFormat(e.target.value as any)}
                           className="w-full px-2.5 py-1.5 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold outline-none cursor-pointer"
                         >
-                          <option value="CSV">CSV File</option>
-                          <option value="PDF">PDF Report</option>
+                          <option value="CSV">{t('settings.csv_file', 'CSV File')}</option>
+                          <option value="PDF">{t('settings.pdf_report', 'PDF Report')}</option>
                         </select>
                       </div>
                     </div>
@@ -627,14 +675,14 @@ export default function AdminSettingsPage() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            Exporting...
+                            {t('settings.exporting', 'Exporting...')}
                           </>
                         ) : (
                           <>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
-                            Export & Download
+                            {t('settings.export_download', 'Export & Download')}
                           </>
                         )}
                       </button>
@@ -648,7 +696,7 @@ export default function AdminSettingsPage() {
               {/* Part 3: Backup History Table */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Backup History & Recovery</h3>
+                  <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">{t('settings.backup_history_title', 'Backup History & Recovery')}</h3>
                   <button
                     type="button"
                     onClick={() => fetchBackups(backupsPagination.page)}
@@ -657,7 +705,7 @@ export default function AdminSettingsPage() {
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" />
                     </svg>
-                    Refresh List
+                    {t('settings.refresh_list', 'Refresh List')}
                   </button>
                 </div>
 
@@ -666,17 +714,17 @@ export default function AdminSettingsPage() {
                     <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                   </div>
                 ) : backups.length === 0 ? (
-                  <p className="text-xs text-foreground/45 italic text-center py-4">No successful backups recorded.</p>
+                  <p className="text-xs text-foreground/45 italic text-center py-4">{t('settings.no_backups', 'No successful backups recorded.')}</p>
                 ) : (
                   <div className="space-y-2.5">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-[11px]">
                         <thead>
                           <tr className="border-b border-border/20 text-foreground/45 font-bold uppercase tracking-wider">
-                            <th className="pb-1.5">Name</th>
-                            <th className="pb-1.5 text-right">Size</th>
-                            <th className="pb-1.5 text-center">Date</th>
-                            <th className="pb-1.5 text-right">Action</th>
+                            <th className="pb-1.5">{t('settings.col_name', 'Name')}</th>
+                            <th className="pb-1.5 text-right">{t('settings.col_size', 'Size')}</th>
+                            <th className="pb-1.5 text-center">{t('settings.col_date', 'Date')}</th>
+                            <th className="pb-1.5 text-right">{t('settings.col_action', 'Action')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/10">
@@ -706,7 +754,7 @@ export default function AdminSettingsPage() {
                                     disabled={isRestoring !== null}
                                     className="px-2.5 py-1 text-[9px] font-extrabold bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded transition-colors disabled:opacity-50 cursor-pointer"
                                   >
-                                    {isRestoring === item.backup_id ? 'Restoring...' : 'Restore'}
+                                    {isRestoring === item.backup_id ? t('settings.restoring', 'Restoring...') : t('settings.restore', 'Restore')}
                                   </button>
                                 </td>
                               </tr>
@@ -720,7 +768,7 @@ export default function AdminSettingsPage() {
                     {backupsPagination.totalPages > 1 && (
                       <div className="flex items-center justify-between pt-2 border-t border-border/10">
                         <span className="text-[10px] text-foreground/45 font-medium">
-                          Page {backupsPagination.page} of {backupsPagination.totalPages}
+                          {t('settings.showing_page', 'Page {{page}} of {{total}}').replace('{{page}}', String(backupsPagination.page)).replace('{{total}}', String(backupsPagination.totalPages))}
                         </span>
                         <div className="flex items-center gap-1">
                           <button
@@ -750,12 +798,14 @@ export default function AdminSettingsPage() {
                 )}
               </div>
             </SectionCard>
+          )}
 
-            {/* Daily Reports */}
+          {/* ── TAB 2: Daily Reports & Telegram Alerts ── */}
+          {activeTab === 'reports' && (
             <SectionCard
               accentClass="bg-accent/10 text-accent"
-              title="Daily Reports & Telegram Alerts"
-              description="Configure automated daily summary report delivery and Telegram bot settings."
+              title={t('settings.reports_title', 'Daily Reports & Telegram Alerts')}
+              description={t('settings.reports_desc', 'Configure automated daily summary report delivery and Telegram bot settings.')}
               icon={
                 <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -766,23 +816,23 @@ export default function AdminSettingsPage() {
               <ToggleSwitch
                 checked={form.report_send_enabled}
                 onChange={(v) => updateForm('report_send_enabled', v)}
-                label="Enable Daily Reports Schedule"
-                description="Send automated daily summary reports via Telegram to the admin channel."
+                label={t('settings.enable_reports_label', 'Enable Daily Reports Schedule')}
+                description={t('settings.enable_reports_desc', 'Send automated daily summary reports via Telegram to the admin channel.')}
               />
               <div className="h-px bg-border/20" />
               <div className={`grid grid-cols-2 gap-4 ${!form.report_send_enabled ? 'opacity-40 pointer-events-none' : ''}`}>
                 <div>
-                  <FieldLabel>Report Time</FieldLabel>
+                  <FieldLabel>{t('settings.report_time', 'Report Time')}</FieldLabel>
                   <input
                     type="time"
                     value={form.report_send_time}
                     onChange={(e) => updateForm('report_send_time', e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200 cursor-pointer"
                   />
-                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">24-hour format (e.g. 23:30)</p>
+                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">{t('settings.report_time_hint', '24-hour format (e.g. 23:30)')}</p>
                 </div>
                 <div>
-                  <FieldLabel>Timezone</FieldLabel>
+                  <FieldLabel>{t('settings.timezone', 'Timezone')}</FieldLabel>
                   <select
                     value={form.report_send_timezone}
                     onChange={(e) => updateForm('report_send_timezone', e.target.value)}
@@ -792,147 +842,141 @@ export default function AdminSettingsPage() {
                       <option key={tz} value={tz}>{tz}</option>
                     ))}
                   </select>
-                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">Delivery timezone for report</p>
+                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">{t('settings.timezone_hint', 'Delivery timezone for report')}</p>
                 </div>
               </div>
 
               <div className="h-px bg-border/20" />
 
               {/* Part 2: Telegram Bot configuration */}
-              {telegramForm ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-foreground block">Telegram Integration</span>
-                      <span className="text-[11px] text-foreground/50 mt-0.5 block">Enable Telegram bot alerts system.</span>
-                    </div>
-                    <ToggleSwitch
-                      checked={telegramForm.is_active}
-                      onChange={(v) => setTelegramForm(prev => prev ? { ...prev, is_active: v } : null)}
-                      label=""
-                    />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">{t('settings.telegram_integration', 'Telegram Integration')}</span>
+                    <span className="text-[11px] text-foreground/50 mt-0.5 block">{t('settings.telegram_desc', 'Enable Telegram bot alerts system.')}</span>
                   </div>
+                  <ToggleSwitch
+                    checked={telegramForm.is_active}
+                    onChange={(v) => setTelegramForm(prev => ({ ...prev, is_active: v }))}
+                    label=""
+                  />
+                </div>
 
-                  <div className={`space-y-3 ${!telegramForm.is_active ? 'opacity-40 pointer-events-none' : ''}`}>
-                    {/* Bot Token input */}
-                    <div>
-                      <FieldLabel>Telegram Bot Token</FieldLabel>
-                      <div className="relative">
-                        <input
-                          type={showToken ? 'text' : 'password'}
-                          value={telegramForm.bot_token}
-                          onChange={(e) => setTelegramForm(prev => prev ? { ...prev, bot_token: e.target.value } : null)}
-                          placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                          className="w-full px-4 py-3 pr-11 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowToken(!showToken)}
-                          className="absolute inset-y-0 right-3 flex items-center text-foreground/45 hover:text-foreground/75 cursor-pointer"
-                        >
-                          {showToken ? (
-                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
-                        Masked tokens will not be overridden on save unless changed.
-                      </p>
-                    </div>
-
-                    {/* Group Chat ID input */}
-                    <div>
-                      <FieldLabel>Group Chat ID / Channel ID</FieldLabel>
+                <div className={`space-y-3 ${!telegramForm.is_active ? 'opacity-40 pointer-events-none' : ''}`}>
+                  {/* Bot Token input */}
+                  <div>
+                    <FieldLabel>{t('settings.bot_token', 'Telegram Bot Token')}</FieldLabel>
+                    <div className="relative">
                       <input
-                        type="text"
-                        value={telegramForm.group_chat_id}
-                        onChange={(e) => setTelegramForm(prev => prev ? { ...prev, group_chat_id: e.target.value } : null)}
-                        placeholder="e.g. -1001234567890"
-                        className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
+                        type={showToken ? 'text' : 'password'}
+                        value={telegramForm.bot_token}
+                        onChange={(e) => setTelegramForm(prev => ({ ...prev, bot_token: e.target.value }))}
+                        placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                        className="w-full px-4 py-3 pr-11 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
                       />
-                      <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
-                        Chat, channel, or user ID where reports will be posted.
-                      </p>
-                    </div>
-
-                    {/* Test Connection Row */}
-                    <div className="pt-1.5 space-y-2">
                       <button
                         type="button"
-                        onClick={handleTestTelegramConnection}
-                        disabled={isTestingTelegram}
-                        className="px-4 py-2 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                        onClick={() => setShowToken(!showToken)}
+                        className="absolute inset-y-0 right-3 flex items-center text-foreground/45 hover:text-foreground/75 cursor-pointer"
                       >
-                        {isTestingTelegram ? (
+                        {showToken ? (
+                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
+                      {t('settings.token_hint', 'Masked tokens will not be overridden on save unless changed.')}
+                    </p>
+                  </div>
+
+                  {/* Group Chat ID input */}
+                  <div>
+                    <FieldLabel>{t('settings.chat_id', 'Group Chat ID / Channel ID')}</FieldLabel>
+                    <input
+                      type="text"
+                      value={telegramForm.group_chat_id}
+                      onChange={(e) => setTelegramForm(prev => ({ ...prev, group_chat_id: e.target.value }))}
+                      placeholder="e.g. -1001234567890"
+                      className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
+                    />
+                    <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
+                      {t('settings.chat_id_hint', 'Chat, channel, or user ID where reports will be posted.')}
+                    </p>
+                  </div>
+
+                  {/* Test Connection Row */}
+                  <div className="pt-1.5 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleTestTelegramConnection}
+                      disabled={isTestingTelegram}
+                      className="px-4 py-2 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    >
+                      {isTestingTelegram ? (
+                        <>
+                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          {t('settings.testing_connection', 'Testing Connection...')}
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {t('settings.test_connection', 'Test Connection')}
+                        </>
+                      )}
+                    </button>
+
+                    {telegramTestResult && (
+                      <div className={`flex items-start gap-2.5 p-3 rounded-xl border text-[11px] font-semibold leading-relaxed ${
+                        telegramTestResult.success
+                          ? 'bg-success/5 border-success/15 text-success'
+                          : 'bg-destructive/5 border-destructive/15 text-destructive'
+                      }`}>
+                        {telegramTestResult.success ? (
                           <>
-                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            <svg className="w-4 h-4 shrink-0 text-success mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                            Testing Connection...
+                            <span>{t('settings.telegram_connected', 'Successfully connected to Telegram Bot: {{name}}').replace('{{name}}', telegramTestResult.botName || '')}</span>
                           </>
                         ) : (
                           <>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg className="w-4 h-4 shrink-0 text-destructive mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            Test Connection
+                            <span>{t('settings.telegram_failed', 'Connection Failed: {{error}}').replace('{{error}}', telegramTestResult.error || '')}</span>
                           </>
                         )}
-                      </button>
-
-                      {telegramTestResult && (
-                        <div className={`flex items-start gap-2.5 p-3 rounded-xl border text-[11px] font-semibold leading-relaxed ${
-                          telegramTestResult.success
-                            ? 'bg-success/5 border-success/15 text-success'
-                            : 'bg-destructive/5 border-destructive/15 text-destructive'
-                        }`}>
-                          {telegramTestResult.success ? (
-                            <>
-                              <svg className="w-4 h-4 shrink-0 text-success mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span>Successfully connected to Telegram Bot: <strong>{telegramTestResult.botName}</strong></span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4 shrink-0 text-destructive mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                              <span>Connection Failed: {telegramTestResult.error}</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <div className="flex justify-center items-center py-6">
-                  <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-                </div>
-              )}
+              </div>
 
               <div className="h-px bg-border/20" />
 
               {/* Part 3: Manual Bot Triggers */}
               <div className={telegramForm?.is_active ? '' : 'opacity-40 pointer-events-none'}>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">Manual Bot Triggers</h3>
+                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">{t('settings.manual_triggers', 'Manual Bot Triggers')}</h3>
                 <div className="space-y-3.5">
                   {/* Send Test Message block */}
                   <div className="p-4 rounded-2xl bg-secondary/10 border border-border/20 space-y-2.5">
-                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Send Custom Test Message</span>
+                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.send_custom_test', 'Send Custom Test Message')}</span>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Type a test message..."
+                        placeholder={t('settings.test_message_placeholder', 'Type a test message...')}
                         value={testMessage}
                         onChange={(e) => setTestMessage(e.target.value)}
                         className="flex-1 px-3 py-2 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold focus:border-accent outline-none transition-all"
@@ -943,7 +987,7 @@ export default function AdminSettingsPage() {
                         disabled={isSendingTestMessage}
                         className="px-4 py-2 bg-accent hover:bg-accent/90 text-white text-xs font-extrabold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer disabled:opacity-60"
                       >
-                        {isSendingTestMessage ? 'Sending...' : 'Send'}
+                        {isSendingTestMessage ? t('settings.sending', 'Sending...') : t('settings.send', 'Send')}
                       </button>
                     </div>
                   </div>
@@ -951,9 +995,9 @@ export default function AdminSettingsPage() {
                   {/* Send Daily Report now block */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-secondary/10 border border-border/20">
                     <div>
-                      <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">Daily Report Dispatch</span>
+                      <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.daily_report_dispatch', 'Daily Report Dispatch')}</span>
                       <span className="text-[10px] text-foreground/45 leading-relaxed mt-1 block">
-                        Instantly compile and send today's sales report to the Telegram chat.
+                        {t('settings.daily_report_dispatch_desc', "Instantly compile and send today's sales report to the Telegram chat.")}
                       </span>
                     </div>
                     <button
@@ -968,14 +1012,14 @@ export default function AdminSettingsPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          Sending...
+                          {t('settings.sending', 'Sending...')}
                         </>
                       ) : (
                         <>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                           </svg>
-                          Send Daily Report Now
+                          {t('settings.send_daily_report_now', 'Send Daily Report Now')}
                         </>
                       )}
                     </button>
@@ -983,10 +1027,11 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
             </SectionCard>
-          </div>
+          )}
 
-          {/* ── Invoice / Receipt Information — full-width ── */}
-          <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
+          {/* ── TAB 3: Invoice & Receipt Information ── */}
+          {activeTab === 'invoice' && (
+            <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
             <div className="flex items-center gap-4 px-7 py-6 border-b border-border/20 bg-secondary/10">
               <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                 <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -995,9 +1040,9 @@ export default function AdminSettingsPage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-foreground tracking-tight">Invoice & Receipt Information</h2>
+                <h2 className="text-sm font-extrabold text-foreground tracking-tight">{t('settings.invoice_title', 'Invoice & Receipt Information')}</h2>
                 <p className="text-[11px] text-foreground/50 mt-0.5">
-                  Customize the store info printed on every customer receipt and invoice.
+                  {t('settings.invoice_desc', 'Customize the store info printed on every customer receipt and invoice.')}
                 </p>
               </div>
             </div>
@@ -1007,7 +1052,7 @@ export default function AdminSettingsPage() {
 
                 {/* ── Logo upload ── */}
                 <div className="flex flex-col gap-4">
-                  <FieldLabel>Store Logo</FieldLabel>
+                  <FieldLabel>{t('settings.store_logo', 'Store Logo')}</FieldLabel>
 
                   <div
                     onClick={() => logoInputRef.current?.click()}
@@ -1021,7 +1066,7 @@ export default function AdminSettingsPage() {
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-[10px] font-bold">Change Logo</span>
+                            <span className="text-[10px] font-bold">{t('settings.change_logo', 'Change Logo')}</span>
                           </div>
                         </div>
                       </>
@@ -1030,7 +1075,7 @@ export default function AdminSettingsPage() {
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-[10px] font-bold">Click to upload</span>
+                        <span className="text-[10px] font-bold">{t('settings.click_to_upload', 'Click to upload')}</span>
                         <span className="text-[9px] font-semibold">PNG, JPG, SVG</span>
                       </div>
                     )}
@@ -1058,14 +1103,14 @@ export default function AdminSettingsPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          Uploading...
+                          {t('settings.uploading', 'Uploading...')}
                         </>
                       ) : (
                         <>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                           </svg>
-                          Upload Logo
+                          {t('settings.upload_logo', 'Upload Logo')}
                         </>
                       )}
                     </button>
@@ -1075,8 +1120,8 @@ export default function AdminSettingsPage() {
                   <ToggleSwitch
                     checked={form.is_logo_enabled ?? true}
                     onChange={(v) => updateForm('is_logo_enabled', v)}
-                    label="Show Logo on Receipt"
-                    description="Display the store logo at the top of printed receipts."
+                    label={t('settings.show_logo_receipt', 'Show Logo on Receipt')}
+                    description={t('settings.show_logo_desc', 'Display the store logo at the top of printed receipts.')}
                   />
                 </div>
 
@@ -1085,20 +1130,20 @@ export default function AdminSettingsPage() {
 
                   {/* Store Name */}
                   <div className="sm:col-span-2">
-                    <FieldLabel>Store / Business Name</FieldLabel>
+                    <FieldLabel>{t('settings.store_business_name', 'Store / Business Name')}</FieldLabel>
                     <input
                       id="store-name-input"
                       type="text"
                       value={form.store_name ?? ''}
                       onChange={(e) => updateForm('store_name', e.target.value)}
-                      placeholder="e.g. Sarana Shop"
+                      placeholder={t('settings.store_name_placeholder', 'e.g. Sarana Shop')}
                       className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
                     />
                   </div>
 
                   {/* Phone */}
                   <div>
-                    <FieldLabel optional>Phone Number</FieldLabel>
+                    <FieldLabel optional>{t('settings.phone_number', 'Phone Number')}</FieldLabel>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3.5 flex items-center text-foreground/40">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1110,7 +1155,7 @@ export default function AdminSettingsPage() {
                         type="tel"
                         value={form.store_phone ?? ''}
                         onChange={(e) => updateForm('store_phone', e.target.value)}
-                        placeholder="+855 12 345 678"
+                        placeholder={t('settings.phone_placeholder', '+855 12 345 678')}
                         className="w-full pl-9 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
                       />
                     </div>
@@ -1118,7 +1163,7 @@ export default function AdminSettingsPage() {
 
                   {/* Tax ID */}
                   <div>
-                    <FieldLabel optional>Tax / VAT ID</FieldLabel>
+                    <FieldLabel optional>{t('settings.tax_vat_id', 'Tax / VAT ID')}</FieldLabel>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3.5 flex items-center text-foreground/40">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1130,7 +1175,7 @@ export default function AdminSettingsPage() {
                         type="text"
                         value={form.store_tax_id ?? ''}
                         onChange={(e) => updateForm('store_tax_id', e.target.value)}
-                        placeholder="e.g. K001-123456789"
+                        placeholder={t('settings.tax_placeholder', 'e.g. K001-123456789')}
                         className="w-full pl-9 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
                       />
                     </div>
@@ -1138,12 +1183,12 @@ export default function AdminSettingsPage() {
 
                   {/* Address */}
                   <div className="sm:col-span-2">
-                    <FieldLabel optional>Address</FieldLabel>
+                    <FieldLabel optional>{t('settings.address', 'Address')}</FieldLabel>
                     <textarea
                       id="store-address-input"
                       value={form.store_address ?? ''}
                       onChange={(e) => updateForm('store_address', e.target.value)}
-                      placeholder="e.g. No. 123, Street 271, Phnom Penh, Cambodia"
+                      placeholder={t('settings.address_placeholder', 'e.g. No. 123, Street 271, Phnom Penh, Cambodia')}
                       rows={2}
                       className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 resize-none placeholder:text-foreground/30"
                     />
@@ -1152,9 +1197,9 @@ export default function AdminSettingsPage() {
                   {/* Footer Note */}
                   <div className="sm:col-span-2">
                     <div className="flex items-center justify-between mb-2">
-                      <FieldLabel optional>Footer / Thank-you Note</FieldLabel>
+                      <FieldLabel optional>{t('settings.footer_thankyou', 'Footer / Thank-you Note')}</FieldLabel>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-foreground/45">Show on receipt</span>
+                        <span className="text-[10px] font-bold text-foreground/45">{t('settings.show_on_receipt', 'Show on receipt')}</span>
                         <ToggleSwitch
                           checked={form.is_footer_enabled ?? true}
                           onChange={(v) => updateForm('is_footer_enabled', v)}
@@ -1167,12 +1212,12 @@ export default function AdminSettingsPage() {
                         id="store-footer-input"
                         value={form.store_footer_note ?? ''}
                         onChange={(e) => updateForm('store_footer_note', e.target.value)}
-                        placeholder="e.g. Thank you for your purchase! Come back soon."
+                        placeholder={t('settings.footer_placeholder', 'e.g. Thank you for your purchase! Come back soon.')}
                         rows={2}
                         className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 resize-none placeholder:text-foreground/30"
                       />
                       <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
-                        Displayed at the bottom of every printed receipt
+                        {t('settings.footer_hint', 'Displayed at the bottom of every printed receipt')}
                       </p>
                     </div>
                   </div>
@@ -1183,14 +1228,14 @@ export default function AdminSettingsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p className="text-[11px] text-foreground/55 font-semibold leading-relaxed">
-                      This information appears on receipts sent to customers via Telegram and on printed receipts at checkout.
-                      Click <strong>Save All Settings</strong> above to apply all changes at once.
+                      {t('settings.receipt_info_hint', 'This information appears on receipts sent to customers via Telegram and on printed receipts at checkout. Click Save All Settings above to apply all changes at once.')}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          )}
 
         </div>
       )}
@@ -1202,7 +1247,7 @@ export default function AdminSettingsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-[11px] text-foreground/45 font-semibold">
-            All settings are saved together with the <strong>Save All Settings</strong> button. Backup schedules and logo uploads are processed server-side.
+            {t('settings.footer_notice', 'All settings are saved together with the Save All Settings button. Backup schedules and logo uploads are processed server-side.')}
           </p>
         </div>
       )}
@@ -1215,13 +1260,13 @@ export default function AdminSettingsPage() {
               <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              <h3 className="text-base font-extrabold tracking-tight">Confirm Database Restore</h3>
+              <h3 className="text-base font-extrabold tracking-tight">{t('settings.confirm_restore_title', 'Confirm Database Restore')}</h3>
             </div>
             <p className="text-xs text-foreground/70 leading-relaxed">
-              Are you sure you want to restore the database to the savepoint <strong>"{confirmRestoreBackup.backup_name}"</strong>?
+              {t('settings.confirm_restore_desc', 'Are you sure you want to restore the database to the savepoint "{{name}}"?').replace('{{name}}', confirmRestoreBackup.backup_name)}
               <br />
               <span className="text-destructive font-bold mt-2 block">
-                ⚠️ WARNING: All active records will be overwritten with the snapshot data. This operation cannot be undone.
+                {t('settings.confirm_restore_warning', '⚠️ WARNING: All active records will be overwritten with the snapshot data. This operation cannot be undone.')}
               </span>
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -1230,14 +1275,14 @@ export default function AdminSettingsPage() {
                 onClick={() => setConfirmRestoreBackup(null)}
                 className="px-4 py-2.5 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => handleRestoreBackup(confirmRestoreBackup.backup_id, confirmRestoreBackup.backup_name)}
                 className="px-4 py-2.5 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
-                Confirm Restore
+                {t('settings.confirm_restore', 'Confirm Restore')}
               </button>
             </div>
           </div>

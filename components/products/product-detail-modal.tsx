@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Product } from '../../features/product/types';
+import { useLanguage } from '../../contexts/language-context';
 
 interface ProductDetailModalProps {
   isOpen: boolean;
@@ -30,13 +31,15 @@ export default function ProductDetailModal({
   onClose,
   product,
 }: ProductDetailModalProps) {
+  const { t } = useLanguage();
+
   if (!isOpen || !product) return null;
 
   const gradClass = getPlaceholderGradient(product.product_name);
   
   // Expiry styling helper
   const getExpiryDetails = (hasExpiry?: boolean, expiredAt?: string | null) => {
-    if (!hasExpiry || !expiredAt) return { label: 'Not Tracked', color: 'text-foreground/40' };
+    if (!hasExpiry || !expiredAt) return { label: t('products.not_tracked', 'Not Tracked'), color: 'text-foreground/40' };
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -54,12 +57,13 @@ export default function ProductDetailModal({
 
     if (diffDays < 0) {
       return { 
-        label: `${dateStr} (Expired)`, 
+        label: `${dateStr} (${t('products.expired', 'Expired')})`, 
         color: 'text-destructive font-bold' 
       };
     } else if (diffDays <= 30) {
+      const expText = t('products.expires_in', 'Expires in {{days}}d').replace('{{days}}', String(diffDays));
       return { 
-        label: `${dateStr} (Expires in ${diffDays}d)`, 
+        label: `${dateStr} (${expText})`, 
         color: 'text-warning font-bold' 
       };
     }
@@ -80,13 +84,13 @@ export default function ProductDetailModal({
         {/* Header */}
         <div className="px-6 py-4.5 border-b border-border/30 flex justify-between items-center select-none bg-secondary/15">
           <div>
-            <h3 className="text-base font-black text-foreground tracking-tight">Product Details</h3>
-            <p className="text-[10px] text-foreground/45 mt-0.5">Catalog record review</p>
+            <h3 className="text-base font-black text-foreground tracking-tight">{t('products.product_details', 'Product Details')}</h3>
+            <p className="text-[10px] text-foreground/45 mt-0.5">{t('products.catalog_record_review', 'Catalog record review')}</p>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-secondary text-foreground/45 hover:text-foreground transition-colors cursor-pointer"
-            title="Close Details"
+            title={t('products.close_details', 'Close details')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -121,14 +125,14 @@ export default function ProductDetailModal({
                 </span>
                 
                 {product.status === 'active' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-success/15 text-success border border-success/10">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-success/15 text-success border border-success/10 uppercase">
                     <span className="w-1 h-1 rounded-full bg-success shrink-0 animate-pulse"></span>
-                    ACTIVE
+                    {t('products.active', 'ACTIVE')}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-secondary/60 text-foreground/45 border border-border/20">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-secondary/60 text-foreground/45 border border-border/20 uppercase">
                     <span className="w-1 h-1 rounded-full bg-foreground/30 shrink-0"></span>
-                    INACTIVE
+                    {t('products.inactive', 'INACTIVE')}
                   </span>
                 )}
               </div>
@@ -148,28 +152,28 @@ export default function ProductDetailModal({
           {/* Specifications Grid */}
           <div className="grid grid-cols-2 gap-4 border-t border-border/20 pt-4.5">
             <div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Product Code</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.product_code', 'Product Code')}</span>
               <span className="text-xs font-mono font-bold text-foreground block mt-1 bg-secondary/30 px-2 py-1 rounded border border-border/20 w-max max-w-full truncate">
                 {product.product_code || '-'}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Barcode / SKU</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.barcode_sku', 'Barcode / SKU')}</span>
               <span className="text-xs font-mono font-bold text-foreground block mt-1 bg-secondary/30 px-2 py-1 rounded border border-border/20 w-max max-w-full truncate">
                 {product.barcode || '-'}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Price</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.price', 'Price')}</span>
               <span className="text-base font-black text-foreground block mt-1">
                 ${Number(product.price).toFixed(2)}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Stock Level</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.stock_level', 'Stock Level')}</span>
               <div className="flex items-center gap-2 mt-1 select-none">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                   product.stock_quantity <= 0
@@ -178,18 +182,18 @@ export default function ProductDetailModal({
                     ? 'bg-warning/10 text-warning border-warning/20'
                     : 'bg-success/10 text-success border-success/20'
                 }`}>
-                  {product.stock_quantity} units
+                  {product.stock_quantity} {t('products.units', 'units')}
                 </span>
                 {isLowStock && (
                   <span className="text-[9px] font-bold text-warning leading-none">
-                    (Threshold: {product.low_stock_threshold})
+                    ({t('products.threshold', 'Threshold')}: {product.low_stock_threshold})
                   </span>
                 )}
               </div>
             </div>
 
             <div className="col-span-2 border-t border-border/10 pt-4">
-              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Expiry Date</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.expiry_date', 'Expiry Date')}</span>
               <span className={`text-xs block mt-1 ${expiryDetails.color}`}>
                 {expiryDetails.label}
               </span>
@@ -198,22 +202,22 @@ export default function ProductDetailModal({
 
           {/* Description Block */}
           <div className="border-t border-border/20 pt-4.5">
-            <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">Description / Note</span>
+            <span className="text-[10px] uppercase font-black tracking-wider text-foreground/40 block">{t('products.description_note', 'Description / Note')}</span>
             <p className="text-xs text-foreground/75 leading-relaxed mt-2.5 whitespace-pre-wrap bg-secondary/15 dark:bg-secondary/5 p-3 rounded-xl border border-border/20">
-              {product.description || 'No additional description or parameter notes registered for this item.'}
+              {product.description || t('products.no_description', 'No additional description or parameter notes registered for this item.')}
             </p>
           </div>
 
           {/* History Details */}
           <div className="border-t border-border/20 pt-4.5 grid grid-cols-2 gap-4 text-[10px] font-medium text-foreground/40 select-none">
             <div>
-              <span>Created At:</span>
+              <span>{t('products.created_at', 'Created At:')}</span>
               <span className="block mt-0.5 font-semibold text-foreground/50">
                 {new Date(product.created_at).toLocaleString()}
               </span>
             </div>
             <div>
-              <span>Last Modified:</span>
+              <span>{t('products.last_modified', 'Last Modified:')}</span>
               <span className="block mt-0.5 font-semibold text-foreground/50">
                 {new Date(product.updated_at).toLocaleString()}
               </span>
@@ -229,7 +233,7 @@ export default function ProductDetailModal({
             onClick={onClose}
             className="px-5 py-2.5 bg-secondary hover:bg-secondary/80 border border-border/50 hover:border-border text-foreground text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer hover:scale-102 active:scale-98"
           >
-            Close details
+            {t('products.close_details', 'Close details')}
           </button>
         </div>
 

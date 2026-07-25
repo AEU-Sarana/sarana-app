@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, CreateUserRequest, UpdateUserRequest } from '../../features/user/types';
 import { userService } from '../../services/userService';
+import { useLanguage } from '../../contexts/language-context';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface UserModalProps {
 }
 
 export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
+  const { t } = useLanguage();
   const isEditMode = !!user;
 
   // Form Fields
@@ -141,10 +143,10 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-extrabold text-foreground tracking-tight">
-              {isEditMode ? 'Edit User Details' : 'Register New User'}
+              {isEditMode ? t('user_modal.edit_title', 'Edit User Details') : t('user_modal.register_title', 'Register New User')}
             </h3>
             <p className="text-[10px] text-foreground/45 mt-0.5">
-              {isEditMode ? `Updating profiles for @${username}` : 'Configure credentials and role clearances'}
+              {isEditMode ? t('user_modal.edit_subtitle', 'Updating profiles for @{{username}}').replace('{{username}}', username) : t('user_modal.register_subtitle', 'Configure credentials and role clearances')}
             </p>
           </div>
           <button
@@ -173,13 +175,13 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {/* Full Name */}
             <div className="sm:col-span-2">
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                Full Name <span className="text-destructive">*</span>
+                {t('user_modal.full_name', 'Full Name')} <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. John Doe"
+                placeholder={t('user_modal.full_name_placeholder', 'e.g. John Doe')}
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
                 disabled={isSubmitting}
                 required
@@ -189,13 +191,13 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {/* Username */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                Username <span className="text-destructive">*</span>
+                {t('user_modal.username', 'Username')} <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. john_doe"
+                placeholder={t('user_modal.username_placeholder', 'e.g. john_doe')}
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isSubmitting || isEditMode}
                 required
@@ -205,7 +207,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {/* Role (Hidden/Fixed in Edit mode) */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                Role Clearance <span className="text-destructive">*</span>
+                {t('user_modal.role_clearance', 'Role Clearance')} <span className="text-destructive">*</span>
               </label>
               <select
                 value={role}
@@ -213,8 +215,8 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isSubmitting || isEditMode}
               >
-                <option value="CASHIER">Cashier</option>
-                <option value="ADMIN">Administrator</option>
+                <option value="CASHIER">{t('common.cashier', 'Cashier')}</option>
+                <option value="ADMIN">{t('common.administrator', 'Administrator')}</option>
               </select>
             </div>
 
@@ -222,19 +224,19 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {!isEditMode && (
               <div className="sm:col-span-2">
                 <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                  Password <span className="text-destructive">*</span>
+                  {t('user_modal.password', 'Password')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit"
+                  placeholder={t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')}
                   className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
                   disabled={isSubmitting}
                   required
                 />
                 <p className="text-[9px] text-foreground/40 font-medium mt-1">
-                  Complexity: Required to contain A-Z, a-z, and 0-9.
+                  {t('user_modal.password_complexity_note', 'Complexity: Required to contain A-Z, a-z, and 0-9.')}
                 </p>
               </div>
             )}
@@ -242,13 +244,13 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {/* Email */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                Email Address
+                {t('user_modal.email_address', 'Email Address')}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. john@example.com"
+                placeholder={t('user_modal.email_placeholder', 'e.g. john@example.com')}
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
                 disabled={isSubmitting}
               />
@@ -257,13 +259,13 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {/* Phone */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                Phone Number
+                {t('user_modal.phone_number', 'Phone Number')}
               </label>
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +123456789"
+                placeholder={t('user_modal.phone_placeholder', 'e.g. +123456789')}
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
                 disabled={isSubmitting}
               />
@@ -273,7 +275,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
             {isEditMode && (
               <div className="sm:col-span-2">
                 <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                  Account Status
+                  {t('user_modal.account_status', 'Account Status')}
                 </label>
                 <select
                   value={status}
@@ -281,8 +283,8 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                   className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer"
                   disabled={isSubmitting}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="active">{t('common.active', 'Active')}</option>
+                  <option value="inactive">{t('common.inactive', 'Inactive')}</option>
                 </select>
               </div>
             )}
@@ -296,7 +298,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
               disabled={isSubmitting}
               className="px-5 py-2.5 border border-border text-xs font-bold text-foreground/60 hover:text-foreground rounded-xl transition-all cursor-pointer disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
@@ -309,14 +311,14 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Saving…
+                  {t('user_modal.saving', 'Saving…')}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                   </svg>
-                  {isEditMode ? 'Save Changes' : 'Confirm Register'}
+                  {isEditMode ? t('user_modal.save_changes', 'Save Changes') : t('user_modal.confirm_register', 'Confirm Register')}
                 </>
               )}
             </button>

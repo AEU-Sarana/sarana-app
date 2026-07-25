@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { StockListItem } from '../../features/stock/types';
 import { StockStatusBadge } from './stock-status-badge';
+import { useLanguage } from '../../contexts/language-context';
 
 const PAGE_LIMIT = 10;
 
@@ -26,6 +27,8 @@ export function StockListTable({
   total,
   onPageChange,
 }: StockListTableProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
       {/* Error */}
@@ -66,8 +69,8 @@ export function StockListTable({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
                 </svg>
               </div>
-              <p className="text-sm font-bold text-foreground/35">No products found</p>
-              <p className="text-xs text-foreground/25 font-semibold">Try adjusting your search or filters</p>
+              <p className="text-sm font-bold text-foreground/35">{t('products.no_products_found', 'No products found')}</p>
+              <p className="text-xs text-foreground/25 font-semibold">{t('pos.no_products_desc', 'Try adjusting your search or filters')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -75,12 +78,12 @@ export function StockListTable({
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
                     <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45 w-16">ID</th>
-                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Product</th>
-                    <th className="px-10 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Category</th>
-                    <th className="px-10 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Quantity</th>
-                    <th className="px-10 py-4.5 text-center text-xs font-bold uppercase tracking-wider text-foreground/45">Threshold</th>
-                    <th className="px-10 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Status</th>
-                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Actions</th>
+                    <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_product', 'Product')}</th>
+                    <th className="px-10 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_category', 'Category')}</th>
+                    <th className="px-10 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('stock.current_stock', 'Quantity')}</th>
+                    <th className="px-10 py-4.5 text-center text-xs font-bold uppercase tracking-wider text-foreground/45">{t('stock.low_stock_threshold', 'Threshold')}</th>
+                    <th className="px-10 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('products.col_status', 'Status')}</th>
+                    <th className="px-6 py-4.5 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('common.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/10">
@@ -151,22 +154,22 @@ export function StockListTable({
                           <Link
                             href="/admin/stock-in"
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-extrabold rounded-lg transition-all"
-                            title="Stock In"
+                            title={t('stock.stock_in', 'Stock In')}
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                             </svg>
-                            Stock In
+                            {t('stock.stock_in', 'Stock In')}
                           </Link>
                           <Link
                             href="/admin/stock-adjustments"
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/40 hover:bg-secondary/70 text-foreground/60 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all"
-                            title="Adjust"
+                            title={t('stock.adjust_stock', 'Adjust')}
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Adjust
+                            {t('stock.adjust_stock', 'Adjust')}
                           </Link>
                         </div>
                       </td>

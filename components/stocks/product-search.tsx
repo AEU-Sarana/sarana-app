@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Product } from '../../features/product/types';
 import { productService } from '../../services/productService';
+import { useLanguage } from '../../contexts/language-context';
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -19,6 +20,7 @@ interface ProductSearchProps {
 }
 
 export function ProductSearch({ value, onSelect }: ProductSearchProps) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -70,14 +72,14 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
 
   return (
     <div ref={wrapperRef} className="relative">
-      <FieldLabel required>Product</FieldLabel>
+      <FieldLabel required>{t('stock_in_page.product', 'Product')}</FieldLabel>
       <div className="relative">
         <input
           id="product-search"
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder="Search by product name or barcode…"
+          placeholder={t('stock_in_page.search_placeholder', 'Search by product name or barcode…')}
           className="w-full pl-10 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
           autoComplete="off"
         />
@@ -96,7 +98,7 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
         <div className="absolute z-50 top-full mt-1.5 w-full bg-card border border-border/60 rounded-2xl shadow-2xl overflow-hidden">
           {results.length === 0 ? (
             <div className="px-4 py-5 text-xs text-foreground/40 font-semibold text-center">
-              No active products found
+              {t('stock_in_page.no_active_products', 'No active products found')}
             </div>
           ) : (
             <ul className="max-h-56 overflow-y-auto divide-y divide-border/20">
@@ -115,8 +117,8 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-foreground truncate">{p.product_name}</p>
                       <p className="text-[10px] text-foreground/45 font-semibold mt-0.5">
-                        <span className="text-primary font-mono font-bold">#{p.product_id}</span> · {p.product_code} {p.barcode ? `· ${p.barcode}` : ''} · Stock: {p.stock_quantity}
-                        {p.has_expiry && <span className="ml-1 text-amber-500">· Expiry required</span>}
+                        <span className="text-primary font-mono font-bold">#{p.product_id}</span> · {p.product_code} {p.barcode ? `· ${p.barcode}` : ''} · {t('stock.current_stock', 'Current Stock')}: {p.stock_quantity}
+                        {p.has_expiry && <span className="ml-1 text-amber-500">· {t('stock_in_page.expiry_required_badge', 'Expiry required')}</span>}
                       </p>
                     </div>
                   </button>
@@ -137,7 +139,7 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
             #{value.product_id}
           </span>
           <span className="text-xs font-bold text-primary">{value.product_name}</span>
-          <span className="text-[10px] text-primary/60 font-semibold">· Current stock: {value.stock_quantity}</span>
+          <span className="text-[10px] text-primary/60 font-semibold">· {t('stock_in_page.current_stock_badge', 'Current stock:')} {value.stock_quantity}</span>
           <button
             type="button"
             onClick={() => { onSelect(null); setQuery(value ? value.product_name : ''); }}

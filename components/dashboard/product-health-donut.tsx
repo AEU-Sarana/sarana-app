@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '../../contexts/language-context';
 
 export interface ProductHealthDonutProps {
   total: number;
@@ -15,6 +16,7 @@ export default function ProductHealthDonut({
   outOfStock,
   expired,
 }: ProductHealthDonutProps) {
+  const { t } = useLanguage();
   const r = 68;
   const cx = 100;
   const cy = 100;
@@ -24,10 +26,10 @@ export default function ProductHealthDonut({
   const inStock = Math.max(0, total - lowStock - outOfStock - expired);
 
   const segments = [
-    { label: 'In Stock',     value: inStock,     color: '#10b981' },
-    { label: 'Low Stock',    value: lowStock,    color: '#f59e0b' },
-    { label: 'Out of Stock', value: outOfStock,  color: '#f43f5e' },
-    { label: 'Expired',      value: expired,     color: '#f97316' },
+    { label: t('dashboard.in_stock', 'In Stock'),     value: inStock,     color: '#10b981' },
+    { label: t('dashboard.low_stock', 'Low Stock'),    value: lowStock,    color: '#f59e0b' },
+    { label: t('dashboard.out_of_stock', 'Out of Stock'), value: outOfStock,  color: '#f43f5e' },
+    { label: t('dashboard.expired', 'Expired'),      value: expired,     color: '#f97316' },
   ];
 
   const totalVal = segments.reduce((s, seg) => s + seg.value, 0) || 1;
@@ -47,8 +49,8 @@ export default function ProductHealthDonut({
     <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm flex flex-col gap-4 h-full select-none">
       {/* Header */}
       <div>
-        <h2 className="text-base font-black text-foreground tracking-tight">Product Health</h2>
-        <p className="text-[10px] font-bold text-foreground/45 uppercase tracking-widest mt-0.5">Stock status breakdown</p>
+        <h2 className="text-base font-black text-foreground tracking-tight">{t('dashboard.product_health', 'Product Health')}</h2>
+        <p className="text-[10px] font-bold text-foreground/45 uppercase tracking-widest mt-0.5">{t('dashboard.stock_breakdown', 'Stock status breakdown')}</p>
       </div>
 
       {/* Donut SVG */}
@@ -85,7 +87,7 @@ export default function ProductHealthDonut({
           {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-3xl font-black text-foreground leading-none">{total}</span>
-            <span className="text-[9px] font-black text-foreground/40 uppercase tracking-widest mt-1">Products</span>
+            <span className="text-[9px] font-black text-foreground/40 uppercase tracking-widest mt-1">{t('dashboard.products', 'Products')}</span>
           </div>
         </div>
       </div>

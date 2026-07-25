@@ -16,6 +16,7 @@ import CustomerSelector, { Customer } from '../../../components/checkout/custome
 import ProductFilters from '../../../components/checkout/product-filters';
 import Pagination from '../../../components/checkout/pagination';
 import PaymentSummary from '../../../components/checkout/payment-summary';
+import { useLanguage } from '../../../contexts/language-context';
 
 interface CartItem {
   product: Product;
@@ -24,6 +25,7 @@ interface CartItem {
 
 export default function CashierCheckoutPage() {
   const currentUser = useAppSelector(selectCurrentUser);
+  const { t } = useLanguage();
 
   // Data States
   const [products, setProducts] = useState<Product[]>([]);
@@ -351,9 +353,9 @@ export default function CashierCheckoutPage() {
       {/* POS Top Header Controls */}
       <div className="no-print flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Checkout POS Terminal</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">{t('pos.title', 'Checkout POS Terminal')}</h1>
           <p className="text-xs text-foreground/50 mt-1">
-            Search products, manage cart items, associate customer accounts, and record retail pharmacy sales.
+            {t('pos.subtitle', 'Search products, manage cart items, associate customer accounts, and record retail pharmacy sales.')}
           </p>
         </div>
         <button
@@ -369,7 +371,7 @@ export default function CashierCheckoutPage() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          <span>Refresh</span>
+          <span>{t('common.refresh', 'Refresh')}</span>
         </button>
       </div>
 
@@ -390,7 +392,7 @@ export default function CashierCheckoutPage() {
           {isLoadingProducts ? (
             <div className="flex flex-col items-center justify-center py-36 gap-4">
               <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <span className="text-xs font-bold text-foreground/50 tracking-wider">Retrieving Active Catalog...</span>
+              <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('pos.retrieving_catalog', 'Retrieving Active Catalog...')}</span>
             </div>
           ) : products.length === 0 ? (
             <div className="bg-card border border-border/40 rounded-3xl p-12 text-center shadow-sm select-none">
@@ -399,9 +401,9 @@ export default function CashierCheckoutPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-base font-black text-foreground">No Products Found</h3>
+              <h3 className="text-base font-black text-foreground">{t('pos.no_products_found', 'No Products Found')}</h3>
               <p className="text-xs text-foreground/50 mt-1 max-w-sm mx-auto">
-                No active medicines match your search query or category filters. Try clearing inputs or selecting a different category.
+                {t('pos.no_products_desc', 'No active medicines match your search query or category filters. Try clearing inputs or selecting a different category.')}
               </p>
             </div>
           ) : (
@@ -437,10 +439,10 @@ export default function CashierCheckoutPage() {
               <svg className="w-5 h-5 text-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <h2 className="text-base font-black text-foreground tracking-tight">Invoice Cart</h2>
+              <h2 className="text-base font-black text-foreground tracking-tight">{t('pos.invoice_cart', 'Invoice Cart')}</h2>
             </div>
             <span className="text-xs font-bold text-foreground/45">
-              {cart.reduce((sum, item) => sum + item.quantity, 0)} Items
+              {cart.reduce((sum, item) => sum + item.quantity, 0)} {t('pos.items', 'Items')}
             </span>
           </div>
 
@@ -470,8 +472,8 @@ export default function CashierCheckoutPage() {
                 <svg className="w-12 h-12 stroke-current opacity-40 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                <span className="text-xs font-bold">POS Cart is Empty</span>
-                <span className="text-[10px] text-foreground/45 mt-0.5">Click catalog cards to add items</span>
+                <span className="text-xs font-bold">{t('pos.cart_empty', 'POS Cart is Empty')}</span>
+                <span className="text-[10px] text-foreground/45 mt-0.5">{t('pos.cart_empty_sub', 'Click catalog cards to add items')}</span>
               </div>
             ) : (
               cart.map((item) => (
