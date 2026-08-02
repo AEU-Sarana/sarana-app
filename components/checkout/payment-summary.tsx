@@ -3,6 +3,7 @@
 import React from 'react';
 import { CartItem } from './cart-item-row';
 import { useLanguage } from '../../contexts/language-context';
+import { useAuth } from '../../hooks/useAuth';
 
 interface PaymentSummaryProps {
   cart: CartItem[];
@@ -38,6 +39,8 @@ export default function PaymentSummary({
   isLoading = false,
 }: PaymentSummaryProps) {
   const { t } = useLanguage();
+  const { can } = useAuth();
+  const canApplyDiscount = can('pos.apply_discount', 'create');
 
   return (
     <>
@@ -49,8 +52,11 @@ export default function PaymentSummary({
           <div className="flex justify-between items-center">
             <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/50">
               {t('pos.discount_deduction', 'DISCOUNT DEDUCTION ($)')}
+              {!canApplyDiscount && (
+                <span className="ml-1 text-[9px] text-destructive font-bold">(Permission Restricted)</span>
+              )}
             </label>
-            {parseFloat(discountValue) > 0 && (
+            {canApplyDiscount && parseFloat(discountValue) > 0 && (
               <button
                 type="button"
                 onClick={() => onDiscountValueChange('0')}
@@ -64,7 +70,8 @@ export default function PaymentSummary({
             <input
               type="text"
               inputMode="decimal"
-              placeholder={t('pos.enter_discount_amount', 'Enter amount (e.g. 5.00)')}
+              disabled={!canApplyDiscount}
+              placeholder={canApplyDiscount ? t('pos.enter_discount_amount', 'Enter amount (e.g. 5.00)') : 'Discount disabled by admin'}
               value={discountValue === '0' ? '' : discountValue}
               onChange={(e) => {
                 const val = e.target.value;
@@ -72,7 +79,11 @@ export default function PaymentSummary({
                   onDiscountValueChange(val);
                 }
               }}
-              className="w-full pl-7 pr-4 py-2 text-xs rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 font-semibold focus:ring-2 focus:ring-primary/5 outline-none transition-all"
+              className={`w-full pl-7 pr-4 py-2 text-xs rounded-xl border border-border/60 font-semibold focus:ring-2 focus:ring-primary/5 outline-none transition-all ${
+                canApplyDiscount
+                  ? 'bg-secondary/15 dark:bg-secondary/5'
+                  : 'bg-secondary/40 text-foreground/40 cursor-not-allowed opacity-60'
+              }`}
             />
             <div className="absolute left-3 top-2 text-xs font-bold text-foreground/45 select-none">
               $

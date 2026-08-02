@@ -10,6 +10,7 @@ import ProductList from '../../../components/products/product-list';
 import ProductDeleteModal from '../../../components/products/product-delete-modal';
 import ProductDetailModal from '../../../components/products/product-detail-modal';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 export default function AdminProductsPage() {
   const { t } = useLanguage();
@@ -200,6 +201,9 @@ export default function AdminProductsPage() {
     }
   };
 
+  const { can } = useAuth();
+  const canCreateProduct = can('catalog.manage_products', 'create');
+
   return (
     <div className="space-y-6">
       {/* 1. Header controls */}
@@ -224,15 +228,17 @@ export default function AdminProductsPage() {
             <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
           
-          <button
-            onClick={handleAddProduct}
-            className="flex-1 sm:flex-initial px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-            </svg>
-            {t('products.add_product', 'Add Product')}
-          </button>
+          {canCreateProduct && (
+            <button
+              onClick={handleAddProduct}
+              className="flex-1 sm:flex-initial px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              {t('products.add_product', 'Add Product')}
+            </button>
+          )}
         </div>
       </div>
 

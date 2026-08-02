@@ -329,7 +329,7 @@ function DailyTab({ date, setDate }: DailyTabProps) {
           )}
         </SectionCard>
 
-        <SectionCard title="Low Stock Alerts">
+        <SectionCard title="+s">
           {d.low_stock_items.length === 0 ? (
             <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
               All active product inventory stocks are healthy.

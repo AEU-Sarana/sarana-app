@@ -10,6 +10,7 @@ import { Category } from '../../../features/category/types';
 import { StatCard } from '../../../components/stocks/stat-card';
 import { StockListTable } from '../../../components/stocks/stock-list-table';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -18,6 +19,9 @@ const PAGE_LIMIT = 10;
 
 function StockPageContent() {
   const { t } = useLanguage();
+  const { can } = useAuth();
+  const canStockIn = can('stock.stock_in', 'create');
+  const canAdjustStock = can('stock.adjustments', 'create');
   const searchParams = useSearchParams();
   const initialStatus = searchParams?.get('status') || '';
 
@@ -144,24 +148,28 @@ function StockPageContent() {
             </svg>
             <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
-          <Link
-            href="/admin/stock-in"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-            </svg>
-            {t('stock.stock_in', 'Stock In')}
-          </Link>
-          <Link
-            href="/admin/stock-adjustments"
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 border border-border/50 hover:border-primary/40 hover:bg-primary/5 text-foreground/70 hover:text-primary font-extrabold text-xs rounded-xl transition-all duration-150"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            {t('stock.adjust_stock', 'Adjust')}
-          </Link>
+          {canStockIn && (
+            <Link
+              href="/admin/stock-in"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              {t('stock.stock_in', 'Stock In')}
+            </Link>
+          )}
+          {canAdjustStock && (
+            <Link
+              href="/admin/stock-adjustments"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 border border-border/50 hover:border-primary/40 hover:bg-primary/5 text-foreground/70 hover:text-primary font-extrabold text-xs rounded-xl transition-all duration-150"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {t('stock.adjust_stock', 'Adjust')}
+            </Link>
+          )}
         </div>
       </div>
 

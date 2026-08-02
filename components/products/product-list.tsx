@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Product } from '../../features/product/types';
 import { useLanguage } from '../../contexts/language-context';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ProductListProps {
   products: Product[];
@@ -54,6 +55,9 @@ export default function ProductList({
   onPageChange,
 }: ProductListProps) {
   const { t } = useLanguage();
+  const { can } = useAuth();
+  const canEditProduct = can('catalog.manage_products', 'update');
+  const canDeleteProduct = can('catalog.manage_products', 'delete');
   const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
   
   // Expiry date helper text & styling
@@ -334,31 +338,35 @@ export default function ProductList({
                               {t('common.view', 'View Details')}
                             </button>
                             
-                            <button
-                              onClick={() => {
-                                onEdit(product);
-                                setActiveDropdownId(null);
-                              }}
-                              className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/50 dark:hover:bg-secondary/30 transition-colors cursor-pointer"
-                            >
-                              <svg className="w-4 h-4 text-foreground/40" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                              {t('products.edit_product', 'Edit Product')}
-                            </button>
+                            {canEditProduct && (
+                              <button
+                                onClick={() => {
+                                  onEdit(product);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/50 dark:hover:bg-secondary/30 transition-colors cursor-pointer"
+                              >
+                                <svg className="w-4 h-4 text-foreground/40" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                                {t('products.edit_product', 'Edit Product')}
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => {
-                                onDelete(product);
-                                setActiveDropdownId(null);
-                              }}
-                              className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors border-t border-border/10 mt-1 pt-1.5 cursor-pointer"
-                            >
-                              <svg className="w-4 h-4 text-current" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              {t('products.delete_product', 'Delete Product')}
-                            </button>
+                            {canDeleteProduct && (
+                              <button
+                                onClick={() => {
+                                  onDelete(product);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors border-t border-border/10 mt-1 pt-1.5 cursor-pointer"
+                              >
+                                <svg className="w-4 h-4 text-current" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                {t('products.delete_product', 'Delete Product')}
+                              </button>
+                            )}
                           </div>
                         </>
                       )}

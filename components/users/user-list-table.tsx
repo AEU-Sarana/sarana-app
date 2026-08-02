@@ -3,6 +3,7 @@
 import React from 'react';
 import { User } from '../../features/user/types';
 import { useLanguage } from '../../contexts/language-context';
+import { useAuth } from '../../hooks/useAuth';
 
 const PAGE_LIMIT = 10;
 
@@ -36,6 +37,9 @@ export function UserListTable({
   currentUserId,
 }: UserListTableProps) {
   const { t } = useLanguage();
+  const { can } = useAuth();
+  const canUpdateUser = can('users.manage', 'update');
+  const canDeleteUser = can('users.manage', 'delete');
 
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
@@ -199,45 +203,49 @@ export function UserListTable({
                               </button>
                             )}
 
-                            <button
-                              onClick={() => onEdit(user)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/40 text-foreground/75 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"
-                              title="Edit User Profile"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              {t('common.edit', 'Edit')}
-                            </button>
+                            {canUpdateUser && (
+                              <button
+                                onClick={() => onEdit(user)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/40 text-foreground/75 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Edit User Profile"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                {t('common.edit', 'Edit')}
+                              </button>
+                            )}
 
-                            <button
-                              disabled={isSelf}
-                              onClick={() => onDeactivate(user)}
-                              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border shadow-sm ${
-                                isSelf
-                                  ? 'bg-secondary/40 border-border text-foreground/35 opacity-55 cursor-not-allowed select-none'
-                                  : user.status === 'active'
-                                  ? 'bg-destructive/10 hover:bg-destructive/20 border-destructive/15 text-destructive cursor-pointer'
-                                  : 'bg-primary/10 hover:bg-primary/20 border-primary/15 text-primary cursor-pointer'
-                              }`}
-                              title={isSelf ? 'Cannot deactivate your own account' : user.status === 'active' ? 'Deactivate User' : 'Reactivate User'}
-                            >
-                              {user.status === 'active' ? (
-                                <>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                  </svg>
-                                  {t('common.deactivate', 'Deactivate')}
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4" />
-                                  </svg>
-                                  {t('common.reactivate', 'Reactivate')}
-                                </>
-                              )}
-                            </button>
+                            {canDeleteUser && (
+                              <button
+                                disabled={isSelf}
+                                onClick={() => onDeactivate(user)}
+                                className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border shadow-sm ${
+                                  isSelf
+                                    ? 'bg-secondary/40 border-border text-foreground/35 opacity-55 cursor-not-allowed select-none'
+                                    : user.status === 'active'
+                                    ? 'bg-destructive/10 hover:bg-destructive/20 border-destructive/15 text-destructive cursor-pointer'
+                                    : 'bg-primary/10 hover:bg-primary/20 border-primary/15 text-primary cursor-pointer'
+                                }`}
+                                title={isSelf ? 'Cannot deactivate your own account' : user.status === 'active' ? 'Deactivate User' : 'Reactivate User'}
+                              >
+                                {user.status === 'active' ? (
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                    </svg>
+                                    {t('common.deactivate', 'Deactivate')}
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4" />
+                                    </svg>
+                                    {t('common.reactivate', 'Reactivate')}
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

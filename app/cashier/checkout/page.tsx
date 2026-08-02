@@ -17,6 +17,7 @@ import ProductFilters from '../../../components/checkout/product-filters';
 import Pagination from '../../../components/checkout/pagination';
 import PaymentSummary from '../../../components/checkout/payment-summary';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface CartItem {
   product: Product;
@@ -26,6 +27,12 @@ interface CartItem {
 export default function CashierCheckoutPage() {
   const currentUser = useAppSelector(selectCurrentUser);
   const { t } = useLanguage();
+  const { can } = useAuth();
+
+  const canApplyDiscount = can('pos.apply_discount', 'create');
+  const canEditPrice = can('pos.edit_price', 'update');
+  const canHoldCart = can('pos.hold_cart', 'create');
+  const canReprintReceipt = can('pos.reprint_receipt', 'create');
 
   // Data States
   const [products, setProducts] = useState<Product[]>([]);

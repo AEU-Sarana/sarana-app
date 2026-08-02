@@ -3,12 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../../services/authService';
 
+export type PermissionAction = 'read' | 'create' | 'update' | 'delete' | 'all';
+
 interface SystemFeature {
   key: string;
   name: string;
   category: string;
   description: string;
   defaultCashier: boolean;
+  supportedActions?: PermissionAction[];
+}
+
+export interface UserPermissionItem {
+  featureKey: string;
+  actions: PermissionAction[];
 }
 
 interface UserPermissionsModalProps {
@@ -23,6 +31,14 @@ interface UserPermissionsModalProps {
   onSaved?: () => void;
 }
 
+const ACTION_LABELS: Record<PermissionAction, { label: string }> = {
+  read: { label: 'Read / View' },
+  create: { label: 'Create' },
+  update: { label: 'Edit' },
+  delete: { label: 'Delete' },
+  all: { label: 'All' },
+};
+
 export default function UserPermissionsModal({
   isOpen,
   user,
@@ -30,7 +46,7 @@ export default function UserPermissionsModal({
   onSaved,
 }: UserPermissionsModalProps) {
   const [features, setFeatures] = useState<SystemFeature[]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [permissionMap, setPermissionMap] = useState<Record<string, PermissionAction[]>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,8 +72,22 @@ export default function UserPermissionsModal({
 
       // 2. Load target user's current permissions
       const permRes = await authService.getUserPermissions(user.userId);
-      const userPerms: string[] = permRes?.data?.permissions || [];
-      setSelectedKeys(userPerms);
+      const rawPerms = permRes?.data?.permissions || [];
+
+      // Normalize into map: { [featureKey]: ['read', 'create', ...] }
+      const newMap: Record<string, PermissionAction[]> = {};
+      
+      if (Array.isArray(rawPerms)) {
+        for (const item of rawPerms) {
+          if (typeof item === 'string') {
+            newMap[item] = ['all', 'read', 'create', 'update', 'delete'];
+          } else if (item && typeof item === 'object' && item.featureKey) {
+            newMap[item.featureKey] = Array.isArray(item.actions) ? item.actions : ['read'];
+          }
+        }
+      }
+
+      setPermissionMap(newMap);
     } catch (err: any) {
       setError(err?.message || 'Failed to load feature permissions');
     } finally {
@@ -65,22 +95,73 @@ export default function UserPermissionsModal({
     }
   };
 
-  const handleToggle = (key: string) => {
-    setSelectedKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+  const handleActionToggle = (featureKey: string, action: PermissionAction) => {
+    setPermissionMap((prev) => {
+      const current = prev[featureKey] || [];
+      let updated: PermissionAction[] = [];
+
+      if (action === 'all') {
+        // Toggle all vs none
+        if (current.includes('all')) {
+          updated = [];
+        } else {
+          updated = ['all', 'read', 'create', 'update', 'delete'];
+        }
+      } else {
+        if (current.includes(action)) {
+          // Remove action (and remove 'all' if present)
+          updated = current.filter((a) => a !== action && a !== 'all');
+        } else {
+          // Add action
+          updated = [...current.filter((a) => a !== 'all'), action];
+          // Check if all actions are now selected
+          const feat = features.find((f) => f.key === featureKey);
+          const supported = feat?.supportedActions || ['read', 'create', 'update', 'delete'];
+          const nonAllSupported = supported.filter((s) => s !== 'all');
+          if (nonAllSupported.every((a) => updated.includes(a))) {
+            updated.push('all');
+          }
+        }
+      }
+
+      const next = { ...prev };
+      if (updated.length === 0) {
+        delete next[featureKey];
+      } else {
+        next[featureKey] = updated;
+      }
+      return next;
+    });
   };
 
-  const handleSelectAll = () => {
-    setSelectedKeys(features.map((f) => f.key));
+  const handleSelectAllFull = () => {
+    const fullMap: Record<string, PermissionAction[]> = {};
+    for (const f of features) {
+      fullMap[f.key] = ['all', 'read', 'create', 'update', 'delete'];
+    }
+    setPermissionMap(fullMap);
+  };
+
+  const handleSelectAllRead = () => {
+    const readMap: Record<string, PermissionAction[]> = {};
+    for (const f of features) {
+      readMap[f.key] = ['read'];
+    }
+    setPermissionMap(readMap);
   };
 
   const handleClearAll = () => {
-    setSelectedKeys([]);
+    setPermissionMap({});
   };
 
   const handleResetDefault = () => {
-    setSelectedKeys(features.filter((f) => f.defaultCashier).map((f) => f.key));
+    const defaultMap: Record<string, PermissionAction[]> = {};
+    for (const f of features) {
+      if (f.defaultCashier) {
+        defaultMap[f.key] = ['read', 'create', 'update'];
+      }
+    }
+    setPermissionMap(defaultMap);
   };
 
   const handleSave = async () => {
@@ -90,7 +171,12 @@ export default function UserPermissionsModal({
     setSuccess('');
 
     try {
-      await authService.updateUserPermissions(user.userId, selectedKeys);
+      const payload = Object.entries(permissionMap).map(([featureKey, actions]) => ({
+        featureKey,
+        actions,
+      }));
+
+      await authService.updateUserPermissions(user.userId, payload);
       setSuccess('Permissions updated successfully!');
       setTimeout(() => {
         if (onSaved) onSaved();
@@ -105,12 +191,12 @@ export default function UserPermissionsModal({
 
   if (!isOpen || !user) return null;
 
-  // Group features by category
   const categories = Array.from(new Set(features.map((f) => f.category)));
+  const totalAssignedCount = Object.keys(permissionMap).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card border border-border/80 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-card border border-border/80 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-secondary/30">
           <div>
@@ -121,7 +207,7 @@ export default function UserPermissionsModal({
               Feature Access Permissions
             </h2>
             <p className="text-xs text-foreground/60 mt-0.5">
-              Assign or revoke specific system features for <strong className="text-foreground">{user.fullName}</strong> (@{user.username})
+              Assign or revoke specific granular feature actions for <strong className="text-foreground">{user.fullName}</strong> (@{user.username})
             </p>
           </div>
           <button
@@ -134,12 +220,18 @@ export default function UserPermissionsModal({
 
         {/* Action Toolbar */}
         <div className="px-6 py-3 bg-card border-b border-border/40 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={handleSelectAll}
+              onClick={handleSelectAllFull}
               className="px-3 py-1.5 rounded-lg bg-secondary text-xs font-semibold hover:bg-secondary/80 transition-colors"
             >
-              Select All
+              Select All (Full)
+            </button>
+            <button
+              onClick={handleSelectAllRead}
+              className="px-3 py-1.5 rounded-lg bg-secondary text-xs font-semibold hover:bg-secondary/80 transition-colors"
+            >
+              Select All (Read Only)
             </button>
             <button
               onClick={handleClearAll}
@@ -156,7 +248,7 @@ export default function UserPermissionsModal({
           </div>
 
           <span className="text-xs font-bold text-foreground/60">
-            Selected: <span className="text-primary font-extrabold">{selectedKeys.length}</span> / {features.length} Features
+            Active Features: <span className="text-primary font-extrabold">{totalAssignedCount}</span> / {features.length}
           </span>
         </div>
 
@@ -176,7 +268,7 @@ export default function UserPermissionsModal({
 
           {loading ? (
             <div className="py-12 text-center text-sm font-semibold text-foreground/50">
-              Loading system features...
+              Loading system feature matrix...
             </div>
           ) : (
             categories.map((cat) => {
@@ -187,34 +279,62 @@ export default function UserPermissionsModal({
                     {cat}
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2.5">
                     {catFeatures.map((feat) => {
-                      const isChecked = selectedKeys.includes(feat.key);
+                      const activeActions = permissionMap[feat.key] || [];
+                      const supported = feat.supportedActions || ['read', 'create', 'update', 'delete', 'all'];
+
                       return (
-                        <label
+                        <div
                           key={feat.key}
-                          onClick={() => handleToggle(feat.key)}
-                          className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-150 cursor-pointer select-none ${
-                            isChecked
-                              ? 'bg-primary/5 border-primary/40 shadow-sm'
-                              : 'bg-card border-border/40 hover:bg-secondary/20'
+                          className={`p-3.5 rounded-xl border transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                            activeActions.length > 0
+                              ? 'bg-primary/[0.02] border-primary/30 shadow-sm'
+                              : 'bg-card border-border/40'
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}}
-                            className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary accent-primary"
-                          />
+                          {/* Feature title & description */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-foreground leading-tight">
-                              {feat.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-extrabold text-foreground leading-tight">
+                                {feat.name}
+                              </p>
+                              {feat.defaultCashier && (
+                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">
+                                  Default Cashier
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[11px] text-foreground/50 leading-tight mt-0.5">
                               {feat.description}
                             </p>
                           </div>
-                        </label>
+
+                          {/* Action Pill Selector */}
+                          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                            {supported.map((act) => {
+                              const isSelected = activeActions.includes(act);
+                              const info = ACTION_LABELS[act] || { label: act };
+
+                              return (
+                                <button
+                                  key={act}
+                                  type="button"
+                                  onClick={() => handleActionToggle(feat.key, act)}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer select-none border ${
+                                    isSelected
+                                      ? act === 'all'
+                                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
+                                        : 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
+                                      : 'bg-secondary/50 text-foreground/60 border-border/40 hover:bg-secondary hover:text-foreground'
+                                  }`}
+                                >
+                                  <span>{info.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

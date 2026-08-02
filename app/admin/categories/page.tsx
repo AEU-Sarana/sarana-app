@@ -7,6 +7,7 @@ import CategoryModal from '../../../components/category/category-modal';
 import CategoryList from '../../../components/category/category-list';
 import DeleteCategoryModal from '../../../components/category/delete-category-modal';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 export default function AdminCategoriesPage() {
   const { t } = useLanguage();
@@ -90,6 +91,9 @@ export default function AdminCategoriesPage() {
     return found ? found.count : 0;
   };
 
+  const { can } = useAuth();
+  const canCreate = can('catalog.categories', 'create');
+
   return (
     <div className="space-y-6">
       {/* Header controls */}
@@ -100,15 +104,17 @@ export default function AdminCategoriesPage() {
             {t('header.categories_subtitle', 'Group, classify, and organize your pharmacy medicine catalog for easier searching and POS checkouts.')}
           </p>
         </div>
-        <button
-          onClick={handleAddCategory}
-          className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-sm rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-          </svg>
-          {t('categories.add_category', 'Add Category')}
-        </button>
+        {canCreate && (
+          <button
+            onClick={handleAddCategory}
+            className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary/90 text-white font-extrabold text-sm rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+            {t('categories.add_category', 'Add Category')}
+          </button>
+        )}
       </div>
 
       {/* Main Categories Panel */}

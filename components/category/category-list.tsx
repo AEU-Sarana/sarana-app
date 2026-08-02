@@ -3,6 +3,7 @@
 import React from 'react';
 import { Category } from '../../features/category/types';
 import { useLanguage } from '../../contexts/language-context';
+import { useAuth } from '../../hooks/useAuth';
 
 interface CategoryListProps {
   categories: Category[];
@@ -24,6 +25,10 @@ export default function CategoryList({
   onRetry,
 }: CategoryListProps) {
   const { t } = useLanguage();
+  const { can } = useAuth();
+
+  const canEdit = can('catalog.categories', 'update');
+  const canDelete = can('catalog.categories', 'delete');
 
   if (isLoading) {
     return (
@@ -126,24 +131,31 @@ export default function CategoryList({
                 {/* Actions */}
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-150">
-                    <button
-                      onClick={() => onEdit(cat)}
-                      title="Edit Category"
-                      className="w-8 h-8 rounded-lg bg-secondary/40 hover:bg-secondary flex items-center justify-center text-foreground/70 hover:text-foreground cursor-pointer transition-colors duration-150"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => onDelete(cat)}
-                      title="Delete Category"
-                      className="w-8 h-8 rounded-lg bg-destructive/10 hover:bg-destructive text-destructive hover:text-white flex items-center justify-center cursor-pointer transition-all duration-150"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(cat)}
+                        title="Edit Category"
+                        className="w-8 h-8 rounded-lg bg-secondary/40 hover:bg-secondary flex items-center justify-center text-foreground/70 hover:text-foreground cursor-pointer transition-colors duration-150"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(cat)}
+                        title="Delete Category"
+                        className="w-8 h-8 rounded-lg bg-destructive/10 hover:bg-destructive text-destructive hover:text-white flex items-center justify-center cursor-pointer transition-all duration-150"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                    {!canEdit && !canDelete && (
+                      <span className="text-[11px] text-foreground/40 italic">View Only</span>
+                    )}
                   </div>
                 </td>
 

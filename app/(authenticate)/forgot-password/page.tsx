@@ -1,7 +1,10 @@
+import ForgotPassword from '../../../components/auth/forgot-password';
+
+export const metadata = {
+  title: 'Forgot Password - Sarana Pharmacy POS',
+  description: 'Reset your pharmacy POS account password via OTP',
+};
+
 export default function ForgotPasswordPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-      <h1 className="text-xl font-bold">Forgot Password Page</h1>
-    </div>
-  );
+  return <ForgotPassword />;
 }

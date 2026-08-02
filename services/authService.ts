@@ -142,9 +142,36 @@ export const authService = {
     return await apiClient.get<any>(`/users/${userId}/permissions`);
   },
 
-  async updateUserPermissions(userId: number, permissions: string[]): Promise<any> {
+  async updateUserPermissions(userId: number, permissions: any[]): Promise<any> {
     return await apiClient.put<any>(`/users/${userId}/permissions`, { permissions });
-  }
+  },
+
+  async forgotPassword(identifier: string): Promise<any> {
+    const response = await apiClient.post<any>('/auth/forgot-password', {
+      email: identifier,
+      identifier,
+    });
+    return response;
+  },
+
+  async verifyOtp(identifier: string, otpCode: string): Promise<any> {
+    const response = await apiClient.post<any>('/auth/verify-otp-reset-password', {
+      email: identifier,
+      identifier,
+      otp_code: otpCode,
+    });
+    return response;
+  },
+
+  async resetPassword(identifier: string, newPassword: string, confirmPassword: string): Promise<any> {
+    const response = await apiClient.post<any>('/auth/reset-password', {
+      email: identifier,
+      identifier,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    });
+    return response;
+  },
 };
 
 // Register the refresh handler dynamically to avoid circular dependencies

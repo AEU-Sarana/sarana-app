@@ -11,6 +11,7 @@ import DeactivateUserModal from '../../../components/users/deactivate-user-modal
 import UserPermissionsModal from '../../../components/admin/user-permissions-modal';
 import { UserDetailsModal } from '../../../components/users/user-details-modal';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 const PAGE_LIMIT = 10;
 
@@ -150,6 +151,9 @@ export default function AdminUsersPage() {
     }
   };
 
+  const { can } = useAuth();
+  const canCreateUser = can('users.manage', 'create');
+
   return (
     <div className="space-y-6">
       {/* Action Bar (Top Right buttons) */}
@@ -174,15 +178,17 @@ export default function AdminUsersPage() {
             </svg>
             <span>{isLoading ? t('reports.loading', 'Refreshing...') : t('common.refresh', 'Refresh')}</span>
           </button>
-          <button
-            onClick={handleAddUser}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
-            {t('users.add_user', 'Add User')}
-          </button>
+          {canCreateUser && (
+            <button
+              onClick={handleAddUser}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <span>{t('users.add_user', 'Add New User')}</span>
+            </button>
+          )}
         </div>
       </div>
 

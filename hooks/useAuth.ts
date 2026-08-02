@@ -50,10 +50,19 @@ export function useAuth() {
     }
   };
 
-  const can = (featureKey: string): boolean => {
+  const can = (featureKey: string, action: string = 'read'): boolean => {
     if (!user) return false;
     if (user.role === 'ADMIN') return true;
-    return Array.isArray(user.permissions) && user.permissions.includes(featureKey);
+    if (!Array.isArray(user.permissions)) return false;
+
+    return user.permissions.some((p: any) => {
+      if (typeof p === 'string') return p === featureKey;
+      if (p && typeof p === 'object' && p.featureKey === featureKey) {
+        const actions = Array.isArray(p.actions) ? p.actions : ['read'];
+        return actions.includes('all') || actions.includes(action);
+      }
+      return false;
+    });
   };
 
   return {
