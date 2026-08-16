@@ -245,14 +245,16 @@ export default function AdminDashboardPage() {
     setError(null);
     try {
       const [overviewRes, stockRes, customersRes] = await Promise.all([
-        dashboardService.getOverview(),
-        stockService.getStockList({ limit: 1 }),
-        customerService.getCustomers({ limit: 100 }),
+        dashboardService.getOverview().catch(() => null),
+        stockService.getStockList({ limit: 1 }).catch(() => null),
+        customerService.getCustomers({ limit: 100 }).catch(() => null),
       ]);
-      setData(overviewRes);
-      setOutOfStockCount(stockRes.summary.out_of_stock_count || 0);
-      setLowStockCount(stockRes.summary.low_stock_count || 0);
-      setTotalProducts(stockRes.summary.total_products || 0);
+      if (overviewRes) setData(overviewRes);
+      if (stockRes && stockRes.summary) {
+        setOutOfStockCount(stockRes.summary.out_of_stock_count || 0);
+        setLowStockCount(stockRes.summary.low_stock_count || 0);
+        setTotalProducts(stockRes.summary.total_products || 0);
+      }
       if (customersRes && customersRes.customers) {
         setCustomers(customersRes.customers);
       }

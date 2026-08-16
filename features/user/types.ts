@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'CASHIER';
+export type UserRole = string;
 export type UserStatus = 'active' | 'inactive';
 
 export interface User {
@@ -43,4 +43,6 @@ export interface UpdateUserRequest {
   email?: string;
   phone?: string;
   status?: UserStatus;
+  password?: string;
+  role?: UserRole;
 }

@@ -71,11 +71,11 @@ export default function CashierDashboardPage() {
     setError(null);
     try {
       const [overviewRes, ordersRes] = await Promise.all([
-        dashboardService.getOverview(),
-        saleService.listOrders({ page: 1, limit: 7 }),
+        dashboardService.getOverview().catch(() => null),
+        saleService.listOrders({ page: 1, limit: 7 }).catch(() => ({ orders: [] })),
       ]);
-      setData(overviewRes);
-      setRecentOrders(ordersRes.orders);
+      if (overviewRes) setData(overviewRes);
+      if (ordersRes && ordersRes.orders) setRecentOrders(ordersRes.orders);
     } catch (err: any) {
       setError(err?.message || 'Failed to retrieve dashboard statistics.');
     } finally {

@@ -48,6 +48,11 @@ export default function Sidebar({
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileProfileMenuOpen, setIsMobileProfileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileProfileMenuRef = useRef<HTMLDivElement>(null);
@@ -85,7 +90,7 @@ export default function Sidebar({
       items: [
         {
           name: t('sidebar.dashboard', 'Dashboard'),
-          path: isAdmin ? '/admin/dashboard' : '/cashier/dashboard',
+          path: pathname?.startsWith('/admin') || (mounted && isAdmin) ? '/admin/dashboard' : '/cashier/dashboard',
           featureKey: 'pos.checkout',
           icon: (
             <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -147,6 +152,26 @@ export default function Sidebar({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
           )
+        },
+        {
+          name: t('sidebar.purchasing', 'Purchase Orders'),
+          path: '/admin/purchasing',
+          featureKey: 'purchasing.create_po',
+          icon: (
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          )
+        },
+        {
+          name: t('sidebar.suppliers', 'Suppliers'),
+          path: '/admin/suppliers',
+          featureKey: 'purchasing.manage_suppliers',
+          icon: (
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          )
         }
       ]
     },
@@ -177,6 +202,16 @@ export default function Sidebar({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           )
+        },
+        {
+          name: t('sidebar.roles', 'Roles & Permissions'),
+          path: '/admin/roles',
+          featureKey: 'users.manage',
+          icon: (
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          )
         }
       ]
     }
@@ -186,16 +221,19 @@ export default function Sidebar({
   const menuGroups = allMenuGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => can(item.featureKey)),
+      items: group.items.filter((item) => !mounted || can(item.featureKey)),
     }))
     .filter((group) => group.items.length > 0);
 
   return (
     <>
       {/* 1. PERSISTENT SIDEBAR - Desktop Mode */}
-      <aside className={`hidden md:flex shrink-0 flex-col justify-between bg-card border-r border-border/40 shadow-xl relative z-30 transition-[width] duration-300 ease-in-out ${
-        isCollapsed ? 'w-20' : 'w-64 lg:w-72'
-      }`}>
+      <aside
+        suppressHydrationWarning
+        className={`hidden md:flex shrink-0 flex-col justify-between bg-card border-r border-border/40 shadow-xl relative z-30 transition-[width] duration-300 ease-in-out ${
+          isCollapsed ? 'w-20' : 'w-64 lg:w-72'
+        }`}
+      >
         
         {/* Floating Expand/Collapse Border Button */}
         <button
@@ -251,7 +289,7 @@ export default function Sidebar({
           </div>
 
           {/* Navigation Menu - Scrollable */}
-          <nav className="flex-1 overflow-y-auto py-6 custom-scrollbar">
+          <nav suppressHydrationWarning className="flex-1 overflow-y-auto py-6 custom-scrollbar">
             {menuGroups.map((group, groupIdx) => (
               <div key={group.title} className={groupIdx > 0 ? 'mt-6' : ''}>
                 {isCollapsed ? (
@@ -332,14 +370,16 @@ export default function Sidebar({
                   className="flex items-center gap-3 flex-1 min-w-0 hover:bg-secondary/30 p-1 rounded-lg transition-colors cursor-pointer text-left"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary/20 to-accent/20 border-2 border-primary/20 flex items-center justify-center font-bold text-primary relative shrink-0">
-                    {getInitials(user?.fullName || 'System Admin')}
+                    {getInitials(mounted ? (user?.fullName || 'System Admin') : 'System Admin')}
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success border-2 border-card rounded-full"></span>
                   </div>
                   
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-sm font-bold truncate text-foreground leading-tight">{user?.fullName || 'System Admin'}</span>
+                    <span className="text-sm font-bold truncate text-foreground leading-tight">
+                      {mounted ? (user?.fullName || 'System Admin') : 'System Admin'}
+                    </span>
                     <span className="text-[10px] uppercase font-extrabold tracking-wider text-accent mt-0.5 flex items-center gap-1.5 leading-none">
-                      {user?.role || 'Administrator'}
+                      {mounted ? (user?.role || 'Administrator') : 'Administrator'}
                       <svg className={`w-3 h-3 text-foreground/45 transition-transform duration-200 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                       </svg>
@@ -403,9 +443,9 @@ export default function Sidebar({
               {/* Hover User Info Card */}
               <div className="absolute bottom-0 left-full ml-4 p-4 bg-card border border-border/80 rounded-xl shadow-2xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 min-w-[200px] z-50">
                 <div className="flex flex-col mb-3">
-                  <span className="text-sm font-bold text-foreground">{user?.fullName || 'System Admin'}</span>
-                  <span className="text-[10px] uppercase font-bold text-accent mt-0.5">{user?.role || 'Administrator'}</span>
-                  <span className="text-xs text-foreground/50 mt-1 truncate">{user?.email || 'admin@gmail.com'}</span>
+                  <span className="text-sm font-bold text-foreground">{mounted ? (user?.fullName || 'System Admin') : 'System Admin'}</span>
+                  <span className="text-[10px] uppercase font-bold text-accent mt-0.5">{mounted ? (user?.role || 'Administrator') : 'Administrator'}</span>
+                  <span className="text-xs text-foreground/50 mt-1 truncate">{mounted ? (user?.email || 'admin@gmail.com') : 'admin@gmail.com'}</span>
                 </div>
                 
                 <div className="h-[1px] bg-border/40 my-2" />
@@ -473,7 +513,7 @@ export default function Sidebar({
           ></div>
 
           {/* Slide-in container */}
-          <aside className="relative w-72 max-w-[290px] bg-card h-full flex flex-col justify-between border-r border-border/40 shadow-2xl animate-slide-in">
+          <aside suppressHydrationWarning className="relative w-72 max-w-[290px] bg-card h-full flex flex-col justify-between border-r border-border/40 shadow-2xl animate-slide-in">
             <div className="flex flex-col h-full overflow-hidden">
               
               {/* Branding Header with Close button */}

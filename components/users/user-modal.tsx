@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, CreateUserRequest, UpdateUserRequest } from '../../features/user/types';
 import { userService } from '../../services/userService';
+import { roleService, Role as RoleModel } from '../../services/roleService';
 import { useLanguage } from '../../contexts/language-context';
 
 interface UserModalProps {
@@ -22,15 +23,23 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'ADMIN' | 'CASHIER'>('CASHIER');
+  const [role, setRole] = useState<string>('CASHIER');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [availableRoles, setAvailableRoles] = useState<RoleModel[]>([]);
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync state with selected user
+  // Sync state with selected user and fetch dynamic roles list
   useEffect(() => {
+    if (isOpen) {
+      roleService
+        .listRoles()
+        .then((roles) => setAvailableRoles(roles))
+        .catch(() => {});
+    }
+
     if (user) {
       setFullName(user.fullName || '');
       setUsername(user.username || '');
@@ -86,10 +95,21 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
         setError('Password must be at least 4 characters.');
         return;
       }
-      // Password validation matching backend regex: at least one uppercase letter, one lowercase letter, and one number
       if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
         setError('Password must contain at least one uppercase letter, one lowercase letter, and one number.');
         return;
+      }
+    } else {
+      // Edit mode password validation (optional)
+      if (password && password.trim().length > 0) {
+        if (password.length < 4) {
+          setError('Password must be at least 4 characters.');
+          return;
+        }
+        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+          setError('Password must contain at least one uppercase letter, one lowercase letter, and one number.');
+          return;
+        }
       }
     }
 
@@ -100,6 +120,8 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
           full_name: fullName.trim(),
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
+          role: role,
+          password: password.trim() ? password : undefined,
           status: status,
         };
         await userService.updateUser(user.userId, payload);
@@ -204,42 +226,57 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
               />
             </div>
 
-            {/* Role (Hidden/Fixed in Edit mode) */}
+            {/* Role Clearance */}
             <div>
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
                 {t('user_modal.role_clearance', 'Role Clearance')} <span className="text-destructive">*</span>
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'ADMIN' | 'CASHIER')}
+                onChange={(e) => setRole(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled={isSubmitting || isEditMode}
+                disabled={isSubmitting}
               >
-                <option value="CASHIER">{t('common.cashier', 'Cashier')}</option>
-                <option value="ADMIN">{t('common.administrator', 'Administrator')}</option>
+                {availableRoles.length > 0 ? (
+                  availableRoles.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.name} ({r.key})
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="CASHIER">Cashier (CASHIER)</option>
+                    <option value="ADMIN">Administrator (ADMIN)</option>
+                  </>
+                )}
               </select>
             </div>
 
-            {/* Password (Only in create mode) */}
-            {!isEditMode && (
-              <div className="sm:col-span-2">
-                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
-                  {t('user_modal.password', 'Password')} <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
-                  disabled={isSubmitting}
-                  required
-                />
-                <p className="text-[9px] text-foreground/40 font-medium mt-1">
-                  {t('user_modal.password_complexity_note', 'Complexity: Required to contain A-Z, a-z, and 0-9.')}
-                </p>
-              </div>
-            )}
+            {/* Password (Required on Create, Optional on Edit) */}
+            <div className="sm:col-span-2">
+              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
+                {isEditMode ? 'New Password (Optional)' : t('user_modal.password', 'Password')}{' '}
+                {!isEditMode && <span className="text-destructive">*</span>}
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={
+                  isEditMode
+                    ? 'Leave blank to keep current password'
+                    : t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')
+                }
+                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
+                disabled={isSubmitting}
+                required={!isEditMode}
+              />
+              <p className="text-[9px] text-foreground/40 font-medium mt-1">
+                {isEditMode
+                  ? 'Enter a new password only if you want to update this user\'s login password.'
+                  : t('user_modal.password_complexity_note', 'Complexity: Required to contain A-Z, a-z, and 0-9.')}
+              </p>
+            </div>
 
             {/* Email */}
             <div>

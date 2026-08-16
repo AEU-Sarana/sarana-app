@@ -51,7 +51,12 @@ export default function Navbar() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -85,7 +90,12 @@ export default function Navbar() {
   }, [dispatch]);
 
   const { title, subtitle } = getPageInfo(pathname, t);
-  const initials = getInitials(user?.fullName || 'Admin');
+
+  const displayUser = mounted ? user : null;
+  const displayFullName = displayUser?.fullName || 'Admin';
+  const displayRole = displayUser?.role || 'Administrator';
+  const displayEmail = displayUser?.email || '';
+  const initials = getInitials(displayFullName);
 
   const handleConfirmLogout = () => {
     setIsLogoutModalOpen(false);
@@ -131,10 +141,10 @@ export default function Navbar() {
               {/* Name + role */}
               <div className="flex flex-col items-start">
                 <span className="text-sm font-bold text-foreground leading-tight max-w-[140px] truncate">
-                  {user?.fullName || 'Admin'}
+                  {displayFullName}
                 </span>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-accent leading-none mt-0.5">
-                  {user?.role || 'Administrator'}
+                  {displayRole}
                 </span>
               </div>
 
@@ -152,8 +162,8 @@ export default function Navbar() {
               <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/60 rounded-2xl shadow-2xl shadow-black/10 overflow-hidden z-50 animate-scale-up">
                 {/* User info header */}
                 <div className="px-4 py-3 border-b border-border/40 bg-secondary/20">
-                  <p className="text-sm font-bold text-foreground truncate">{user?.fullName || 'Admin'}</p>
-                  <p className="text-xs text-foreground/50 truncate mt-0.5">{user?.email || ''}</p>
+                  <p className="text-sm font-bold text-foreground truncate">{displayFullName}</p>
+                  <p className="text-xs text-foreground/50 truncate mt-0.5">{displayEmail}</p>
                 </div>
 
                 {/* Actions */}
