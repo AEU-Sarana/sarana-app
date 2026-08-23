@@ -26,7 +26,7 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center bg-background select-none">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-bold text-foreground/50">Redirecting to Sarana POS...</p>
+        <p className="text-xs font-bold text-foreground/50">Redirecting to Pich Chamroeun POS...</p>
       </div>
     </div>
   );

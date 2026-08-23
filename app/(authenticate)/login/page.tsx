@@ -1,7 +1,7 @@
 import Login from '../../../components/auth/login';
 
 export const metadata = {
-  title: 'Sign In - Sarana Pharmacy POS',
+  title: 'Sign In - Pich Chamroeun POS',
   description: 'Sign in to access your pharmacy POS dashboard',
 };
 

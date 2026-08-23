@@ -14,6 +14,13 @@ export default function AdminCreatePOPage() {
   const [notes, setNotes] = useState('');
   const [taxAmount, setTaxAmount] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  // Payment & Debt State
+  const [paymentType, setPaymentType] = useState<'PAID' | 'DEBT' | 'PARTIAL'>('DEBT');
+  const [initialPaidAmount, setInitialPaidAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('ABA_BANK');
+  const [paymentDueDate, setPaymentDueDate] = useState<string>('');
+
   const [items, setItems] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -109,6 +116,10 @@ export default function AdminCreatePOPage() {
           discountAmount,
           notes,
           status,
+          paymentType,
+          initialPaidAmount: paymentType === 'PAID' ? totalAmount : paymentType === 'DEBT' ? 0 : initialPaidAmount,
+          paymentMethod,
+          paymentDueDate: paymentDueDate || undefined,
           items: items.map((i) => ({
             productId: i.productId,
             orderedQuantity: i.orderedQuantity,
@@ -153,6 +164,16 @@ export default function AdminCreatePOPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Create Purchase Order</h1>
         </div>
+
+        <Link
+          href="/admin/purchasing"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary/80 hover:bg-secondary text-foreground text-xs font-bold rounded-xl transition-all border border-border/50 shadow-sm cursor-pointer shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Purchase Orders
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -195,9 +216,83 @@ export default function AdminCreatePOPage() {
             </div>
           </div>
 
+          {/* Payment Terms & Supplier Debt Options Card */}
+          <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">2. Payment & Supplier Terms</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Payment Type *
+                </label>
+                <select
+                  value={paymentType}
+                  onChange={(e) => setPaymentType(e.target.value as any)}
+                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm font-bold focus:outline-none focus:border-primary"
+                >
+                  <option value="DEBT">100% Debt / Credit (Pay Later)</option>
+                  <option value="PAID">100% Paid Upfront (Full Cash/Bank)</option>
+                  <option value="PARTIAL">Partial Deposit Upfront</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
+                >
+                  <option value="ABA_BANK">ABA Bank Transfer</option>
+                  <option value="CASH">Cash</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="CHEQUE">Cheque</option>
+                  <option value="CREDIT_TERMS">Supplier Credit Terms</option>
+                </select>
+              </div>
+            </div>
+
+            {paymentType === 'PARTIAL' && (
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Upfront Deposit Amount ($) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={totalAmount}
+                  value={initialPaidAmount}
+                  onChange={(e) => setInitialPaidAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="Enter deposit amount..."
+                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground font-mono text-sm focus:outline-none focus:border-primary font-bold"
+                />
+              </div>
+            )}
+
+            {paymentType !== 'PAID' && (
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                  Payment Due Date (Auto-calculated if blank)
+                </label>
+                <input
+                  type="date"
+                  value={paymentDueDate}
+                  onChange={(e) => setPaymentDueDate(e.target.value)}
+                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Defaults to supplier payment terms (e.g. NET 30 days) if left blank.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Product Items Picker & Table Card */}
           <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-sm">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">2. Order Products</h3>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">3. Order Products</h3>
 
             {/* Product Search Input */}
             <div className="relative">
@@ -291,7 +386,7 @@ export default function AdminCreatePOPage() {
         {/* Summary Sidebar Column */}
         <div className="space-y-6">
           <div className="bg-card border border-border/40 rounded-2xl p-6 space-y-4 shadow-sm">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">3. Summary & Notes</h3>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">4. Summary & Notes</h3>
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
@@ -330,6 +425,22 @@ export default function AdminCreatePOPage() {
               <div className="pt-3 border-t border-border/40 flex justify-between items-center">
                 <span className="font-bold text-foreground">Total Order Cost:</span>
                 <span className="text-xl font-extrabold text-primary font-mono">${totalAmount.toFixed(2)}</span>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="p-3 bg-secondary/30 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between font-semibold">
+                  <span className="text-muted-foreground">Payment Type:</span>
+                  <span className="text-foreground">{paymentType}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span className="text-muted-foreground">Initial Paid:</span>
+                  <span className="text-emerald-500">${(paymentType === 'PAID' ? totalAmount : paymentType === 'DEBT' ? 0 : initialPaidAmount).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-extrabold border-t border-border/30 pt-1.5">
+                  <span className="text-foreground">Supplier Debt Created:</span>
+                  <span className="text-rose-500">${Math.max(0, totalAmount - (paymentType === 'PAID' ? totalAmount : paymentType === 'DEBT' ? 0 : initialPaidAmount)).toFixed(2)}</span>
+                </div>
               </div>
             </div>
 

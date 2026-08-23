@@ -13,7 +13,13 @@ export default function AdminPODetailsPage() {
   const [po, setPo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [grModalOpen, setGrModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const safeFormatCurrency = (val: any) => {
+    const num = Number(val ?? 0);
+    return isNaN(num) ? '0.00' : num.toFixed(2);
+  };
 
   const fetchPODetails = useCallback(async () => {
     setLoading(true);
@@ -151,7 +157,7 @@ export default function AdminPODetailsPage() {
             Download PDF
           </button>
 
-          {['APPROVED', 'SENT', 'PARTIAL_RECEIVED'].includes(po.status) ? (
+          {['APPROVED', 'PARTIAL_RECEIVED'].includes(po.status) ? (
             <button
               onClick={() => setGrModalOpen(true)}
               className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-semibold transition-all shadow-md shadow-primary/20 flex items-center gap-2 cursor-pointer"
@@ -170,6 +176,16 @@ export default function AdminPODetailsPage() {
               className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/20 cursor-pointer"
             >
               Approve PO
+            </button>
+          ) : null}
+
+          {['DRAFT', 'APPROVED', 'PARTIAL_RECEIVED'].includes(po.status) ? (
+            <button
+              disabled={updatingStatus}
+              onClick={() => setCancelModalOpen(true)}
+              className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+            >
+              Cancel PO
             </button>
           ) : null}
         </div>
@@ -201,7 +217,7 @@ export default function AdminPODetailsPage() {
 
         <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-2 shadow-sm">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Order Total</h3>
-          <div className="text-2xl font-extrabold text-primary font-mono">${Number(po.totalAmount || po.total_amount).toFixed(2)}</div>
+          <div className="text-2xl font-extrabold text-primary font-mono">${safeFormatCurrency(po.totalAmount ?? po.total_amount)}</div>
           <div className="text-xs text-muted-foreground">Created by: {po.createdByUser?.fullName || po.created_by_name || 'Admin'}</div>
         </div>
       </div>
@@ -228,8 +244,8 @@ export default function AdminPODetailsPage() {
                   </td>
                   <td className="px-4 py-3 text-center font-bold text-foreground">{item.orderedQuantity}</td>
                   <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">{item.receivedQuantity}</td>
-                  <td className="px-4 py-3 text-right font-mono">${Number(item.unitCost).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-foreground font-mono">${Number(item.subtotal).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right font-mono">${safeFormatCurrency(item.unitCost ?? item.unit_cost)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-foreground font-mono">${safeFormatCurrency(item.subtotal)}</td>
                 </tr>
               ))}
             </tbody>
@@ -252,7 +268,7 @@ export default function AdminPODetailsPage() {
                   </div>
                 </div>
                 <div className="text-right font-mono font-bold text-foreground">
-                  ${Number(gr.totalReceivedAmount || gr.total_received_amount).toFixed(2)}
+                  ${safeFormatCurrency(gr.totalReceivedAmount ?? gr.total_received_amount)}
                 </div>
               </div>
             ))}
@@ -270,6 +286,50 @@ export default function AdminPODetailsPage() {
         onSuccess={fetchPODetails}
         po={po}
       />
+
+      {/* Modal for Cancel PO Confirmation */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-card border border-border/50 rounded-3xl p-6 sm:p-7 w-full max-w-md shadow-2xl space-y-5 text-foreground animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Cancel Purchase Order</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">PO #: <span className="font-mono font-bold text-foreground">{po.poNumber || po.po_number}</span></p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-500/5 border border-rose-500/20 rounded-xl text-xs text-foreground/80 leading-relaxed">
+              Are you sure you want to cancel this Purchase Order? This action cannot be undone.
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-border/50 text-xs font-bold text-foreground/70 hover:bg-secondary transition-all cursor-pointer"
+              >
+                Nevermind
+              </button>
+              <button
+                type="button"
+                disabled={updatingStatus}
+                onClick={async () => {
+                  setCancelModalOpen(false);
+                  await handleUpdateStatus('CANCELLED');
+                }}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                {updatingStatus ? 'Cancelling...' : 'Yes, Cancel Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

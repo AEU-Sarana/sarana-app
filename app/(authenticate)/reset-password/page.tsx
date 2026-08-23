@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import ResetPassword from '../../../components/auth/reset-password';
 
 export const metadata = {
-  title: 'Reset Password - Sarana Pharmacy POS',
+  title: 'Reset Password - Pich Chamroeun POS',
   description: 'Set a new secure password for your pharmacy POS account',
 };
 

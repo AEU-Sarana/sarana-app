@@ -5,12 +5,13 @@ import { useSelector } from 'react-redux';
 import Link from 'next/link';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import { dashboardService } from '../../../services/dashboardService';
-import { DashboardOverviewResponse } from '../../../features/dashboard/types';
+import { DashboardOverviewResponse, TopSellingProduct } from '../../../features/dashboard/types';
 import { stockService } from '../../../services/stockService';
 import { customerService } from '../../../services/customerService';
 import DashboardCard from '../../../components/dashboard/dashboard-card';
 import SplineChart from '../../../components/dashboard/spline-chart';
 import ProductHealthDonut from '../../../components/dashboard/product-health-donut';
+import { TopProductsCard } from '../../../components/dashboard/top-products-card';
 import { getInitials } from '../../../libs/utils';
 import { useLanguage } from '../../../contexts/language-context';
 
@@ -26,7 +27,6 @@ export interface CustomerWithPurchases {
   fullName: string | null;
   phone: string | null;
   email: string | null;
-  telegramLinked: boolean;
   createdAt: string;
   lastBuyAt: string | null;
   purchases: CustomerPurchase[];
@@ -39,7 +39,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sok Chan',
     phone: '012345678',
     email: 'sok.chan@gmail.com',
-    telegramLinked: true,
     createdAt: '2026-05-15T08:30:00Z',
     lastBuyAt: '2026-05-28T09:30:00Z',
     purchases: [
@@ -53,7 +52,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Dara Sok',
     phone: '098765432',
     email: 'dara.sok@yahoo.com',
-    telegramLinked: true,
     createdAt: '2026-05-20T10:15:00Z',
     lastBuyAt: '2026-05-29T14:15:00Z',
     purchases: [
@@ -66,7 +64,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sreyneang Kong',
     phone: '015999888',
     email: 'sreyneang.k@outlook.com',
-    telegramLinked: false,
     createdAt: '2026-05-22T14:45:00Z',
     lastBuyAt: null,
     purchases: [],
@@ -77,7 +74,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sopheap Heng',
     phone: '081223344',
     email: 'sopheap.heng@example.com',
-    telegramLinked: true,
     createdAt: '2026-05-25T09:00:00Z',
     lastBuyAt: '2026-06-02T11:20:00Z',
     purchases: [
@@ -92,7 +88,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Ratha Soth',
     phone: '077556677',
     email: 'ratha.soth@gmail.com',
-    telegramLinked: false,
     createdAt: '2026-05-28T16:20:00Z',
     lastBuyAt: null,
     purchases: [],
@@ -103,7 +98,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sokha Chan',
     phone: '010555666',
     email: 'sokha.chan@gmail.com',
-    telegramLinked: true,
     createdAt: '2026-05-29T11:40:00Z',
     lastBuyAt: '2026-06-01T15:45:00Z',
     purchases: [
@@ -117,7 +111,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sokheng Sok',
     phone: '093888777',
     email: 'sokheng.sok@yahoo.com',
-    telegramLinked: true,
     createdAt: '2026-05-30T15:10:00Z',
     lastBuyAt: '2026-05-31T10:00:00Z',
     purchases: [
@@ -130,7 +123,6 @@ const mockCustomers: CustomerWithPurchases[] = [
     fullName: 'Sokhom Dara',
     phone: '070222111',
     email: 'sokhom.dara@gmail.com',
-    telegramLinked: false,
     createdAt: '2026-06-01T09:15:00Z',
     lastBuyAt: null,
     purchases: [],
@@ -231,14 +223,29 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
   const [customers, setCustomers] = useState<CustomerWithPurchases[]>(mockCustomers);
   const [searchQuery, setSearchQuery] = useState('');
-  const [telegramFilter, setTelegramFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
   const [outOfStockCount, setOutOfStockCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [topProducts, setTopProducts] = useState<TopSellingProduct[]>([]);
+  const [topProductsSort, setTopProductsSort] = useState<'quantity' | 'revenue'>('quantity');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchTopProducts = useCallback(async (sortBy: 'quantity' | 'revenue') => {
+    try {
+      const res = await dashboardService.getTopProducts(5, sortBy);
+      if (res) setTopProducts(res);
+    } catch {
+      // Keep existing state
+    }
+  }, []);
+
+  const handleTopProductsSortChange = (mode: 'quantity' | 'revenue') => {
+    setTopProductsSort(mode);
+    fetchTopProducts(mode);
+  };
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
@@ -249,7 +256,10 @@ export default function AdminDashboardPage() {
         stockService.getStockList({ limit: 1 }).catch(() => null),
         customerService.getCustomers({ limit: 100 }).catch(() => null),
       ]);
-      if (overviewRes) setData(overviewRes);
+      if (overviewRes) {
+        setData(overviewRes);
+        if (overviewRes.top_products) setTopProducts(overviewRes.top_products);
+      }
       if (stockRes && stockRes.summary) {
         setOutOfStockCount(stockRes.summary.out_of_stock_count || 0);
         setLowStockCount(stockRes.summary.low_stock_count || 0);
@@ -258,22 +268,19 @@ export default function AdminDashboardPage() {
       if (customersRes && customersRes.customers) {
         setCustomers(customersRes.customers);
       }
+      await fetchTopProducts(topProductsSort);
     } catch (err: any) {
       setError(err?.message || 'Failed to retrieve dashboard statistics.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchTopProducts, topProductsSort]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
   const formatUSD = (n: number) => `$${Number(n).toFixed(2)}`;
-  const formatKHR = (n: number, rate: number = 4000) => {
-    const khr = Math.round(n * rate);
-    return `${khr.toLocaleString()} KHR`;
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -340,19 +347,17 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         (() => {
-          const salesAmount = data?.today_summary?.total_sales_amount || 0;
-          const salesCount = data?.today_summary?.total_sales_count || 0;
+          const overviewData: any = (data as any)?.today_summary ? data : (data as any)?.data;
+          const salesAmount = Number(overviewData?.today_summary?.total_sales_amount ?? 0);
+          const salesCount = Number(overviewData?.today_summary?.total_sales_count ?? 0);
 
           // Client-side search and filtering for customers
           const filteredCustomers = customers.filter(customer => {
-            const matchesSearch = 
+            return (
               (customer.fullName && customer.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
               (customer.phone && customer.phone.includes(searchQuery)) ||
-              (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
-              
-            if (telegramFilter === 'linked') return matchesSearch && customer.telegramLinked;
-            if (telegramFilter === 'unlinked') return matchesSearch && !customer.telegramLinked;
-            return matchesSearch;
+              (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
           });
 
           const totalCustomers = filteredCustomers.length;
@@ -446,12 +451,11 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Revenue Growth spline area chart + side cards area */}
-              <div className="flex gap-6 items-stretch">
-                <div className="w-[60%] shrink-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <div className="lg:col-span-7 flex flex-col gap-6">
                   <RevenueGrowthChart />
                 </div>
-                {/* Side panel — Product Health Donut */}
-                <div className="w-[40%] flex flex-col gap-4">
+                <div className="lg:col-span-5 flex flex-col gap-6">
                   <ProductHealthDonut
                     total={totalProducts}
                     lowStock={lowStockCount}
@@ -460,6 +464,14 @@ export default function AdminDashboardPage() {
                   />
                 </div>
               </div>
+
+              {/* Top Selling Products of the Month */}
+              <TopProductsCard
+                products={topProducts}
+                isLoading={isLoading}
+                activeSort={topProductsSort}
+                onSortChange={handleTopProductsSortChange}
+              />
 
               {/* Customer Purchases Section */}
               <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-6">
@@ -489,24 +501,6 @@ export default function AdminDashboardPage() {
                       />
                     </div>
                     
-                    <div className="flex gap-1 p-1 bg-secondary/30 rounded-xl">
-                      {(['all', 'linked', 'unlinked'] as const).map((filter) => (
-                        <button
-                          key={filter}
-                          onClick={() => {
-                            setTelegramFilter(filter);
-                            setCurrentPage(1);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                            telegramFilter === filter
-                              ? 'bg-card text-foreground shadow-sm'
-                              : 'text-foreground/50 hover:text-foreground'
-                          }`}
-                        >
-                          {filter === 'all' ? t('dashboard.filter_all', 'All') : filter === 'linked' ? t('dashboard.filter_linked', 'Linked') : t('dashboard.filter_not_linked', 'Not Linked')}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
@@ -520,7 +514,6 @@ export default function AdminDashboardPage() {
                         <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_contact', 'Contact Info')}</th>
                         <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_purchased_price', 'Purchased Price')}</th>
                         <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_customer_paid', 'Customer Paid')}</th>
-                        <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_telegram_status', 'Telegram Status')}</th>
                         <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_buy_at', 'Buy At')}</th>
                         <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase tracking-widest text-foreground/45">{t('dashboard.col_actions', 'Actions')}</th>
                       </tr>
@@ -579,19 +572,6 @@ export default function AdminDashboardPage() {
                               )}
                             </td>
                             <td className="px-5 py-4">
-                              {customer.telegramLinked ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full text-[10px] font-black tracking-wide">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  {t('dashboard.status_linked', 'LINKED')}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-foreground/5 border border-border/30 text-foreground/40 rounded-full text-[10px] font-black tracking-wide">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
-                                  {t('dashboard.status_not_linked', 'NOT LINKED')}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4">
                               <FormatBuyAtCell dateStr={customer.lastBuyAt} />
                             </td>
                             <td className="px-5 py-4 text-right">
@@ -603,7 +583,7 @@ export default function AdminDashboardPage() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={8} className="px-5 py-12 text-center text-xs font-bold text-foreground/35 italic">
+                          <td colSpan={7} className="px-5 py-12 text-center text-xs font-bold text-foreground/35 italic">
                             {t('dashboard.no_customers_found', 'No customers found matching filters.')}
                           </td>
                         </tr>

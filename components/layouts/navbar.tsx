@@ -20,17 +20,25 @@ const PAGE_TITLES: Record<string, { titleKey: string; defaultTitle: string; subt
   '/admin/products':          { titleKey: 'header.products_title',   defaultTitle: 'Products',            subtitleKey: 'header.products_subtitle',   defaultSubtitle: 'Manage your product catalog' },
   '/admin/categories':        { titleKey: 'header.categories_title', defaultTitle: 'Product Categories',   subtitleKey: 'header.categories_subtitle', defaultSubtitle: 'Organize and classify your medicine catalog' },
   '/admin/stock':             { titleKey: 'header.stock_title',      defaultTitle: 'Stock Inventory',     subtitleKey: 'header.stock_subtitle',      defaultSubtitle: 'Track stock levels and expiry dates' },
+  '/admin/purchasing/new':    { titleKey: 'purchasing.new_title',    defaultTitle: 'Create Purchase Order', subtitleKey: 'purchasing.new_subtitle', defaultSubtitle: 'Select vendor, order products, and set payment terms' },
+  '/admin/purchasing/debt':   { titleKey: 'purchasing.debt_title',   defaultTitle: 'Supplier Debt (AP)', subtitleKey: 'purchasing.debt_subtitle', defaultSubtitle: 'Accounts payable, supplier credit, and payment ledger' },
+  '/admin/purchasing':        { titleKey: 'purchasing.title',        defaultTitle: 'Purchase Orders',    subtitleKey: 'purchasing.subtitle',     defaultSubtitle: 'Build, approve, print, and receive stock from supplier purchase orders' },
+  '/admin/suppliers':         { titleKey: 'suppliers.title',         defaultTitle: 'Suppliers',          subtitleKey: 'suppliers.subtitle',        defaultSubtitle: 'Manage vendors and supplier contacts' },
+  '/admin/customers/debt':    { titleKey: 'customer_debt.title',     defaultTitle: 'Customer Debt (AR)', subtitleKey: 'customer_debt.subtitle', defaultSubtitle: 'Accounts receivable, customer credit, and debt collection' },
+  '/admin/customers':         { titleKey: 'customers.title',         defaultTitle: 'Customers',          subtitleKey: 'customers.subtitle',        defaultSubtitle: 'Manage customer accounts and purchase history' },
   '/admin/sales':             { titleKey: 'header.sales_title',      defaultTitle: 'Sales History',       subtitleKey: 'header.sales_subtitle',      defaultSubtitle: 'Review past transactions' },
   '/admin/users':             { titleKey: 'header.users_title',      defaultTitle: 'Users & Cashiers',    subtitleKey: 'header.users_subtitle',      defaultSubtitle: 'Manage staff access and roles' },
-  '/admin/settings':          { titleKey: 'settings.title',          defaultTitle: 'Application Settings', subtitleKey: 'settings.subtitle',         defaultSubtitle: 'Configure backup, report delivery, and invoice information.' },
-  '/admin/profile':           { titleKey: 'profile.title',           defaultTitle: 'Account Profile',     subtitleKey: 'profile.subtitle',         defaultSubtitle: 'Manage your personal account information, bio details, and update security passwords.' },
+  '/admin/roles':             { titleKey: 'roles.title',             defaultTitle: 'Roles & Permissions', subtitleKey: 'roles.subtitle',          defaultSubtitle: 'Configure role permissions and access control' },
+  '/admin/settings':          { titleKey: 'settings.title',          defaultTitle: 'Application Settings', subtitleKey: 'settings.subtitle',         defaultSubtitle: 'Configure backup and invoice information.' },
+  '/admin/profile':           { titleKey: 'profile.title',           defaultTitle: 'Account Profile',     subtitleKey: 'profile.subtitle',         defaultSubtitle: 'Manage your personal account information and update security passwords.' },
   '/cashier/checkout':        { titleKey: 'pos.title',               defaultTitle: 'Checkout POS Terminal', subtitleKey: 'header.checkout_subtitle', defaultSubtitle: 'Search products, manage cart items, associate customer accounts, and record retail pharmacy sales' },
   '/cashier/dashboard':       { titleKey: 'header.dashboard_title',  defaultTitle: 'Dashboard',          subtitleKey: 'header.dashboard_subtitle',  defaultSubtitle: 'Overview of your pharmacy operations' },
 };
 
 function getPageInfo(pathname: string | null, t: (key: string, def?: string) => string) {
   if (!pathname) return { title: t('header.dashboard_title', 'Dashboard'), subtitle: '' };
-  const match = Object.keys(PAGE_TITLES).find((key) => pathname.startsWith(key));
+  const sortedKeys = Object.keys(PAGE_TITLES).sort((a, b) => b.length - a.length);
+  const match = sortedKeys.find((key) => pathname.startsWith(key));
   if (!match) return { title: t('header.dashboard_title', 'Dashboard'), subtitle: '' };
   const info = PAGE_TITLES[match];
   return {

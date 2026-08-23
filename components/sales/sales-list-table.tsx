@@ -153,14 +153,9 @@ export function SalesListTable({
 
                         {/* Total Amount */}
                         <td className="px-6 py-4 text-right">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-foreground">
-                              {formatUSD(order.total_amount)}
-                            </span>
-                            <span className="text-[9px] font-semibold text-foreground/45 mt-0.5">
-                              {formatKHR(order.total_amount, order.exchange_rate)}
-                            </span>
-                          </div>
+                          <span className="text-xs font-black text-foreground">
+                            {formatUSD(order.total_amount)}
+                          </span>
                         </td>
 
                         {/* Actions */}

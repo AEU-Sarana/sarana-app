@@ -42,13 +42,11 @@ export default function ForgotPassword() {
 
                 {/* Top: Logo & Title */}
                 <div className="flex items-center gap-3 relative z-10 select-none">
-                    <div className="w-11 h-11 rounded-xl bg-white/95 flex items-center justify-center shadow-sm shadow-black/15 border border-white/20 transition-transform duration-300 hover:scale-105">
-                        <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 10.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9.5M12 4v16m8-8H4" />
-                        </svg>
+                    <div className="w-11 h-11 rounded-xl bg-white/95 flex items-center justify-center shadow-sm shadow-black/15 border border-white/20 transition-transform duration-300 hover:scale-105 overflow-hidden p-0.5">
+                        <img src="/logo.jpg" alt="Pich Chamroeun Logo" className="w-full h-full object-cover rounded-lg" />
                     </div>
                     <span className="text-xl font-extrabold tracking-wider uppercase bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-sm">
-                        Sarana Pharmacy
+                        Pich Chamroeun
                     </span>
                 </div>
 

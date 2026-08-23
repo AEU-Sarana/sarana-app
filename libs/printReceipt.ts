@@ -32,8 +32,6 @@ export function printReceipt(order: PrintReceiptData) {
   if (typeof window === 'undefined') return;
 
   const logoSrc = `${window.location.origin}/logo.jpg`;
-  const khrRate = order.exchange_rate || 4100;
-  const khr = Math.round(order.total_amount * khrRate).toLocaleString();
   const isCash = order.payment_method === 'CASH' || order.payment_method === 'Cash';
 
   const itemRows = order.items.map((item, idx) => `
@@ -153,7 +151,6 @@ export function printReceipt(order: PrintReceiptData) {
       <span style="font-size:13px;font-weight:900;text-transform:uppercase;">សរុប TOTAL</span>
       <div style="text-align:right;">
         <div style="font-size:18px;font-weight:900;letter-spacing:-0.5px;">$${order.total_amount.toFixed(2)}</div>
-        <div style="font-size:9px;color:#555;font-weight:600;">${khr} KHR</div>
       </div>
     </div>
   </div>

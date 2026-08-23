@@ -40,9 +40,20 @@ export interface DashboardSyncStatus {
   last_sync_time: string | null;
 }
 
+export interface TopSellingProduct {
+  rank: number;
+  product_id: number;
+  product_name: string;
+  category_name: string | null;
+  units_sold: number;
+  total_revenue: number;
+  image_path: string | null;
+}
+
 export interface DashboardOverviewResponse {
   today_summary: DashboardTodaySummary;
   low_stock_warnings?: LowStockWarning[];
   recent_activity?: DashboardActivity[];
   sync_status: DashboardSyncStatus;
+  top_products?: TopSellingProduct[];
 }

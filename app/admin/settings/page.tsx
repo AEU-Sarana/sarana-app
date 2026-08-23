@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { settingService } from '../../../services/settingService';
-import { telegramService } from '../../../services/telegramService';
 import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
 import { useLanguage } from '../../../contexts/language-context';
@@ -112,15 +111,12 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 
 export default function AdminSettingsPage() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'backup' | 'reports' | 'invoice'>('backup');
+  const [activeTab, setActiveTab] = useState<'backup' | 'invoice'>('backup');
   const [settings, setSettings] = useState<AppSetting | null>(null);
   const [form, setForm] = useState<UpdateSettingsRequest>({
     auto_backup: true,
     backup_frequency: 'daily',
     stock_sync_policy: 'allow_with_cached',
-    report_send_enabled: true,
-    report_send_time: '23:30',
-    report_send_timezone: 'Asia/Phnom_Penh',
     store_name: '',
     store_phone: '',
     store_address: '',
@@ -139,27 +135,6 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Telegram forms and states
-  const [telegramForm, setTelegramForm] = useState<{
-    bot_token: string;
-    group_chat_id: string;
-    is_active: boolean;
-  }>({
-    bot_token: '',
-    group_chat_id: '',
-    is_active: false,
-  });
-  const [showToken, setShowToken] = useState(false);
-  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
-  const [telegramTestResult, setTelegramTestResult] = useState<{
-    success: boolean;
-    botName?: string;
-    error?: string;
-  } | null>(null);
-  const [testMessage, setTestMessage] = useState('');
-  const [isSendingTestMessage, setIsSendingTestMessage] = useState(false);
-  const [isTriggeringDailyReport, setIsTriggeringDailyReport] = useState(false);
 
   // Backup states
   const [backups, setBackups] = useState<BackupListItem[]>([]);
@@ -186,9 +161,6 @@ export default function AdminSettingsPage() {
         auto_backup: data.auto_backup,
         backup_frequency: data.backup_frequency as BackupFrequency,
         stock_sync_policy: data.stock_sync_policy,
-        report_send_enabled: data.report_send_enabled,
-        report_send_time: data.report_send_time,
-        report_send_timezone: data.report_send_timezone,
         store_name: data.store_name ?? '',
         store_phone: data.store_phone ?? '',
         store_address: data.store_address ?? '',
@@ -202,27 +174,6 @@ export default function AdminSettingsPage() {
       setErrorMessage(err.message || 'Failed to load settings. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  }, []);
-
-  const fetchTelegramConfig = useCallback(async () => {
-    try {
-      const config = await telegramService.getTelegramConfig();
-      if (config) {
-        setTelegramForm({
-          bot_token: config.bot_token || '',
-          group_chat_id: config.group_chat_id || '',
-          is_active: config.is_active,
-        });
-      } else {
-        setTelegramForm({
-          bot_token: '',
-          group_chat_id: '',
-          is_active: false,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to load Telegram configuration', err);
     }
   }, []);
 
@@ -245,11 +196,10 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-    fetchTelegramConfig();
     fetchBackups();
-  }, [fetchSettings, fetchTelegramConfig, fetchBackups]);
+  }, [fetchSettings, fetchBackups]);
 
-  // Single unified save — sends everything through PUT /settings & POST /telegram/config
+  // Single unified save — sends settings through PUT /settings
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -259,15 +209,6 @@ export default function AdminSettingsPage() {
       // Save app settings
       const updated = await settingService.updateSettings(form);
       setSettings(updated);
-
-      // Save Telegram settings
-      if (telegramForm) {
-        await telegramService.updateTelegramConfig({
-          bot_token: telegramForm.bot_token,
-          group_chat_id: telegramForm.group_chat_id,
-          is_active: telegramForm.is_active,
-        });
-      }
 
       setSuccessMessage('All settings saved successfully.');
       setTimeout(() => setSuccessMessage(null), 4000);
@@ -368,59 +309,7 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Telegram test triggers
-  const handleTestTelegramConnection = async () => {
-    if (!telegramForm) return;
-    try {
-      setIsTestingTelegram(true);
-      setTelegramTestResult(null);
-      const res = await telegramService.testConnection({
-        bot_token: telegramForm.bot_token,
-        group_chat_id: telegramForm.group_chat_id,
-      });
-      if (res.connected) {
-        setTelegramTestResult({ success: true, botName: res.bot_name });
-      } else {
-        setTelegramTestResult({ success: false, error: res.error || 'Connection failed' });
-      }
-    } catch (err: any) {
-      setTelegramTestResult({ success: false, error: err.message || 'Connection failed' });
-    } finally {
-      setIsTestingTelegram(false);
-    }
-  };
 
-  const handleSendTestMessage = async () => {
-    const msg = testMessage.trim() || '✅ Test message from Sarana POS settings page.';
-    try {
-      setIsSendingTestMessage(true);
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      await telegramService.sendTestMessage(msg);
-      setSuccessMessage('Test message sent to Telegram successfully.');
-      setTestMessage('');
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to send test message.');
-    } finally {
-      setIsSendingTestMessage(false);
-    }
-  };
-
-  const handleSendDailyReportNow = async () => {
-    try {
-      setIsTriggeringDailyReport(true);
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      await telegramService.sendDailyReport();
-      setSuccessMessage('Daily report sent to Telegram successfully.');
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to send daily report.');
-    } finally {
-      setIsTriggeringDailyReport(false);
-    }
-  };
 
   const lastUpdated = settings?.updated_at
     ? new Date(settings.updated_at).toLocaleString(undefined, {
@@ -498,20 +387,7 @@ export default function AdminSettingsPage() {
           {t('settings.tab_backup', 'Backup & Maintenance')}
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('reports')}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
-            activeTab === 'reports'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          {t('settings.tab_reports', 'Daily Reports & Telegram')}
-        </button>
+
 
         <button
           type="button"
@@ -800,234 +676,7 @@ export default function AdminSettingsPage() {
             </SectionCard>
           )}
 
-          {/* ── TAB 2: Daily Reports & Telegram Alerts ── */}
-          {activeTab === 'reports' && (
-            <SectionCard
-              accentClass="bg-accent/10 text-accent"
-              title={t('settings.reports_title', 'Daily Reports & Telegram Alerts')}
-              description={t('settings.reports_desc', 'Configure automated daily summary report delivery and Telegram bot settings.')}
-              icon={
-                <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              }
-            >
-              {/* Part 1: Report Scheduling */}
-              <ToggleSwitch
-                checked={form.report_send_enabled}
-                onChange={(v) => updateForm('report_send_enabled', v)}
-                label={t('settings.enable_reports_label', 'Enable Daily Reports Schedule')}
-                description={t('settings.enable_reports_desc', 'Send automated daily summary reports via Telegram to the admin channel.')}
-              />
-              <div className="h-px bg-border/20" />
-              <div className={`grid grid-cols-2 gap-4 ${!form.report_send_enabled ? 'opacity-40 pointer-events-none' : ''}`}>
-                <div>
-                  <FieldLabel>{t('settings.report_time', 'Report Time')}</FieldLabel>
-                  <input
-                    type="time"
-                    value={form.report_send_time}
-                    onChange={(e) => updateForm('report_send_time', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200 cursor-pointer"
-                  />
-                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">{t('settings.report_time_hint', '24-hour format (e.g. 23:30)')}</p>
-                </div>
-                <div>
-                  <FieldLabel>{t('settings.timezone', 'Timezone')}</FieldLabel>
-                  <select
-                    value={form.report_send_timezone}
-                    onChange={(e) => updateForm('report_send_timezone', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
-                  >
-                    {TIMEZONES.map((tz) => (
-                      <option key={tz} value={tz}>{tz}</option>
-                    ))}
-                  </select>
-                  <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">{t('settings.timezone_hint', 'Delivery timezone for report')}</p>
-                </div>
-              </div>
 
-              <div className="h-px bg-border/20" />
-
-              {/* Part 2: Telegram Bot configuration */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-foreground block">{t('settings.telegram_integration', 'Telegram Integration')}</span>
-                    <span className="text-[11px] text-foreground/50 mt-0.5 block">{t('settings.telegram_desc', 'Enable Telegram bot alerts system.')}</span>
-                  </div>
-                  <ToggleSwitch
-                    checked={telegramForm.is_active}
-                    onChange={(v) => setTelegramForm(prev => ({ ...prev, is_active: v }))}
-                    label=""
-                  />
-                </div>
-
-                <div className={`space-y-3 ${!telegramForm.is_active ? 'opacity-40 pointer-events-none' : ''}`}>
-                  {/* Bot Token input */}
-                  <div>
-                    <FieldLabel>{t('settings.bot_token', 'Telegram Bot Token')}</FieldLabel>
-                    <div className="relative">
-                      <input
-                        type={showToken ? 'text' : 'password'}
-                        value={telegramForm.bot_token}
-                        onChange={(e) => setTelegramForm(prev => ({ ...prev, bot_token: e.target.value }))}
-                        placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                        className="w-full px-4 py-3 pr-11 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowToken(!showToken)}
-                        className="absolute inset-y-0 right-3 flex items-center text-foreground/45 hover:text-foreground/75 cursor-pointer"
-                      >
-                        {showToken ? (
-                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                    <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
-                      {t('settings.token_hint', 'Masked tokens will not be overridden on save unless changed.')}
-                    </p>
-                  </div>
-
-                  {/* Group Chat ID input */}
-                  <div>
-                    <FieldLabel>{t('settings.chat_id', 'Group Chat ID / Channel ID')}</FieldLabel>
-                    <input
-                      type="text"
-                      value={telegramForm.group_chat_id}
-                      onChange={(e) => setTelegramForm(prev => ({ ...prev, group_chat_id: e.target.value }))}
-                      placeholder="e.g. -1001234567890"
-                      className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-accent outline-none transition-all duration-200 placeholder:text-foreground/30"
-                    />
-                    <p className="text-[9px] font-semibold text-foreground/35 mt-1.5">
-                      {t('settings.chat_id_hint', 'Chat, channel, or user ID where reports will be posted.')}
-                    </p>
-                  </div>
-
-                  {/* Test Connection Row */}
-                  <div className="pt-1.5 space-y-2">
-                    <button
-                      type="button"
-                      onClick={handleTestTelegramConnection}
-                      disabled={isTestingTelegram}
-                      className="px-4 py-2 border border-border/60 hover:bg-secondary/10 text-foreground text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
-                    >
-                      {isTestingTelegram ? (
-                        <>
-                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          {t('settings.testing_connection', 'Testing Connection...')}
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {t('settings.test_connection', 'Test Connection')}
-                        </>
-                      )}
-                    </button>
-
-                    {telegramTestResult && (
-                      <div className={`flex items-start gap-2.5 p-3 rounded-xl border text-[11px] font-semibold leading-relaxed ${
-                        telegramTestResult.success
-                          ? 'bg-success/5 border-success/15 text-success'
-                          : 'bg-destructive/5 border-destructive/15 text-destructive'
-                      }`}>
-                        {telegramTestResult.success ? (
-                          <>
-                            <svg className="w-4 h-4 shrink-0 text-success mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>{t('settings.telegram_connected', 'Successfully connected to Telegram Bot: {{name}}').replace('{{name}}', telegramTestResult.botName || '')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4 shrink-0 text-destructive mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <span>{t('settings.telegram_failed', 'Connection Failed: {{error}}').replace('{{error}}', telegramTestResult.error || '')}</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-px bg-border/20" />
-
-              {/* Part 3: Manual Bot Triggers */}
-              <div className={telegramForm?.is_active ? '' : 'opacity-40 pointer-events-none'}>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider mb-3">{t('settings.manual_triggers', 'Manual Bot Triggers')}</h3>
-                <div className="space-y-3.5">
-                  {/* Send Test Message block */}
-                  <div className="p-4 rounded-2xl bg-secondary/10 border border-border/20 space-y-2.5">
-                    <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.send_custom_test', 'Send Custom Test Message')}</span>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder={t('settings.test_message_placeholder', 'Type a test message...')}
-                        value={testMessage}
-                        onChange={(e) => setTestMessage(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-semibold focus:border-accent outline-none transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSendTestMessage}
-                        disabled={isSendingTestMessage}
-                        className="px-4 py-2 bg-accent hover:bg-accent/90 text-white text-xs font-extrabold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer disabled:opacity-60"
-                      >
-                        {isSendingTestMessage ? t('settings.sending', 'Sending...') : t('settings.send', 'Send')}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Send Daily Report now block */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-secondary/10 border border-border/20">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase text-foreground/60 block">{t('settings.daily_report_dispatch', 'Daily Report Dispatch')}</span>
-                      <span className="text-[10px] text-foreground/45 leading-relaxed mt-1 block">
-                        {t('settings.daily_report_dispatch_desc', "Instantly compile and send today's sales report to the Telegram chat.")}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSendDailyReportNow}
-                      disabled={isTriggeringDailyReport}
-                      className="px-4 py-2.5 bg-accent hover:bg-accent/90 text-white text-xs font-extrabold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-60"
-                    >
-                      {isTriggeringDailyReport ? (
-                        <>
-                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          {t('settings.sending', 'Sending...')}
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                          </svg>
-                          {t('settings.send_daily_report_now', 'Send Daily Report Now')}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-          )}
 
           {/* ── TAB 3: Invoice & Receipt Information ── */}
           {activeTab === 'invoice' && (
@@ -1136,7 +785,7 @@ export default function AdminSettingsPage() {
                       type="text"
                       value={form.store_name ?? ''}
                       onChange={(e) => updateForm('store_name', e.target.value)}
-                      placeholder={t('settings.store_name_placeholder', 'e.g. Sarana Shop')}
+                      placeholder={t('settings.store_name_placeholder', 'e.g. Pich Chamroeun Shop')}
                       className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
                     />
                   </div>

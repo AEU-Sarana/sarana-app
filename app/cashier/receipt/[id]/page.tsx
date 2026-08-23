@@ -509,9 +509,6 @@ export default function CashierReceiptPage({ params }: PageProps) {
                 <div className="text-[16px] font-black text-black tracking-tight">
                   ${order.total_amount.toFixed(2)}
                 </div>
-                <div className="text-[8px] font-bold text-gray-500">
-                  {totalKHR} KHR
-                </div>
               </div>
             </div>
           </div>

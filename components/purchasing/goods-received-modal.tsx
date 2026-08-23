@@ -18,18 +18,26 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (po && po.purchase_order_items) {
+    if (po) {
+      const itemsList = po.purchase_order_items || po.items || [];
       setReceivedItems(
-        po.purchase_order_items.map((item: any) => {
-          const remainingQty = Math.max(0, item.orderedQuantity - item.receivedQuantity);
+        itemsList.map((item: any) => {
+          const orderedQty = Number(item.orderedQuantity ?? item.ordered_quantity ?? 0);
+          const receivedQty = Number(item.receivedQuantity ?? item.received_quantity ?? 0);
+          const remainingQty = Math.max(0, orderedQty - receivedQty);
+          
+          const rawCost = item.unitCost ?? item.unit_cost ?? item.product?.lastPurchaseCost ?? item.product?.price ?? 0;
+          const costVal = Number(rawCost);
+          const validCost = isNaN(costVal) ? 0 : costVal;
+
           return {
-            poItemId: item.poItemId,
-            productId: item.productId,
-            productName: item.product?.productName || item.product_name || `Product #${item.productId}`,
-            orderedQuantity: item.orderedQuantity,
-            alreadyReceivedQuantity: item.receivedQuantity,
+            poItemId: item.poItemId ?? item.po_item_id,
+            productId: item.productId ?? item.product_id,
+            productName: item.product?.productName || item.product_name || `Product #${item.productId || item.product_id}`,
+            orderedQuantity: orderedQty,
+            alreadyReceivedQuantity: receivedQty,
             quantityReceived: remainingQty,
-            unitCost: Number(item.unitCost),
+            unitCost: validCost,
             batchNumber: '',
             expiryDate: '',
           };
@@ -42,13 +50,13 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
 
   const handleQtyChange = (index: number, val: number) => {
     const next = [...receivedItems];
-    next[index].quantityReceived = Math.max(0, val);
+    next[index].quantityReceived = Math.max(0, isNaN(val) ? 0 : val);
     setReceivedItems(next);
   };
 
   const handleCostChange = (index: number, val: number) => {
     const next = [...receivedItems];
-    next[index].unitCost = Math.max(0, val);
+    next[index].unitCost = Math.max(0, isNaN(val) ? 0 : val);
     setReceivedItems(next);
   };
 
@@ -60,7 +68,7 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const itemsToReceive = receivedItems.filter((i) => i.quantityReceived > 0);
+    const itemsToReceive = receivedItems.filter((i) => (Number(i.quantityReceived) || 0) > 0);
     if (itemsToReceive.length === 0) {
       alert('Please enter a received quantity of at least 1 for at least one item');
       return;
@@ -84,8 +92,8 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
           items: itemsToReceive.map((i) => ({
             poItemId: i.poItemId,
             productId: i.productId,
-            quantityReceived: i.quantityReceived,
-            unitCost: i.unitCost,
+            quantityReceived: Number(i.quantityReceived || 0),
+            unitCost: Number(i.unitCost || 0),
             batchNumber: i.batchNumber || undefined,
             expiryDate: i.expiryDate || undefined,
           })),
@@ -114,7 +122,7 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
             <h3 className="text-lg font-bold text-foreground">Record Goods Received (Stock In)</h3>
             <p className="text-xs text-muted-foreground">PO #: {po.poNumber || po.po_number} | Supplier: {po.supplier?.companyName || po.suppliers?.company_name}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             ✕
           </button>
         </div>
@@ -196,7 +204,7 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
                           min="0"
                           value={item.unitCost}
                           onChange={(e) => handleCostChange(idx, parseFloat(e.target.value) || 0)}
-                          className="w-24 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-right text-foreground focus:outline-none focus:border-primary"
+                          className="w-24 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-right text-foreground focus:outline-none focus:border-primary font-mono"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -204,8 +212,8 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
                           type="text"
                           value={item.batchNumber}
                           onChange={(e) => handleFieldChange(idx, 'batchNumber', e.target.value)}
-                          placeholder="LOT-001"
-                          className="w-24 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-xs text-foreground placeholder-muted-foreground focus:outline-none"
+                          placeholder="e.g. LOT-101"
+                          className="w-28 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -213,7 +221,7 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
                           type="date"
                           value={item.expiryDate}
                           onChange={(e) => handleFieldChange(idx, 'expiryDate', e.target.value)}
-                          className="w-32 bg-secondary/80 border border-border/60 rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none"
+                          className="w-32 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary"
                         />
                       </td>
                     </tr>
@@ -223,20 +231,20 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3 border-t border-border/40">
+          <div className="pt-4 border-t border-border/40 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-border/40 bg-secondary hover:bg-secondary/80 text-foreground transition-colors text-sm font-medium cursor-pointer"
+              className="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-foreground font-medium text-sm rounded-xl border border-border/40 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all shadow-md shadow-primary/20 text-sm disabled:opacity-50 cursor-pointer"
+              className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Processing Stock In...' : 'Confirm Goods Received & Stock In'}
+              {loading ? 'Processing...' : 'Confirm Goods Received & Stock In'}
             </button>
           </div>
         </form>

@@ -44,8 +44,6 @@ export default function AdminPurchasingDashboardPage() {
         return 'bg-secondary text-muted-foreground border-border/40';
       case 'APPROVED':
         return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'SENT':
-        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
       case 'PARTIAL_RECEIVED':
         return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
       case 'RECEIVED':
@@ -60,8 +58,13 @@ export default function AdminPurchasingDashboardPage() {
   const metrics = {
     total: pos.length,
     drafts: pos.filter((p) => p.status === 'DRAFT').length,
-    pending: pos.filter((p) => ['APPROVED', 'SENT', 'PARTIAL_RECEIVED'].includes(p.status)).length,
+    pending: pos.filter((p) => ['APPROVED', 'PARTIAL_RECEIVED'].includes(p.status)).length,
     received: pos.filter((p) => p.status === 'RECEIVED').length,
+  };
+
+  const safeFormatCurrency = (val: any) => {
+    const num = Number(val ?? 0);
+    return isNaN(num) ? '0.00' : num.toFixed(2);
   };
 
   return (
@@ -70,7 +73,7 @@ export default function AdminPurchasingDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            {t('purchasing.title', 'Purchase Orders (Process 3.0)')}
+            {t('purchasing.title', 'Purchase Orders')}
           </h1>
           <p className="text-sm text-muted-foreground">
             {t('purchasing.subtitle', 'Build, approve, print, and receive stock from supplier purchase orders.')}
@@ -161,7 +164,6 @@ export default function AdminPurchasingDashboardPage() {
           <option value="">All Statuses</option>
           <option value="DRAFT">Draft</option>
           <option value="APPROVED">Approved</option>
-          <option value="SENT">Sent to Supplier</option>
           <option value="PARTIAL_RECEIVED">Partial Received</option>
           <option value="RECEIVED">Fully Received</option>
           <option value="CANCELLED">Cancelled</option>
@@ -210,7 +212,7 @@ export default function AdminPurchasingDashboardPage() {
                       {new Date(po.orderDate || po.order_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-foreground">
-                      ${Number(po.totalAmount || po.total_amount).toFixed(2)}
+                      ${safeFormatCurrency(po.totalAmount ?? po.total_amount)}
                     </td>
                     <td className="px-6 py-4">
                       <span

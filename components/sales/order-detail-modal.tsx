@@ -243,7 +243,6 @@ export default function OrderDetailModal({
                     <span className="text-[10px] uppercase text-black font-extrabold">សរុប TOTAL</span>
                     <div className="text-right select-all">
                       <span className="text-sm text-black tracking-tight block leading-tight">${orderDetail.total_amount.toFixed(2)}</span>
-                      <span className="text-[8px] text-gray-700 block font-bold mt-0.5">{formatKHR(orderDetail.total_amount, orderDetail.exchange_rate)}</span>
                     </div>
                   </div>
 
