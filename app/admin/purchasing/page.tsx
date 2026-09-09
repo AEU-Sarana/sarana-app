@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../../../contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 export default function AdminPurchasingDashboardPage() {
   const { t } = useLanguage();
@@ -20,7 +21,7 @@ export default function AdminPurchasingDashboardPage() {
       if (search) query.append('search', search);
       if (statusFilter) query.append('status', statusFilter);
 
-      const res = await fetch(`http://localhost:8088/api/v1/purchasing/orders?${query.toString()}`, {
+      const res = await fetch(`${BASE_URL}/purchasing/orders?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -170,8 +171,55 @@ export default function AdminPurchasingDashboardPage() {
         </select>
       </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
+      {/* Mobile Card View (< md) */}
+      <div className="block md:hidden divide-y divide-border/20 bg-card border border-border/40 rounded-2xl p-4 space-y-4">
+        {loading ? (
+          <div className="py-8 text-center text-xs font-semibold text-muted-foreground">
+            Loading purchase orders...
+          </div>
+        ) : pos.length === 0 ? (
+          <div className="py-8 text-center text-xs font-semibold text-muted-foreground">
+            No purchase orders found. Create a new purchase order to start processing stock.
+          </div>
+        ) : (
+          pos.map((po) => (
+            <div key={po.poId || po.po_id} className="pt-4 first:pt-0 space-y-3 select-none">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Link href={`/admin/purchasing/${po.poId || po.po_id}`} className="text-sm font-bold text-primary hover:underline">
+                    {po.poNumber || po.po_number}
+                  </Link>
+                  <h4 className="text-xs font-semibold text-foreground mt-0.5">{po.supplier?.companyName || po.suppliers?.company_name || '—'}</h4>
+                  <span className="text-[10px] text-muted-foreground block mt-0.5">
+                    Order Date: {new Date(po.orderDate || po.order_date).toLocaleDateString()}
+                  </span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-base font-extrabold text-foreground block font-mono">
+                    ${safeFormatCurrency(po.totalAmount ?? po.total_amount)}
+                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border mt-1 ${getStatusBadge(po.status)}`}>
+                    {po.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-2 border-t border-border/10">
+                <Link
+                  href={`/admin/purchasing/${po.poId || po.po_id}`}
+                  className="px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition-colors border border-border/40 inline-block"
+                >
+                  View & Print
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (>= md) */}
+      <div className="hidden md:block bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-foreground">
             <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">

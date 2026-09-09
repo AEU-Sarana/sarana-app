@@ -281,105 +281,180 @@ export default function SupplierDebtPage() {
               <p className="text-xs text-foreground/50 mt-1">All purchase orders are fully settled.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-foreground">
-                <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
-                  <tr>
-                    <th className="px-6 py-4">Supplier / Vendor</th>
-                    <th className="px-6 py-4">Payment Terms</th>
-                    <th className="px-6 py-4 text-center">Open POs</th>
-                    <th className="px-6 py-4">Oldest Due Date</th>
-                    <th className="px-6 py-4 text-right">Total Debt</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {overview.supplierDebts.map((sup) => (
-                    <React.Fragment key={sup.supplierId}>
-                      <tr className="hover:bg-secondary/20 transition-colors">
-                        <td className="px-6 py-4 font-bold">
-                          <div className="flex items-center gap-2">
-                            <span>{sup.companyName}</span>
-                            {sup.isOverdue && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
-                                Overdue
-                              </span>
-                            )}
-                          </div>
-                          {(sup.contactPerson || sup.phone) && (
-                            <p className="text-[11px] font-normal text-foreground/50 mt-0.5">
-                              {sup.contactPerson} {sup.phone ? `(${sup.phone})` : ''}
-                            </p>
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {overview.supplierDebts.map((sup) => (
+                  <div key={sup.supplierId} className="pt-4 first:pt-0 space-y-3 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-foreground">{sup.companyName}</h4>
+                          {sup.isOverdue && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
+                              Overdue
+                            </span>
                           )}
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-xs text-foreground/70">
-                          <span className="px-2.5 py-1 rounded-lg bg-secondary border border-border/40 text-foreground">
-                            {sup.paymentTerms || 'NET_30'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center font-extrabold text-xs">
-                          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary inline-flex items-center justify-center">
-                            {sup.openPOCount}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-semibold text-foreground/70">
-                          {formatDate(sup.oldestDueDate)}
-                        </td>
-                        <td className="px-6 py-4 text-right font-extrabold text-rose-600 dark:text-rose-400">
-                          {formatCurrency(sup.totalDebt)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handleOpenPayModal(sup)}
-                            disabled={sup.totalDebt <= 0}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all disabled:opacity-30 cursor-pointer"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Pay Debt
-                          </button>
-                        </td>
-                      </tr>
+                        </div>
+                        {(sup.contactPerson || sup.phone) && (
+                          <p className="text-[11px] font-normal text-foreground/50 mt-0.5">
+                            {sup.contactPerson} {sup.phone ? `(${sup.phone})` : ''}
+                          </p>
+                        )}
+                        <span className="text-[10px] text-foreground/45 block mt-1">
+                          Terms: <strong className="text-foreground">{sup.paymentTerms || 'NET_30'}</strong> · Due: <strong className="text-foreground">{formatDate(sup.oldestDueDate)}</strong>
+                        </span>
+                      </div>
 
-                      {/* Nested PO breakdown row if open POs exist */}
-                      {sup.openPOs.length > 0 && (
-                        <tr className="bg-secondary/10">
-                          <td colSpan={6} className="px-8 py-3">
-                            <div className="space-y-2">
-                              <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">
-                                Open Purchase Orders:
-                              </p>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                {sup.openPOs.map((po) => (
-                                  <div
-                                    key={po.poId}
-                                    className="p-3 bg-card border border-border/40 rounded-xl flex items-center justify-between text-xs"
-                                  >
-                                    <div>
-                                      <p className="font-extrabold text-foreground">{po.poNumber}</p>
-                                      <p className="text-[10px] text-foreground/50 mt-0.5">
-                                        Due: {formatDate(po.dueDate)} | Balance: <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={() => handleOpenPayModal(sup, po.poId, po.balanceDue)}
-                                      className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[11px] rounded-lg transition-all cursor-pointer"
-                                    >
-                                      Pay PO
-                                    </button>
-                                  </div>
-                                ))}
+                      <div className="text-right shrink-0">
+                        <span className="text-base font-extrabold text-rose-600 dark:text-rose-400 block font-mono">
+                          {formatCurrency(sup.totalDebt)}
+                        </span>
+                        <span className="text-[10px] text-foreground/40 block font-semibold">{sup.openPOCount} Open POs</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/10">
+                      <button
+                        onClick={() => handleOpenPayModal(sup)}
+                        disabled={sup.totalDebt <= 0}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs rounded-xl shadow-md shadow-primary/20 transition-all disabled:opacity-30 cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Pay Debt
+                      </button>
+                    </div>
+
+                    {sup.openPOs.length > 0 && (
+                      <div className="pt-2 space-y-2 border-t border-border/10">
+                        <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">Open POs:</p>
+                        <div className="space-y-2">
+                          {sup.openPOs.map((po) => (
+                            <div key={po.poId} className="p-3 bg-secondary/20 border border-border/30 rounded-xl flex items-center justify-between text-xs">
+                              <div>
+                                <p className="font-extrabold text-foreground">{po.poNumber}</p>
+                                <p className="text-[10px] text-foreground/50 mt-0.5">
+                                  Due: {formatDate(po.dueDate)} | Balance: <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
+                                </p>
                               </div>
+                              <button
+                                onClick={() => handleOpenPayModal(sup, po.poId, po.balanceDue)}
+                                className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[11px] rounded-lg transition-all cursor-pointer shrink-0"
+                              >
+                                Pay PO
+                              </button>
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
+                    <tr>
+                      <th className="px-6 py-4">Supplier / Vendor</th>
+                      <th className="px-6 py-4">Payment Terms</th>
+                      <th className="px-6 py-4 text-center">Open POs</th>
+                      <th className="px-6 py-4">Oldest Due Date</th>
+                      <th className="px-6 py-4 text-right">Total Debt</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {overview.supplierDebts.map((sup) => (
+                      <React.Fragment key={sup.supplierId}>
+                        <tr className="hover:bg-secondary/20 transition-colors">
+                          <td className="px-6 py-4 font-bold">
+                            <div className="flex items-center gap-2">
+                              <span>{sup.companyName}</span>
+                              {sup.isOverdue && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
+                                  Overdue
+                                </span>
+                              )}
+                            </div>
+                            {(sup.contactPerson || sup.phone) && (
+                              <p className="text-[11px] font-normal text-foreground/50 mt-0.5">
+                                {sup.contactPerson} {sup.phone ? `(${sup.phone})` : ''}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 font-semibold text-xs text-foreground/70">
+                            <span className="px-2.5 py-1 rounded-lg bg-secondary border border-border/40 text-foreground">
+                              {sup.paymentTerms || 'NET_30'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center font-extrabold text-xs">
+                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary inline-flex items-center justify-center">
+                              {sup.openPOCount}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-semibold text-foreground/70">
+                            {formatDate(sup.oldestDueDate)}
+                          </td>
+                          <td className="px-6 py-4 text-right font-extrabold text-rose-600 dark:text-rose-400">
+                            {formatCurrency(sup.totalDebt)}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => handleOpenPayModal(sup)}
+                              disabled={sup.totalDebt <= 0}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs rounded-xl shadow-md shadow-primary/20 transition-all disabled:opacity-30 cursor-pointer"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              Pay Debt
+                            </button>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+
+                        {/* Nested PO breakdown row if open POs exist */}
+                        {sup.openPOs.length > 0 && (
+                          <tr className="bg-secondary/10">
+                            <td colSpan={6} className="px-8 py-3">
+                              <div className="space-y-2">
+                                <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">
+                                  Open Purchase Orders:
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                  {sup.openPOs.map((po) => (
+                                    <div
+                                      key={po.poId}
+                                      className="p-3 bg-card border border-border/40 rounded-xl flex items-center justify-between text-xs"
+                                    >
+                                      <div>
+                                        <p className="font-extrabold text-foreground">{po.poNumber}</p>
+                                        <p className="text-[10px] text-foreground/50 mt-0.5">
+                                          Due: {formatDate(po.dueDate)} | Balance: <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
+                                        </p>
+                                      </div>
+                                      <button
+                                        onClick={() => handleOpenPayModal(sup, po.poId, po.balanceDue)}
+                                        className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[11px] rounded-lg transition-all cursor-pointer"
+                                      >
+                                        Pay PO
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -397,46 +472,75 @@ export default function SupplierDebtPage() {
               <p className="text-xs text-foreground/50 mt-1">Payment transactions will appear here when debt is paid down.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-foreground">
-                <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
-                  <tr>
-                    <th className="px-6 py-4">Payment #</th>
-                    <th className="px-6 py-4">Supplier</th>
-                    <th className="px-6 py-4">PO Ref</th>
-                    <th className="px-6 py-4">Method</th>
-                    <th className="px-6 py-4">Ref Number</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4 text-right">Amount Paid</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {payments.map((p) => (
-                    <tr key={p.paymentId} className="hover:bg-secondary/20 transition-colors">
-                      <td className="px-6 py-4 font-extrabold text-primary">{p.paymentNumber}</td>
-                      <td className="px-6 py-4 font-bold">{p.supplierName || `Supplier #${p.supplierId}`}</td>
-                      <td className="px-6 py-4 font-semibold text-xs text-foreground/70">
-                        {p.poNumber ? (
-                          <span className="px-2 py-0.5 bg-secondary rounded text-foreground">{p.poNumber}</span>
-                        ) : (
-                          <span className="text-foreground/40">General Paydown</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-bold uppercase">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {payments.map((p) => (
+                  <div key={p.paymentId} className="pt-4 first:pt-0 space-y-2 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-mono font-extrabold text-primary block">{p.paymentNumber}</span>
+                        <h4 className="text-sm font-bold text-foreground mt-0.5">{p.supplierName || `Supplier #${p.supplierId}`}</h4>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          Date: {formatDate(p.paymentDate)} · Ref: {p.referenceNumber || 'N/A'}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                          {formatCurrency(p.amount)}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 inline-block mt-1">
                           {p.paymentMethod}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-foreground/70 font-mono">{p.referenceNumber || 'N/A'}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-foreground/70">{formatDate(p.paymentDate)}</td>
-                      <td className="px-6 py-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(p.amount)}
-                      </td>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
+                    <tr>
+                      <th className="px-6 py-4">Payment #</th>
+                      <th className="px-6 py-4">Supplier</th>
+                      <th className="px-6 py-4">PO Ref</th>
+                      <th className="px-6 py-4">Method</th>
+                      <th className="px-6 py-4">Ref Number</th>
+                      <th className="px-6 py-4">Date</th>
+                      <th className="px-6 py-4 text-right">Amount Paid</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {payments.map((p) => (
+                      <tr key={p.paymentId} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-6 py-4 font-extrabold text-primary">{p.paymentNumber}</td>
+                        <td className="px-6 py-4 font-bold">{p.supplierName || `Supplier #${p.supplierId}`}</td>
+                        <td className="px-6 py-4 font-semibold text-xs text-foreground/70">
+                          {p.poNumber ? (
+                            <span className="px-2 py-0.5 bg-secondary rounded text-foreground">{p.poNumber}</span>
+                          ) : (
+                            <span className="text-foreground/40">General Paydown</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-xs font-bold uppercase">
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                            {p.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-foreground/70 font-mono">{p.referenceNumber || 'N/A'}</td>
+                        <td className="px-6 py-4 text-xs font-semibold text-foreground/70">{formatDate(p.paymentDate)}</td>
+                        <td className="px-6 py-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(p.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -555,7 +659,7 @@ export default function SupplierDebtPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Processing...' : 'Confirm & Save Payment'}
                 </button>

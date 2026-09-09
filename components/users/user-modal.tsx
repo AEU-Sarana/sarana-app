@@ -147,33 +147,30 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center select-none animate-fade-in">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/40 backdrop-blur-md cursor-pointer"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50 backdrop-blur-md animate-fade-in select-none">
+      {/* Backdrop overlay */}
+      <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
 
       {/* Card container */}
-      <div className="relative w-full max-w-lg bg-card border border-border/40 rounded-3xl shadow-xl overflow-hidden animate-scale-up mx-4">
+      <div className="relative w-full max-w-lg bg-card border border-border/40 rounded-3xl shadow-xl overflow-hidden animate-scale-up my-auto max-h-[90vh] flex flex-col pointer-events-auto">
         {/* Modal Header */}
-        <div className="flex items-center gap-4 px-6.5 py-4.5 border-b border-border/20 bg-secondary/15">
+        <div className="flex items-center gap-3 sm:gap-4 px-4 py-3.5 sm:px-6.5 sm:py-4.5 border-b border-border/20 bg-secondary/15 shrink-0">
           <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-extrabold text-foreground tracking-tight">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xs sm:text-sm font-extrabold text-foreground tracking-tight truncate">
               {isEditMode ? t('user_modal.edit_title', 'Edit User Details') : t('user_modal.register_title', 'Register New User')}
             </h3>
-            <p className="text-[10px] text-foreground/45 mt-0.5">
+            <p className="text-[10px] text-foreground/45 mt-0.5 truncate">
               {isEditMode ? t('user_modal.edit_subtitle', 'Updating profiles for @{{username}}').replace('{{username}}', username) : t('user_modal.register_subtitle', 'Configure credentials and role clearances')}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8.5 h-8.5 rounded-xl border border-border/50 hover:border-border text-foreground/50 hover:text-foreground hover:bg-secondary/40 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+            className="w-8.5 h-8.5 rounded-xl border border-border/50 hover:border-border text-foreground/50 hover:text-foreground hover:bg-secondary/40 transition-all flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
           >
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -183,7 +180,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
 
         {/* Error Feedback */}
         {error && (
-          <div className="flex items-start gap-3 mx-6.5 mt-4 px-4 py-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold rounded-xl">
+          <div className="flex items-start gap-3 mx-4 sm:mx-6.5 mt-4 px-4 py-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold rounded-xl shrink-0">
             <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -192,8 +189,8 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6.5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6.5 space-y-4 overflow-y-auto flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Full Name */}
             <div className="sm:col-span-2">
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
@@ -204,7 +201,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder={t('user_modal.full_name_placeholder', 'e.g. John Doe')}
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
                 disabled={isSubmitting}
                 required
               />
@@ -220,7 +217,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder={t('user_modal.username_placeholder', 'e.g. john_doe')}
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 disabled:opacity-60 disabled:cursor-not-allowed min-h-[42px]"
                 disabled={isSubmitting || isEditMode}
                 required
               />
@@ -234,7 +231,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed min-h-[42px]"
                 disabled={isSubmitting}
               >
                 {availableRoles.length > 0 ? (
@@ -267,7 +264,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                     ? 'Leave blank to keep current password'
                     : t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')
                 }
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
                 disabled={isSubmitting}
                 required={!isEditMode}
               />
@@ -288,7 +285,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('user_modal.email_placeholder', 'e.g. john@example.com')}
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
                 disabled={isSubmitting}
               />
             </div>
@@ -303,7 +300,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={t('user_modal.phone_placeholder', 'e.g. +123456789')}
-                className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25"
+                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
                 disabled={isSubmitting}
               />
             </div>
@@ -317,7 +314,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer"
+                  className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer min-h-[42px]"
                   disabled={isSubmitting}
                 >
                   <option value="active">{t('common.active', 'Active')}</option>
@@ -328,19 +325,19 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
           </div>
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/20">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-border/20">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-5 py-2.5 border border-border text-xs font-bold text-foreground/60 hover:text-foreground rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-2.5 border border-border text-xs font-bold text-foreground/60 hover:text-foreground rounded-xl transition-all cursor-pointer disabled:opacity-50"
             >
               {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-55 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-55 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer min-h-[42px]"
             >
               {isSubmitting ? (
                 <>

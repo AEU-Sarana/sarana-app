@@ -9,16 +9,24 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   orderId: number | null;
   onClose: () => void;
+  onOrderUpdated?: () => void;
 }
 
 export default function OrderDetailModal({
   isOpen,
   orderId,
   onClose,
+  onOrderUpdated,
 }: OrderDetailModalProps) {
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cancellation Request Form State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && orderId) {
@@ -37,6 +45,9 @@ export default function OrderDetailModal({
       fetchDetail();
     } else {
       setOrderDetail(null);
+      setIsCancelModalOpen(false);
+      setCancelReason('');
+      setCancelError(null);
     }
   }, [isOpen, orderId]);
 
@@ -74,6 +85,29 @@ export default function OrderDetailModal({
       exchange_rate: orderDetail.exchange_rate
     });
   };
+
+  const handleSubmitCancellationRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderDetail || !cancelReason.trim()) return;
+
+    setIsSubmittingCancel(true);
+    setCancelError(null);
+
+    try {
+      const updatedOrder = await saleService.requestCancellation(orderDetail.order_id, cancelReason.trim());
+      setOrderDetail(updatedOrder);
+      setIsCancelModalOpen(false);
+      setCancelReason('');
+      if (onOrderUpdated) onOrderUpdated();
+    } catch (err: any) {
+      setCancelError(err?.response?.data?.message || err?.message || 'Failed to submit cancellation request.');
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
+
+  const orderStatus = orderDetail?.order_status || 'COMPLETED';
+  const canRequestCancel = orderStatus === 'COMPLETED' || (!orderDetail?.cancel_requested_at && !orderDetail?.cancelled_at);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
@@ -117,9 +151,47 @@ export default function OrderDetailModal({
 
           {!isLoading && !error && orderDetail && (
             <div className="space-y-6">
+
+              {/* Status Banner */}
+              {orderStatus === 'CANCEL_REQUESTED' && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-amber-700 dark:text-amber-300 text-xs font-semibold space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-200">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    Cancellation Request Pending Admin Approval
+                  </div>
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">
+                    Reason: &quot;{orderDetail.cancel_reason}&quot;
+                  </p>
+                  {orderDetail.cancel_requested_at && (
+                    <p className="text-[10px] opacity-75">
+                      Requested at: {new Date(orderDetail.cancel_requested_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {orderStatus === 'CANCELLED' && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-red-700 dark:text-red-300 text-xs font-semibold space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-red-800 dark:text-red-200">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Order Cancelled & Refunded / Stock Restocked
+                  </div>
+                  {orderDetail.cancel_reason && (
+                    <p className="text-[11px] text-red-700/80 dark:text-red-300/80">
+                      Reason: &quot;{orderDetail.cancel_reason}&quot;
+                    </p>
+                  )}
+                  {orderDetail.cancelled_at && (
+                    <p className="text-[10px] opacity-75">
+                      Cancelled on: {new Date(orderDetail.cancelled_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Receipt Visualizer (Printable Area) */}
-              <div 
-                id="printable-receipt-area" 
+              <div
+                id="printable-receipt-area"
                 className="bg-white border border-dashed border-gray-300 rounded-2xl p-6 font-mono text-xs text-black max-w-md mx-auto shadow-inner relative overflow-hidden space-y-4"
               >
                 {/* Visual jagged top edges */}
@@ -187,11 +259,11 @@ export default function OrderDetailModal({
                 <table className="w-full text-left text-[9px] border-collapse text-black">
                   <thead>
                     <tr className="border-b border-dashed border-gray-300 text-gray-500 uppercase text-[7px] font-bold">
-                      <th className="pb-1.5 w-[8%]">ល.រ<br/>N°</th>
-                      <th className="pb-1.5 pl-1 w-[47%]">រាយនាមទំនិញ<br/>Name of Goods</th>
-                      <th className="pb-1.5 text-center w-[12%]">ចំនួន<br/>Qty</th>
-                      <th className="pb-1.5 text-right w-[15%]">តម្លៃមួយ<br/>U.Price</th>
-                      <th className="pb-1.5 text-right w-[18%]">តម្លៃសរុប<br/>Amount</th>
+                      <th className="pb-1.5 w-[8%]">ល.រ<br />N°</th>
+                      <th className="pb-1.5 pl-1 w-[47%]">រាយនាមទំនិញ<br />Name of Goods</th>
+                      <th className="pb-1.5 text-center w-[12%]">ចំនួន<br />Qty</th>
+                      <th className="pb-1.5 text-right w-[15%]">តម្លៃមួយ<br />U.Price</th>
+                      <th className="pb-1.5 text-right w-[18%]">តម្លៃសរុប<br />Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-dashed divide-gray-100">
@@ -238,7 +310,7 @@ export default function OrderDetailModal({
                       <span>{formatUSD(orderDetail.service_fee)}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between items-center font-black border border-black p-2 mt-2">
                     <span className="text-[10px] uppercase text-black font-extrabold">សរុប TOTAL</span>
                     <div className="text-right select-all">
@@ -283,18 +355,32 @@ export default function OrderDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border/40 bg-secondary/15 flex justify-between gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={isLoading || !orderDetail}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm shadow-primary/10 transition-all duration-150 cursor-pointer flex items-center gap-1.5"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Print Receipt
-          </button>
+        <div className="px-6 py-4 border-t border-border/40 bg-secondary/15 flex justify-between items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={isLoading || !orderDetail}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm shadow-primary/10 transition-all duration-150 cursor-pointer flex items-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Receipt
+            </button>
+
+            {canRequestCancel && (
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(true)}
+                disabled={isLoading || !orderDetail}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5"
+              >
+                Request Cancellation
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={onClose}
@@ -304,6 +390,61 @@ export default function OrderDetailModal({
           </button>
         </div>
       </div>
+
+      {/* Cancellation Reason Modal Dialog */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-fade-in">
+          <div className="bg-card w-full max-w-md rounded-3xl border border-border/60 shadow-2xl p-6 space-y-4 animate-scale-up">
+            <div>
+              <h4 className="text-base font-black text-foreground">Request Order Cancellation</h4>
+              <p className="text-xs text-foreground/50 mt-1">
+                Submitting a cancellation request sends this order to Admin approval. Please state a detailed reason.
+              </p>
+            </div>
+
+            {cancelError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold rounded-xl">
+                {cancelError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitCancellationRequest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-foreground/75 mb-1">
+                  Cancellation Reason <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. Customer changed mind, wrong payment method, accidental order"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-border bg-secondary/10 text-xs font-semibold text-foreground focus:border-primary outline-none transition-all"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCancelModalOpen(false)}
+                  disabled={isSubmittingCancel}
+                  className="px-4 py-2 border border-border text-xs font-bold text-foreground/70 hover:bg-secondary/40 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingCancel || !cancelReason.trim()}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                >
+                  {isSubmittingCancel ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

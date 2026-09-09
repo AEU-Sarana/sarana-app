@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/layouts/sidebar';
 import Navbar from '../../components/layouts/navbar';
 import ThemeToggle from '../../components/ui/theme-toggle';
+import LanguageSwitcher from '../../components/ui/language-switcher';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -56,7 +57,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           </div>
 
-          <div className="w-10 flex items-center justify-end">
+          <div className="flex items-center gap-2 justify-end">
+            <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </header>

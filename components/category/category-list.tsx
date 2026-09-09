@@ -77,8 +77,60 @@ export default function CategoryList({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left">
+    <>
+      {/* Mobile Card View (< md) */}
+      <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+        {categories.map((cat) => {
+          const productCount = getProductCount(cat.name);
+          return (
+            <div key={cat.categoryId} className="pt-4 first:pt-0 space-y-3 select-none">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold text-foreground/55 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                      #{cat.categoryId}
+                    </span>
+                    <span className="px-2 py-0.5 bg-secondary/50 text-foreground/75 text-[10px] font-bold rounded-lg border border-border/20">
+                      {productCount} products
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-foreground mt-1 leading-snug">{cat.name}</h4>
+                  <p className="text-xs text-foreground/60 mt-0.5">{cat.description || 'No description'}</p>
+                </div>
+
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  cat.isActive ? 'bg-success/10 text-success' : 'bg-secondary text-foreground/40'
+                }`}>
+                  {cat.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/10 text-xs">
+                {canEdit && (
+                  <button
+                    onClick={() => onEdit(cat)}
+                    className="px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => onDelete(cat)}
+                    className="px-3 py-1 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold text-xs cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-border/30 bg-secondary/10">
             <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-foreground/45 w-20">ID</th>
@@ -165,5 +217,6 @@ export default function CategoryList({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

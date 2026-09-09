@@ -25,6 +25,13 @@ export interface Order {
   receipt_link_status: string | null;
   created_at: string;
   received_amount?: number;
+  order_status?: 'COMPLETED' | 'CANCEL_REQUESTED' | 'CANCELLED';
+  cancel_reason?: string | null;
+  cancel_requested_at?: string | null;
+  cancel_requested_by?: number | null;
+  cancelled_at?: string | null;
+  cancelled_by?: number | null;
+  rejection_reason?: string | null;
   items?: OrderItem[];
 }
 

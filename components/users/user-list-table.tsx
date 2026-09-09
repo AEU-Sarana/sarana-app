@@ -3,6 +3,7 @@
 import React from 'react';
 import { User } from '../../features/user/types';
 import { useLanguage } from '../../contexts/language-context';
+import { getInitials } from '../../libs/utils';
 import { useAuth } from '../../hooks/useAuth';
 
 const PAGE_LIMIT = 10;
@@ -85,8 +86,63 @@ export function UserListTable({
               <p className="text-xs text-foreground/25 font-semibold">{t('pos.no_products_desc', 'Try adjusting your search filters or add a new user')}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {users.map((user) => {
+                  const isSelf = currentUserId === user.userId;
+                  return (
+                    <div key={user.userId} className="pt-4 first:pt-0 space-y-3 select-none">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/80 to-accent text-white font-black text-xs flex items-center justify-center shadow-sm shrink-0">
+                            {getInitials(user.fullName || user.username)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono font-bold text-foreground/55 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                                #{user.userId}
+                              </span>
+                              {isSelf && (
+                                <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-bold text-foreground mt-0.5 leading-snug">{user.fullName}</h4>
+                            <span className="text-[10px] font-mono text-foreground/45 block">@{user.username}</span>
+                          </div>
+                        </div>
+
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          user.status === 'active' ? 'bg-success/10 text-success' : 'bg-secondary text-foreground/40'
+                        }`}>
+                          {user.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-secondary/50 text-foreground/75">
+                          Role: {user.role}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => onEdit(user)}
+                            className="px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs cursor-pointer"
+                          >
+                            Edit Profile
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
                     <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45 w-16">ID</th>
@@ -254,6 +310,7 @@ export function UserListTable({
                 </tbody>
               </table>
             </div>
+          </>
           )}
 
           {/* Pagination Controls */}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 export default function AdminCreatePOPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function AdminCreatePOPage() {
 
   useEffect(() => {
     const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-    fetch('http://localhost:8088/api/v1/suppliers', {
+    fetch(`${BASE_URL}/suppliers`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -36,7 +37,7 @@ export default function AdminCreatePOPage() {
         setSuppliers(list);
       });
 
-    fetch('http://localhost:8088/api/v1/products?limit=200', {
+    fetch(`${BASE_URL}/products?limit=200`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -103,7 +104,7 @@ export default function AdminCreatePOPage() {
     setLoading(true);
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch('http://localhost:8088/api/v1/purchasing/orders', {
+      const res = await fetch(`${BASE_URL}/purchasing/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -320,65 +321,122 @@ export default function AdminCreatePOPage() {
               ) : null}
             </div>
 
-            {/* Items Table */}
+            {/* Items Table / Card Container */}
             <div className="border border-border/40 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-sm text-foreground">
-                <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
-                  <tr>
-                    <th className="px-4 py-3">Product</th>
-                    <th className="px-4 py-3 text-center">Ordered Qty</th>
-                    <th className="px-4 py-3 text-right">Unit Cost ($)</th>
-                    <th className="px-4 py-3 text-right">Subtotal ($)</th>
-                    <th className="px-4 py-3 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {items.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground text-xs">
-                        No products added yet. Use the search bar above to select products for this purchase order.
-                      </td>
-                    </tr>
-                  ) : (
-                    items.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-secondary/30">
-                        <td className="px-4 py-3 font-medium text-foreground">{item.productName}</td>
-                        <td className="px-4 py-3 text-center">
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {items.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground text-xs font-semibold">
+                    No products added yet. Use the search bar above to select products for this purchase order.
+                  </div>
+                ) : (
+                  items.map((item, idx) => (
+                    <div key={idx} className="pt-4 first:pt-0 space-y-3 select-none">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-bold text-foreground text-sm">{item.productName}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          className="text-rose-500 hover:text-rose-600 text-xs font-semibold cursor-pointer shrink-0"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Ordered Qty</label>
                           <input
                             type="number"
                             min="1"
                             value={item.orderedQuantity}
                             onChange={(e) => handleItemQtyChange(idx, parseInt(e.target.value, 10) || 1)}
-                            className="w-20 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-center text-foreground focus:outline-none focus:border-primary font-bold"
+                            className="w-full bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-center text-foreground focus:outline-none focus:border-primary font-bold"
                           />
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Unit Cost ($)</label>
                           <input
                             type="number"
                             step="0.01"
                             min="0"
                             value={item.unitCost}
                             onChange={(e) => handleItemCostChange(idx, parseFloat(e.target.value) || 0)}
-                            className="w-24 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-right text-foreground focus:outline-none focus:border-primary font-mono"
+                            className="w-full bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-right text-foreground focus:outline-none focus:border-primary font-mono"
                           />
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-foreground font-mono">
-                          ${(item.orderedQuantity * item.unitCost).toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(idx)}
-                            className="text-rose-500 hover:text-rose-600 text-xs font-medium cursor-pointer"
-                          >
-                            Remove
-                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-border/10 text-xs">
+                        <span className="text-muted-foreground font-semibold">Subtotal:</span>
+                        <span className="font-bold font-mono text-foreground">${(item.orderedQuantity * item.unitCost).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
+                    <tr>
+                      <th className="px-4 py-3">Product</th>
+                      <th className="px-4 py-3 text-center">Ordered Qty</th>
+                      <th className="px-4 py-3 text-right">Unit Cost ($)</th>
+                      <th className="px-4 py-3 text-right">Subtotal ($)</th>
+                      <th className="px-4 py-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {items.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground text-xs">
+                          No products added yet. Use the search bar above to select products for this purchase order.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      items.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-secondary/30">
+                          <td className="px-4 py-3 font-medium text-foreground">{item.productName}</td>
+                          <td className="px-4 py-3 text-center">
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.orderedQuantity}
+                              onChange={(e) => handleItemQtyChange(idx, parseInt(e.target.value, 10) || 1)}
+                              className="w-20 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-center text-foreground focus:outline-none focus:border-primary font-bold"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.unitCost}
+                              onChange={(e) => handleItemCostChange(idx, parseFloat(e.target.value) || 0)}
+                              className="w-24 bg-secondary/80 border border-border/60 rounded-lg px-2.5 py-1 text-right text-foreground focus:outline-none focus:border-primary font-mono"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-foreground font-mono">
+                            ${(item.orderedQuantity * item.unitCost).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="text-rose-500 hover:text-rose-600 text-xs font-medium cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

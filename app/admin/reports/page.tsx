@@ -218,14 +218,18 @@ function DailyTab({ date, setDate }: DailyTabProps) {
   return (
     <div className="space-y-5">
       {/* Controls */}
-      <div className="flex items-center gap-3 flex-wrap select-none">
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.date', 'Date')}</span>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
-        <button onClick={fetchReport} disabled={isLoading}
-          className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
-          {isLoading ? t('reports.generating', 'Generating...') : t('reports.generate', 'Generate')}
-        </button>
+      <div className="flex items-center gap-3 flex-wrap select-none bg-card p-4 rounded-2xl border border-border/40">
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">{t('reports.date', 'Date')}</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="px-3.5 py-2.5 bg-secondary/20 border border-border/50 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:border-primary cursor-pointer min-h-[42px]" />
+        </div>
+        <div className="flex items-end pb-0.5">
+          <button onClick={fetchReport} disabled={isLoading}
+            className="px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 min-h-[42px]">
+            {isLoading ? t('reports.generating', 'Generating...') : t('reports.generate', 'Generate')}
+          </button>
+        </div>
       </div>
 
       {/* Stat cards */}
@@ -409,17 +413,23 @@ function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: Sales
   return (
     <div className="space-y-5">
       {/* Date range */}
-      <div className="flex items-center gap-3 flex-wrap select-none">
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.from', 'From')}</span>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
-        <span className="text-xs font-black text-foreground/50 uppercase tracking-widest">{t('reports.to', 'To')}</span>
-        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:border-emerald-500/50 cursor-pointer" />
-        <button onClick={fetchReport} disabled={isLoading}
-          className="px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-50">
-          {isLoading ? t('reports.loading', 'Loading...') : t('reports.apply', 'Apply')}
-        </button>
+      <div className="flex items-end gap-3 flex-wrap select-none bg-card p-4 rounded-2xl border border-border/40">
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">{t('reports.from', 'From')}</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+            className="px-3.5 py-2.5 bg-secondary/20 border border-border/50 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:border-primary cursor-pointer min-h-[42px]" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">{t('reports.to', 'To')}</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+            className="px-3.5 py-2.5 bg-secondary/20 border border-border/50 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:border-primary cursor-pointer min-h-[42px]" />
+        </div>
+        <div>
+          <button onClick={fetchReport} disabled={isLoading}
+            className="px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 min-h-[42px]">
+            {isLoading ? t('reports.loading', 'Loading...') : t('reports.apply', 'Apply')}
+          </button>
+        </div>
       </div>
 
       {/* Cards */}

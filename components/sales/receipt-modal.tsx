@@ -88,7 +88,7 @@ export default function ReceiptModal({
 
         {/* Skeuomorphic Thermal Receipt Wrapper */}
         <div id="printable-receipt-content" className="font-mono text-xs text-black bg-white p-4 border border-dashed border-gray-300 rounded-xl space-y-4">
-          
+
           {/* Header Pharmacy Logo & Bilingual Labels */}
           <div className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3">
             <div className="flex flex-col items-start space-y-1 w-[40%] shrink-0">
@@ -152,11 +152,11 @@ export default function ReceiptModal({
           <table className="w-full text-left text-[9px] border-collapse text-black">
             <thead>
               <tr className="border-b border-dashed border-gray-300 text-gray-500 uppercase text-[7px] font-bold">
-                <th className="pb-1.5 w-[8%]">ល.រ<br/>N°</th>
-                <th className="pb-1.5 pl-1 w-[47%]">រាយនាមទំនិញ<br/>Name of Goods</th>
-                <th className="pb-1.5 text-center w-[12%]">ចំនួន<br/>Qty</th>
-                <th className="pb-1.5 text-right w-[15%]">តម្លៃមួយ<br/>U.Price</th>
-                <th className="pb-1.5 text-right w-[18%]">តម្លៃសរុប<br/>Amount</th>
+                <th className="pb-1.5 w-[8%]">ល.រ<br />N°</th>
+                <th className="pb-1.5 pl-1 w-[47%]">រាយនាមទំនិញ<br />Name of Goods</th>
+                <th className="pb-1.5 text-center w-[12%]">ចំនួន<br />Qty</th>
+                <th className="pb-1.5 text-right w-[15%]">តម្លៃមួយ<br />U.Price</th>
+                <th className="pb-1.5 text-right w-[18%]">តម្លៃសរុប<br />Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -231,11 +231,10 @@ export default function ReceiptModal({
                       {[1, 2, 3, 4, 5, 6].map((j) => (
                         <div
                           key={j}
-                          className={`w-3 h-3 rounded-[1px] ${
-                            (i + j) % 2 === 0 || (i === 1 && j === 1) || (i === 1 && j === 6) || (i === 6 && j === 1) || (i === 6 && j === 6)
+                          className={`w-3 h-3 rounded-[1px] ${(i + j) % 2 === 0 || (i === 1 && j === 1) || (i === 1 && j === 6) || (i === 6 && j === 1) || (i === 6 && j === 6)
                               ? 'bg-indigo-900'
                               : 'bg-transparent'
-                          }`}
+                            }`}
                         />
                       ))}
                     </div>
@@ -278,7 +277,7 @@ export default function ReceiptModal({
             </svg>
             Print Receipt
           </button>
-          
+
           <button
             type="button"
             onClick={onNewOrder}

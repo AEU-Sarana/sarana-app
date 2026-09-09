@@ -5,6 +5,7 @@ import Link from 'next/link';
 import SupplierModal from '@/components/suppliers/supplier-modal';
 import { useLanguage } from '../../../contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 export default function AdminSuppliersPage() {
   const { t } = useLanguage();
@@ -19,7 +20,7 @@ export default function AdminSuppliersPage() {
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
       const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const res = await fetch(`http://localhost:8088/api/v1/suppliers${query}`, {
+      const res = await fetch(`${BASE_URL}/suppliers${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -97,8 +98,77 @@ export default function AdminSuppliersPage() {
         </div>
       </div>
 
-      {/* Table Card */}
-      <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
+      {/* Mobile Card List (visible on screens < 768px) */}
+      <div className="block md:hidden space-y-4">
+        {loading ? (
+          <div className="bg-card p-6 rounded-2xl border border-border/40 text-center text-sm text-muted-foreground">
+            Loading suppliers...
+          </div>
+        ) : suppliers.length === 0 ? (
+          <div className="bg-card p-6 rounded-2xl border border-border/40 text-center text-sm text-muted-foreground">
+            No suppliers found. Click "Add Supplier" to create your first vendor profile.
+          </div>
+        ) : (
+          suppliers.map((sup) => (
+            <div
+              key={sup.supplierId || sup.supplier_id}
+              className="bg-card border border-border/40 rounded-2xl p-4 shadow-sm space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2 border-b border-border/30 pb-2.5">
+                <div>
+                  <div className="font-bold text-foreground text-base">
+                    {sup.companyName || sup.company_name}
+                  </div>
+                  {sup.taxId || sup.tax_id ? (
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Tax #: <span className="font-medium text-foreground">{sup.taxId || sup.tax_id}</span>
+                    </div>
+                  ) : null}
+                </div>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${
+                    sup.isActive || sup.is_active
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                  }`}
+                >
+                  {sup.isActive || sup.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Contact Person</span>
+                  <span className="font-medium text-foreground">{sup.contactPerson || sup.contact_person || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Terms</span>
+                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-border/40">
+                    {sup.paymentTerms || sup.payment_terms || 'NET_30'}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Phone / Email</span>
+                  <div className="font-medium text-foreground">{sup.phone || '—'}</div>
+                  {sup.email ? <div className="text-muted-foreground">{sup.email}</div> : null}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/30 flex justify-end">
+                <button
+                  onClick={() => handleOpenEdit(sup)}
+                  className="px-4 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-medium transition-colors border border-border/40 cursor-pointer"
+                >
+                  Edit Supplier
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (visible on screens >= 768px) */}
+      <div className="hidden md:block bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-foreground">
             <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">

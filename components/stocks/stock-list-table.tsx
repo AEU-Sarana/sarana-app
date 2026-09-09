@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { StockListItem } from '../../features/stock/types';
 import { StockStatusBadge } from './stock-status-badge';
 import { useLanguage } from '../../contexts/language-context';
+import { useAuth } from '../../hooks/useAuth';
 
 const PAGE_LIMIT = 10;
 
@@ -28,6 +29,9 @@ export function StockListTable({
   onPageChange,
 }: StockListTableProps) {
   const { t } = useLanguage();
+  const { can } = useAuth();
+  const canStockIn = can('stock.stock_in', 'create');
+  const canAdjustStock = can('stock.adjustments', 'create');
 
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
@@ -73,8 +77,77 @@ export function StockListTable({
               <p className="text-xs text-foreground/25 font-semibold">{t('pos.no_products_desc', 'Try adjusting your search or filters')}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {stocks.map((item) => (
+                  <div key={item.stock_id} className="pt-4 first:pt-0 space-y-3 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-foreground/55 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                            #{item.stock_id}
+                          </span>
+                          {item.category && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary/50 text-foreground/75 border border-border/30">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-sm font-bold text-foreground mt-1 leading-snug">{item.product_name}</h4>
+                        <span className="text-[10px] font-mono text-foreground/45 mt-0.5 block">
+                          {item.product_code} {item.barcode ? `· ${item.barcode}` : ''}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`text-base font-black ${
+                          item.quantity <= 0 ? 'text-destructive' :
+                          item.low_stock_threshold && item.quantity <= item.low_stock_threshold ? 'text-warning' :
+                          'text-foreground'
+                        }`}>
+                          {item.quantity}
+                        </span>
+                        <span className="text-[10px] text-foreground/40 block font-semibold">units on hand</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                      <div>
+                        <StockStatusBadge status={item.status} />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {canStockIn && (
+                          <Link
+                            href="/admin/stock-in"
+                            className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs cursor-pointer"
+                          >
+                            + {t('stock.stock_in', 'Stock In')}
+                          </Link>
+                        )}
+                        {canAdjustStock && (
+                          <Link
+                            href="/admin/stock-adjustments"
+                            className="px-2.5 py-1 rounded-lg bg-secondary/50 hover:bg-secondary text-foreground/75 font-bold text-xs cursor-pointer"
+                          >
+                            {t('stock.adjust_stock', 'Adjust')}
+                          </Link>
+                        )}
+                        {!canStockIn && !canAdjustStock && (
+                          <span className="px-2.5 py-1 rounded-lg bg-secondary/30 text-foreground/40 font-bold text-xs cursor-not-allowed">
+                            View Only
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
                     <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45 w-16">ID</th>
@@ -151,26 +224,35 @@ export function StockListTable({
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Link
-                            href="/admin/stock-in"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-extrabold rounded-lg transition-all"
-                            title={t('stock.stock_in', 'Stock In')}
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                            </svg>
-                            {t('stock.stock_in', 'Stock In')}
-                          </Link>
-                          <Link
-                            href="/admin/stock-adjustments"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/40 hover:bg-secondary/70 text-foreground/60 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all"
-                            title={t('stock.adjust_stock', 'Adjust')}
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            {t('stock.adjust_stock', 'Adjust')}
-                          </Link>
+                          {canStockIn && (
+                            <Link
+                              href="/admin/stock-in"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-extrabold rounded-lg transition-all"
+                              title={t('stock.stock_in', 'Stock In')}
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                              </svg>
+                              {t('stock.stock_in', 'Stock In')}
+                            </Link>
+                          )}
+                          {canAdjustStock && (
+                            <Link
+                              href="/admin/stock-adjustments"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/40 hover:bg-secondary/70 text-foreground/60 hover:text-foreground text-[10px] font-extrabold rounded-lg transition-all"
+                              title={t('stock.adjust_stock', 'Adjust')}
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              {t('stock.adjust_stock', 'Adjust')}
+                            </Link>
+                          )}
+                          {!canStockIn && !canAdjustStock && (
+                            <span className="text-[10px] font-bold text-foreground/40 bg-secondary/20 border border-border/20 px-2.5 py-1 rounded-lg">
+                              View Only
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -178,6 +260,7 @@ export function StockListTable({
                 </tbody>
               </table>
             </div>
+          </>
           )}
 
           {/* Pagination */}

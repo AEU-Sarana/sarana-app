@@ -7,6 +7,7 @@ export interface Customer {
   customerId: number;
   fullName: string;
   phone: string | null;
+  totalDebt?: number | string;
 }
 
 interface CustomerSelectorProps {

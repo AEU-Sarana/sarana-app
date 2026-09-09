@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 interface GoodsReceivedModalProps {
   isOpen: boolean;
@@ -77,7 +78,7 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
     setLoading(true);
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch('http://localhost:8088/api/v1/purchasing/goods-received', {
+      const res = await fetch(`${BASE_URL}/purchasing/goods-received`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,8 +170,8 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
 
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-3">Line Items to Receive</h4>
-            <div className="border border-border/40 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-sm text-foreground">
+            <div className="border border-border/40 rounded-xl overflow-x-auto">
+              <table className="w-full text-left text-sm text-foreground min-w-[650px]">
                 <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                   <tr>
                     <th className="px-4 py-3">Product Name</th>
@@ -231,18 +232,18 @@ export default function GoodsReceivedModal({ isOpen, onClose, onSuccess, po }: G
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border/40 flex justify-end gap-3">
+          <div className="pt-4 border-t border-border/40 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-foreground font-medium text-sm rounded-xl border border-border/40 transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-foreground font-medium text-sm rounded-xl border border-border/40 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm rounded-xl transition-all shadow-md shadow-primary/20 cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Processing...' : 'Confirm Goods Received & Stock In'}
             </button>

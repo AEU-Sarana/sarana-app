@@ -77,7 +77,55 @@ export function StockMovementTable({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* Mobile Card View (< md) */}
+          <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+            {movements.map((mv) => (
+              <div key={mv.movement_id} className="pt-4 first:pt-0 space-y-3 select-none">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-foreground/55 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                        #{mv.movement_id}
+                      </span>
+                      <MovementBadge type={mv.movement_type} />
+                    </div>
+                    <h4 className="text-sm font-bold text-foreground mt-1 leading-snug">{mv.product_name || `Product #${mv.product_id}`}</h4>
+                    {mv.product_code && (
+                      <span className="text-[10px] font-mono text-foreground/45 mt-0.5 block">{mv.product_code}</span>
+                    )}
+                  </div>
+
+                  <div className="text-right">
+                    <span className={`text-base font-black ${mv.quantity > 0 ? 'text-success' : 'text-destructive'}`}>
+                      {mv.quantity > 0 ? `+${mv.quantity}` : mv.quantity}
+                    </span>
+                    <span className="text-[10px] text-foreground/40 block font-semibold">quantity</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1 pt-2 border-t border-border/10 text-xs text-foreground/60 font-semibold">
+                  {type === 'stock-in' && (
+                    <div className="flex flex-wrap justify-between items-center gap-2 text-[11px]">
+                      <span>Cost: <strong className="text-foreground">{formatCurrency(mv.cost ?? null)}</strong></span>
+                      <span>Supplier: <strong className="text-foreground">{mv.supplier || '—'}</strong></span>
+                      {mv.expired_at && <span>Exp: <strong className="text-amber-600">{new Date(mv.expired_at).toLocaleDateString()}</strong></span>}
+                    </div>
+                  )}
+                  {type === 'adjustment' && mv.reason && (
+                    <div className="text-[11px]">
+                      Reason: <span className="text-foreground font-medium">{mv.reason}</span>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-foreground/40 text-right mt-1">
+                    {formatDate(mv.created_at)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View (>= md) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border/20 bg-secondary/15 select-none">

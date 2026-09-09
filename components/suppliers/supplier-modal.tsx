@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 interface SupplierModalProps {
   isOpen: boolean;
@@ -50,8 +51,8 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
     setLoading(true);
     try {
       const url = supplier
-        ? `http://localhost:8088/api/v1/suppliers/${supplier.supplierId || supplier.supplier_id}`
-        : 'http://localhost:8088/api/v1/suppliers';
+        ? `${BASE_URL}/suppliers/${supplier.supplierId || supplier.supplier_id}`
+        : `${BASE_URL}/suppliers`;
 
       const method = supplier ? 'PUT' : 'POST';
 
@@ -88,18 +89,21 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-card border border-border/60 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl text-foreground animate-in fade-in zoom-in duration-200">
-        <div className="px-6 py-4 border-b border-border/40 flex justify-between items-center bg-card">
-          <h3 className="text-lg font-bold text-foreground">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-card border border-border/60 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl text-foreground animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] flex flex-col">
+        <div className="px-5 py-4 border-b border-border/40 flex justify-between items-center bg-card shrink-0">
+          <h3 className="text-base sm:text-lg font-bold text-foreground">
             {supplier ? 'Edit Supplier' : 'Add New Supplier'}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+          >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Company / Vendor Name *
@@ -110,11 +114,11 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="e.g. Angkor Beverages Co., Ltd"
-              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-all text-sm"
+              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-all text-sm"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 Contact Person
@@ -124,7 +128,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
                 value={contactPerson}
                 onChange={(e) => setContactPerson(e.target.value)}
                 placeholder="e.g. Mr. Sok"
-                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
               />
             </div>
             <div>
@@ -136,12 +140,12 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. +855 12 345 678"
-                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 Email
@@ -151,7 +155,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="sales@supplier.com"
-                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
               />
             </div>
             <div>
@@ -163,7 +167,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
                 value={taxId}
                 onChange={(e) => setTaxId(e.target.value)}
                 placeholder="K001-9021-X"
-                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
+                className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
               />
             </div>
           </div>
@@ -175,7 +179,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
             <select
               value={paymentTerms}
               onChange={(e) => setPaymentTerms(e.target.value)}
-              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary text-sm"
+              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground focus:outline-none focus:border-primary text-sm"
             >
               <option value="COD">COD (Cash on Delivery)</option>
               <option value="NET_7">NET 7 Days</option>
@@ -194,22 +198,22 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Street address, Khan, City..."
-              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm resize-none"
+              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm resize-none"
             />
           </div>
 
-          <div className="pt-4 flex justify-end gap-3 border-t border-border/40">
+          <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 border-t border-border/40">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-border/40 bg-secondary hover:bg-secondary/80 text-foreground transition-colors text-sm font-medium cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-border/40 bg-secondary hover:bg-secondary/80 text-foreground transition-colors text-sm font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Saving...' : supplier ? 'Update Supplier' : 'Save Supplier'}
             </button>

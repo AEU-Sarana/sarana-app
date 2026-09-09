@@ -96,8 +96,58 @@ export function SalesListTable({
               <p className="text-xs text-foreground/25 font-semibold">{t('reports.no_orders_range', 'Try adjusting your filters or date range')}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {orders.map((order) => (
+                  <div key={order.order_id} className="pt-4 first:pt-0 space-y-3 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-mono font-bold text-primary block">
+                          {order.receipt_number}
+                        </span>
+                        <span className="text-[10px] text-foreground/50 font-semibold block mt-0.5">
+                          {new Date(order.order_date).toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-base font-black text-foreground block">
+                          {formatUSD(Number(order.total_amount))}
+                        </span>
+                        <span className="text-[10px] font-mono text-foreground/45 block">
+                          {formatKHR(Number(order.total_amount), Number(order.exchange_rate || 4000))}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                      <div className="flex items-center gap-2">
+                        {getPaymentMethodBadge(order.payment_method)}
+                        <span className="text-[10px] text-foreground/50 font-bold">
+                          By: {order.seller_name || `User #${order.seller_id}`}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => onViewDetails(order)}
+                        className="px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-extrabold text-xs cursor-pointer"
+                      >
+                        Receipt
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/30 bg-secondary/15 select-none">
                     <th className="px-6 py-4.5 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('sales.col_receipt_id', 'Receipt Number')}</th>
@@ -116,13 +166,36 @@ export function SalesListTable({
                       timeStyle: 'short',
                     });
                     
+                    const status = order.order_status || 'COMPLETED';
+                    let statusBadge = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-extrabold tracking-wider bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        Completed
+                      </span>
+                    );
+                    if (status === 'CANCEL_REQUESTED') {
+                      statusBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-extrabold tracking-wider bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400">
+                          Cancel Pending
+                        </span>
+                      );
+                    } else if (status === 'CANCELLED') {
+                      statusBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-extrabold tracking-wider bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400">
+                          Cancelled
+                        </span>
+                      );
+                    }
+
                     return (
-                      <tr key={order.order_id} className="hover:bg-secondary/15 transition-colors group">
+                      <tr key={order.order_id} className={`hover:bg-secondary/15 transition-colors group ${status === 'CANCELLED' ? 'opacity-60 bg-red-500/5' : ''}`}>
                         {/* Receipt Number */}
                         <td className="px-6 py-4">
-                          <span className="text-xs font-mono font-bold text-foreground bg-secondary/40 border border-border/20 px-2 py-1 rounded-lg">
-                            {order.receipt_number}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-bold text-foreground bg-secondary/40 border border-border/20 px-2 py-1 rounded-lg">
+                              {order.receipt_number}
+                            </span>
+                            {statusBadge}
+                          </div>
                         </td>
 
                         {/* Date & Time */}
@@ -178,6 +251,7 @@ export function SalesListTable({
                 </tbody>
               </table>
             </div>
+          </>
           )}
 
           {/* Pagination Controls */}

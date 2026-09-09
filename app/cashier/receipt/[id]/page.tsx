@@ -449,11 +449,11 @@ export default function CashierReceiptPage({ params }: PageProps) {
           <table className="w-full text-left border-collapse text-black">
             <thead>
               <tr className="border-b border-dashed border-gray-400 text-gray-500 uppercase font-black" style={{ fontSize: 7.5 }}>
-                <th className="pb-2 w-[7%]">ល.រ<br/>N°</th>
-                <th className="pb-2 pl-1.5 w-[46%]">រាយនាមទំនិញ<br/>NAME OF GOODS</th>
-                <th className="pb-2 text-center w-[10%]">ចំនួន<br/>QTY</th>
-                <th className="pb-2 text-right w-[17%]">តម្លៃមួយ<br/>U.PRICE</th>
-                <th className="pb-2 text-right w-[20%]">តម្លៃសរុប<br/>AMOUNT</th>
+                <th className="pb-2 w-[7%]">ល.រ<br />N°</th>
+                <th className="pb-2 pl-1.5 w-[46%]">រាយនាមទំនិញ<br />NAME OF GOODS</th>
+                <th className="pb-2 text-center w-[10%]">ចំនួន<br />QTY</th>
+                <th className="pb-2 text-right w-[17%]">តម្លៃមួយ<br />U.PRICE</th>
+                <th className="pb-2 text-right w-[20%]">តម្លៃសរុប<br />AMOUNT</th>
               </tr>
             </thead>
             <tbody>

@@ -50,11 +50,11 @@ export default function DeactivateUserModal({
             {t('users.confirm_deactivate_warning', 'Warning: The user will no longer be able to log in, register POS devices, or process sales transactions.')}
           </p>
         </div>
-        <div className="px-6 py-4 border-t border-border/40 bg-secondary/10 flex justify-end gap-2.5">
+        <div className="px-6 py-4 border-t border-border/40 bg-secondary/10 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-border bg-card text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/40 rounded-xl transition-all duration-150 cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 border border-border bg-card text-xs font-bold text-foreground/75 hover:text-foreground hover:bg-secondary/40 rounded-xl transition-all duration-150 cursor-pointer text-center"
             disabled={isDeactivating}
           >
             {t('common.cancel', 'Cancel')}
@@ -62,7 +62,7 @@ export default function DeactivateUserModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl shadow-sm shadow-destructive/5 transition-all duration-150 cursor-pointer flex items-center gap-1.5"
+            className="w-full sm:w-auto px-4 py-2 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl shadow-sm shadow-destructive/5 transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5"
             disabled={isDeactivating}
           >
             {isDeactivating && (

@@ -178,7 +178,91 @@ export default function ProductList({
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* Mobile Cards Layout (< md) */}
+      <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+        {products.map((product) => {
+          const expiry = checkExpiryStatus(product.has_expiry, product.expired_at);
+          return (
+            <div key={product.product_id} className="pt-4 first:pt-0 space-y-3 select-none">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold text-foreground/55 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                      #{product.product_id}
+                    </span>
+                    {product.category && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary/50 text-foreground/75 border border-border/30">
+                        {product.category}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-sm font-bold text-foreground mt-1 leading-snug">{product.product_name}</h4>
+                  <span className="text-[10px] font-mono text-foreground/45 mt-0.5 inline-flex items-center gap-1">
+                    Barcode: {product.barcode}
+                  </span>
+                </div>
+                <span className="text-base font-black text-foreground shrink-0">${Number(product.price).toFixed(2)}</span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                <div className="flex items-center gap-2">
+                  {renderStockIndicator(product.stock_quantity, product.low_stock_threshold)}
+                  {expiry.label && (
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold border rounded ${expiry.color}`}>
+                      {expiry.label}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {canEditProduct ? (
+                    <button
+                      onClick={() => onToggleStatus(product)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                        product.status === 'active' ? 'bg-success' : 'bg-secondary'
+                      }`}
+                      role="switch"
+                      title={product.status === 'active' ? 'Click to deactivate' : 'Click to activate'}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${product.status === 'active' ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  ) : (
+                    <span className={`relative inline-flex h-5 w-9 shrink-0 cursor-not-allowed rounded-full border-2 border-transparent opacity-50 ${product.status === 'active' ? 'bg-success' : 'bg-secondary'}`} title="View Only">
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${product.status === 'active' ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </span>
+                  )}
+
+                  <button
+                    onClick={() => onViewDetail(product)}
+                    className="px-2.5 py-1 rounded-lg bg-secondary/50 text-foreground/75 font-bold text-xs hover:bg-secondary cursor-pointer"
+                  >
+                    View
+                  </button>
+                  {canEditProduct && (
+                    <button
+                      onClick={() => onEdit(product)}
+                      className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canDeleteProduct && (
+                    <button
+                      onClick={() => onDelete(product)}
+                      className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive font-bold text-xs hover:bg-destructive/20 cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-border/30 bg-secondary/15 select-none">
@@ -289,22 +373,37 @@ export default function ProductList({
                   <td className="px-6 py-3.5 text-right relative">
                     <div className="flex items-center justify-end gap-3">
                       {/* Active/Inactive Toggle Switch */}
-                      <button
-                        onClick={() => onToggleStatus(product)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                          product.status === 'active' ? 'bg-success' : 'bg-secondary'
-                        }`}
-                        aria-checked={product.status === 'active'}
-                        role="switch"
-                        title={product.status === 'active' ? 'Click to deactivate' : 'Click to activate'}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                            product.status === 'active' ? 'translate-x-4' : 'translate-x-0'
+                      {canEditProduct ? (
+                        <button
+                          onClick={() => onToggleStatus(product)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                            product.status === 'active' ? 'bg-success' : 'bg-secondary'
                           }`}
-                        />
-                      </button>
+                          aria-checked={product.status === 'active'}
+                          role="switch"
+                          title={product.status === 'active' ? 'Click to deactivate' : 'Click to activate'}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                              product.status === 'active' ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      ) : (
+                        <span
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-not-allowed rounded-full border-2 border-transparent opacity-50 transition-colors duration-200 ease-in-out ${
+                            product.status === 'active' ? 'bg-success' : 'bg-secondary'
+                          }`}
+                          title="View Only"
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                              product.status === 'active' ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </span>
+                      )}
 
                       {/* Dropdown Menu Trigger */}
                       <button

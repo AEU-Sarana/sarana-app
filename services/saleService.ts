@@ -28,8 +28,20 @@ export const saleService = {
   },
 
   async createOrder(data: {
-    payment_method: 'CASH' | 'BANK';
+    payment_method: string;
+    customer_id?: number;
+    payment_type?: 'PAID' | 'DEBT' | 'PARTIAL';
+    initial_paid_amount?: number;
+    payment_due_date?: string;
     received_amount?: number;
+    reference_number?: string;
+    transaction_id?: string;
+    received_usd?: number;
+    received_khr?: number;
+    change_usd?: number;
+    change_khr?: number;
+    slip_url?: string;
+    notes?: string;
     discount_amount?: number;
     tax_amount?: number;
     service_fee?: number;
@@ -44,4 +56,25 @@ export const saleService = {
     const response = await apiClient.post<ApiResponse<any>>('/orders', data);
     return response.data;
   },
+
+  async requestCancellation(orderId: number, reason: string): Promise<Order> {
+    const response = await apiClient.post<ApiResponse<any>>(`/orders/${orderId}/request-cancel`, { reason });
+    return response.data;
+  },
+
+  async approveCancellation(orderId: number): Promise<Order> {
+    const response = await apiClient.post<ApiResponse<any>>(`/orders/${orderId}/approve-cancel`, {});
+    return response.data;
+  },
+
+  async rejectCancellation(orderId: number, reason?: string): Promise<Order> {
+    const response = await apiClient.post<ApiResponse<any>>(`/orders/${orderId}/reject-cancel`, { reason });
+    return response.data;
+  },
+
+  async listCancellationRequests(): Promise<Order[]> {
+    const response = await apiClient.get<ApiResponse<any>>('/orders/cancellation-requests');
+    return response.data;
+  },
 };
+

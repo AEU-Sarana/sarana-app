@@ -6,6 +6,7 @@ import Link from 'next/link';
 import GoodsReceivedModal from '@/components/purchasing/goods-received-modal';
 import POPrintableInvoice from '@/components/purchasing/po-printable-invoice';
 import { tokenStorage } from '@/services/tokenStorage';
+import { BASE_URL } from '@/services/apiClient';
 
 export default function AdminPODetailsPage() {
   const params = useParams();
@@ -25,7 +26,7 @@ export default function AdminPODetailsPage() {
     setLoading(true);
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8088/api/v1/purchasing/orders/${poId}`, {
+      const res = await fetch(`${BASE_URL}/purchasing/orders/${poId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -50,7 +51,7 @@ export default function AdminPODetailsPage() {
   const handleDownloadPDF = async () => {
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8088/api/v1/purchasing/orders/${poId}/pdf`, {
+      const res = await fetch(`${BASE_URL}/purchasing/orders/${poId}/pdf`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to generate PDF');
@@ -72,7 +73,7 @@ export default function AdminPODetailsPage() {
     setUpdatingStatus(true);
     try {
       const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8088/api/v1/purchasing/orders/${poId}/status`, {
+      const res = await fetch(`${BASE_URL}/purchasing/orders/${poId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +226,25 @@ export default function AdminPODetailsPage() {
       {/* Screen Line Items Table (Hidden on Print) */}
       <div className="print:hidden bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm space-y-4 p-6">
         <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Ordered Products</h3>
-        <div className="overflow-x-auto">
+        
+        {/* Mobile Card View (< md) */}
+        <div className="block md:hidden divide-y divide-border/10 space-y-3">
+          {items.map((item: any, idx: number) => (
+            <div key={idx} className="pt-3 first:pt-0 space-y-1.5 text-xs select-none">
+              <div className="flex justify-between items-start gap-2">
+                <span className="font-bold text-foreground">{item.product?.productName || item.product_name}</span>
+                <span className="font-mono font-extrabold text-foreground">${safeFormatCurrency(item.subtotal)}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+                <span>Ordered: <strong className="text-foreground">{item.orderedQuantity}</strong> · Recv: <strong className="text-emerald-600 dark:text-emerald-400">{item.receivedQuantity}</strong></span>
+                <span>Unit Cost: ${safeFormatCurrency(item.unitCost ?? item.unit_cost)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View (>= md) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm text-foreground">
             <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
               <tr>

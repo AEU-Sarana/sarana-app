@@ -281,8 +281,55 @@ export default function CustomerDebtPage() {
               <p className="text-xs text-foreground/50 mt-1">All customer accounts are fully paid.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-foreground">
+            <>
+              {/* Mobile Card View (< md) */}
+              <div className="block md:hidden divide-y divide-border/10 p-4 space-y-4">
+                {overview.customerDebts.map((c) => (
+                  <div key={c.customerId} className="pt-4 first:pt-0 space-y-3 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-foreground">{c.fullName}</h4>
+                          {c.isOverdue && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
+                              Overdue
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-mono text-foreground/50 block mt-0.5">
+                          📞 {c.phone || 'No phone'}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-base font-black text-rose-600 dark:text-rose-400 block">
+                          {formatCurrency(c.totalDebt)}
+                        </span>
+                        <span className="text-[10px] text-foreground/40 block font-semibold">
+                          {c.openOrderCount} unpaid orders
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                      <span className="text-[10px] text-foreground/50 font-bold">
+                        Oldest Due: {formatDate(c.oldestDueDate)}
+                      </span>
+
+                      <button
+                        onClick={() => handleOpenCollectModal(c)}
+                        className="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md shadow-primary/20 cursor-pointer"
+                      >
+                        Record Payment
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-foreground">
                 <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                   <tr>
                     <th className="px-6 py-4">Customer Name</th>
@@ -325,7 +372,7 @@ export default function CustomerDebtPage() {
                           <button
                             onClick={() => handleOpenCollectModal(c)}
                             disabled={c.totalDebt <= 0}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-all disabled:opacity-30 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs rounded-xl shadow-md shadow-primary/20 transition-all disabled:opacity-30 cursor-pointer"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -373,6 +420,7 @@ export default function CustomerDebtPage() {
                 </tbody>
               </table>
             </div>
+          </>
           )}
         </div>
       )}
@@ -547,7 +595,7 @@ export default function CustomerDebtPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Processing...' : 'Confirm & Collect Payment'}
                 </button>

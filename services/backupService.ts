@@ -68,4 +68,26 @@ export const backupService = {
     });
     return response.data;
   },
+
+  async downloadBackup(backupId: number, backupName: string): Promise<void> {
+    const { tokenStorage } = await import('./tokenStorage');
+    const { BASE_URL } = await import('./apiClient');
+    const token = tokenStorage.getAccessToken() || localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const res = await fetch(`${BASE_URL}/backup/download/${backupId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Download failed');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = backupName.endsWith('.sql') ? backupName : `${backupName}.sql`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

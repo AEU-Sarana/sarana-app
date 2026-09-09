@@ -149,51 +149,65 @@ export default function AdminSalesPage() {
     <div className="space-y-6">
 
       {/* Filter and Search Section */}
-      <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-3.5 select-none">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+      <div className="bg-card border border-border/40 rounded-3xl p-4 sm:p-6 shadow-sm space-y-3.5 select-none">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
           {/* Search box */}
-          <div className="lg:col-span-4 relative">
-            <input
-              type="text"
-              placeholder={t('sales.search_placeholder', 'Search receipt number (e.g. RCP-)...')}
-              value={receiptSearch}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200"
-            />
-            <svg className="absolute left-4 top-4.5 w-5 h-5 text-foreground/45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="col-span-1 sm:col-span-2 lg:col-span-4 relative flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+              {t('sales.search_label', 'Search')}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={t('sales.search_placeholder', 'Search receipt number (e.g. RCP-)...')}
+                value={receiptSearch}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all duration-200 min-h-[42px]"
+              />
+              <svg className="absolute left-3.5 top-3 w-4 h-4 text-foreground/45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
 
           {/* Start Date */}
-          <div className="lg:col-span-2.5 flex flex-col">
+          <div className="col-span-1 sm:col-span-1 lg:col-span-2.5 flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+              {t('sales.start_date', 'From Date')}
+            </label>
             <input
               type="date"
               title="Start Date"
               value={startDate}
               onChange={(e) => { setPage(1); setStartDate(e.target.value); }}
-              className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer min-h-[42px]"
             />
           </div>
 
           {/* End Date */}
-          <div className="lg:col-span-2.5 flex flex-col">
+          <div className="col-span-1 sm:col-span-1 lg:col-span-2.5 flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+              {t('sales.end_date', 'To Date')}
+            </label>
             <input
               type="date"
               title="End Date"
               value={endDate}
               onChange={(e) => { setPage(1); setEndDate(e.target.value); }}
-              className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer min-h-[42px]"
             />
           </div>
 
           {/* Seller / Cashier Filter (Admin only) */}
-          <div className="lg:col-span-3">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
+              {t('sales.cashier_label', 'Cashier / Staff')}
+            </label>
             {isAdmin ? (
               <select
                 value={selectedSeller}
                 onChange={(e) => { setPage(1); setSelectedSeller(e.target.value); }}
-                className="w-full px-4 py-3 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer min-h-[42px]"
               >
                 <option value="">{t('sales.all_cashiers_admins', 'All Cashiers & Admins')}</option>
                 {sellersList.map((seller) => (
@@ -203,7 +217,7 @@ export default function AdminSalesPage() {
                 ))}
               </select>
             ) : (
-              <div className="w-full px-4 py-3 rounded-xl border border-border/20 bg-secondary/10 text-xs font-semibold text-foreground/45 select-none">
+              <div className="w-full px-3.5 py-2.5 rounded-xl border border-border/20 bg-secondary/10 text-xs font-semibold text-foreground/45 select-none min-h-[42px] flex items-center">
                 {t('sales.viewing_own_records', 'Viewing: Your sales records only')}
               </div>
             )}
@@ -244,6 +258,7 @@ export default function AdminSalesPage() {
         isOpen={isDetailModalOpen}
         orderId={selectedOrderId}
         onClose={() => setIsDetailModalOpen(false)}
+        onOrderUpdated={handleRefresh}
       />
     </div>
   );

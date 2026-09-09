@@ -504,8 +504,76 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
+                {/* Mobile Cards View (< md) */}
+                <div className="block md:hidden divide-y divide-border/10">
+                  {paginatedCustomers.length > 0 ? (
+                    paginatedCustomers.map((customer) => {
+                      const totalPurchased = customer.purchases.reduce((acc, p) => acc + p.totalSpent, 0);
+                      return (
+                        <div key={customer.customerId} className="py-4 first:pt-0 last:pb-0 space-y-3 select-none">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarColor(customer.fullName)} flex items-center justify-center text-xs font-black tracking-wider shadow-sm border border-white/5 shrink-0`}>
+                                {getInitials(customer.fullName)}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-mono font-bold text-foreground/40 bg-secondary/40 border border-border/20 px-1.5 py-0.5 rounded">
+                                    #{String(customer.customerId).padStart(3, '0')}
+                                  </span>
+                                </div>
+                                <h4 className="text-sm font-black text-foreground mt-0.5 leading-snug">{customer.fullName || 'Unnamed Customer'}</h4>
+                                <FormatBuyAtCell dateStr={customer.lastBuyAt} />
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block">
+                                ${totalPurchased.toFixed(2)}
+                              </span>
+                              <span className="text-[9px] font-bold text-foreground/35 uppercase tracking-wider block">Purchased</span>
+                            </div>
+                          </div>
+
+                          {/* Contact & Paid info */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
+                            <div className="space-y-0.5">
+                              {customer.phone && (
+                                <div className="text-xs font-bold text-foreground/75 flex items-center gap-1.5">
+                                  <svg className="w-3.5 h-3.5 text-foreground/35" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.802-5.122-4.1-6.924-6.924l1.293-.97a1.242 1.242 0 0 0 .417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.11-1.008H4.5a2.25 2.25 0 0 0-2.25 2.25v1.356z" />
+                                  </svg>
+                                  {customer.phone}
+                                </div>
+                              )}
+                              {customer.email && (
+                                <div className="text-[11px] font-bold text-foreground/45 flex items-center gap-1.5 truncate">
+                                  <svg className="w-3.5 h-3.5 text-foreground/35" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                                  </svg>
+                                  {customer.email}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-foreground/60">
+                                Paid: <span className="font-black text-indigo-500">${customer.totalPaid.toFixed(2)}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="py-12 text-center text-xs font-bold text-foreground/35 italic">
+                      {t('dashboard.no_customers_found', 'No customers found matching filters.')}
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto w-full rounded-2xl border border-border/30 bg-secondary/5">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-secondary/35 border-b border-border/30">

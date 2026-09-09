@@ -16,6 +16,7 @@ import CustomerSelector, { Customer } from '../../../components/checkout/custome
 import ProductFilters from '../../../components/checkout/product-filters';
 import Pagination from '../../../components/checkout/pagination';
 import PaymentSummary from '../../../components/checkout/payment-summary';
+import PaymentModal, { PaymentData } from '../../../components/checkout/payment-modal';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
 
@@ -52,6 +53,7 @@ export default function CashierCheckoutPage() {
   const [discountValue, setDiscountValue] = useState<string>('0');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ABA' | 'WING'>('CASH');
   const [cashReceived, setCashReceived] = useState<string>('');
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   
   // Customer association states
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('walk-in');
@@ -233,8 +235,11 @@ export default function CashierCheckoutPage() {
     return cart.find((item) => item.product.product_id === productId)?.quantity || 0;
   };
 
-  // --- Submit POS Order ---
-  const handleCheckout = async (e: React.FormEvent) => {
+  // Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // --- Open Payment Modal ---
+  const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0 || isCheckingOut) return;
 
@@ -251,7 +256,12 @@ export default function CashierCheckoutPage() {
       if (Object.keys(errs).length > 0) return;
     }
 
-    // Determine Customer Name & Phone
+    setIsPaymentModalOpen(true);
+    setIsMobileCartOpen(false);
+  };
+
+  // --- Confirm Payment & Create Order ---
+  const handleConfirmPayment = async (paymentData: PaymentData) => {
     let customerName = 'Walk-in Customer';
     let customerPhone = 'N/A';
 
@@ -280,8 +290,18 @@ export default function CashierCheckoutPage() {
     }));
 
     const payload = {
-      payment_method: (paymentMethod === 'CASH' ? 'CASH' : 'BANK') as 'CASH' | 'BANK',
-      received_amount: paymentMethod === 'CASH' ? cashNum : total,
+      payment_method: paymentData.payment_method,
+      payment_type: paymentData.payment_type,
+      initial_paid_amount: paymentData.initial_paid_amount,
+      payment_due_date: paymentData.payment_due_date,
+      received_amount: paymentData.received_amount,
+      received_usd: paymentData.received_usd,
+      received_khr: paymentData.received_khr,
+      change_usd: paymentData.change_usd,
+      change_khr: paymentData.change_khr,
+      reference_number: paymentData.reference_number,
+      notes: paymentData.notes,
+      customer_id: paymentData.customer_id,
       discount_amount: discount,
       tax_amount: tax,
       service_fee: 0,
@@ -299,14 +319,15 @@ export default function CashierCheckoutPage() {
         discount,
         tax,
         total,
-        cashReceived: paymentMethod === 'CASH' ? cashNum : total,
-        change: paymentMethod === 'CASH' ? changeAmount : 0,
+        cashReceived: paymentData.received_amount,
+        change: paymentData.change_usd,
         customerName,
         customerPhone,
         cashierName: createdOrder.seller_name || currentUser?.fullName || 'Cashier One',
         dateString: new Date(createdOrder.order_date).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }),
       });
 
+      setIsPaymentModalOpen(false);
       setIsReceiptOpen(true);
       triggerToast('POS sale created successfully');
     } catch (err: any) {
@@ -365,22 +386,50 @@ export default function CashierCheckoutPage() {
             {t('pos.subtitle', 'Search products, manage cart items, associate customer accounts, and record retail pharmacy sales.')}
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isLoadingProducts}
-          className="group px-4.5 py-2.5 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground font-extrabold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-sm disabled:opacity-50"
-        >
-          <svg
-            className={`w-4 h-4 text-foreground/50 transition-transform duration-500 ease-out ${
-              isLoadingProducts ? 'animate-spin' : 'group-hover:rotate-180'
-            }`}
-            fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"
+        <div className="flex items-center gap-2">
+          {/* Mobile Cart Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileCartOpen((prev) => !prev)}
+            className="lg:hidden relative px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-md active:scale-95"
+            aria-label={isMobileCartOpen ? 'Close cart' : 'Open cart'}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          <span>{t('common.refresh', 'Refresh')}</span>
-        </button>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span>{t('pos.invoice_cart', 'Invoice Cart')}</span>
+            {cart.reduce((sum, item) => sum + item.quantity, 0) > 0 && (
+              <span className="bg-white text-indigo-700 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={handleRefresh}
+            disabled={isLoadingProducts}
+            className="group px-4.5 py-2.5 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground font-extrabold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-sm disabled:opacity-50"
+          >
+            <svg
+              className={`w-4 h-4 text-foreground/50 transition-transform duration-500 ease-out ${
+                isLoadingProducts ? 'animate-spin' : 'group-hover:rotate-180'
+              }`}
+              fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            <span>{t('common.refresh', 'Refresh')}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Drawer Backdrop */}
+      {isMobileCartOpen && (
+        <div
+          className="no-print fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          onClick={() => setIsMobileCartOpen(false)}
+        />
+      )}
 
       <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -437,8 +486,14 @@ export default function CashierCheckoutPage() {
 
         </div>
 
-        {/* Right Section: Invoice Cart Sidebar */}
-        <div className="lg:col-span-4 sticky top-6 bg-card border border-border/40 rounded-3xl shadow-sm p-6 space-y-6 flex flex-col max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+        {/* Right Section: Invoice Cart Sidebar / Mobile Drawer Modal */}
+        <div
+          className={`no-print ${
+            isMobileCartOpen
+              ? 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-3xl bg-card border-t border-border/50 p-5 shadow-2xl overflow-y-auto flex flex-col space-y-5'
+              : 'hidden lg:flex lg:flex-col'
+          } lg:col-span-4 lg:sticky lg:top-6 lg:z-0 lg:max-h-[calc(100vh-100px)] lg:w-full lg:rounded-3xl lg:border lg:border-border/40 lg:bg-card lg:p-6 lg:space-y-6 lg:shadow-sm lg:overflow-y-auto custom-scrollbar`}
+        >
           
           {/* Header Cart Details */}
           <div className="flex justify-between items-center select-none border-b border-border/40 pb-3 shrink-0">
@@ -448,9 +503,25 @@ export default function CashierCheckoutPage() {
               </svg>
               <h2 className="text-base font-black text-foreground tracking-tight">{t('pos.invoice_cart', 'Invoice Cart')}</h2>
             </div>
-            <span className="text-xs font-bold text-foreground/45">
-              {cart.reduce((sum, item) => sum + item.quantity, 0)} {t('pos.items', 'Items')}
-            </span>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-foreground/45">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} {t('pos.items', 'Items')}
+              </span>
+
+              {/* Close Icon Button for Mobile Modal */}
+              <button
+                type="button"
+                onClick={() => setIsMobileCartOpen(false)}
+                className="lg:hidden p-1.5 rounded-xl text-foreground/50 hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
+                title="Close Invoice Cart"
+                aria-label="Close Invoice Cart"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Customer Selection Block */}
@@ -514,6 +585,57 @@ export default function CashierCheckoutPage() {
         </div>
 
       </div>
+
+      {/* Mobile Floating Cart Bar */}
+      {!isMobileCartOpen && (
+        <div className="no-print fixed bottom-4 left-4 right-4 z-30 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsMobileCartOpen(true)}
+            className="w-full bg-card border border-border/60 dark:border-border/80 shadow-2xl rounded-2xl p-3.5 flex items-center justify-between text-foreground hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative p-2.5 bg-indigo-600 text-white rounded-xl">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                {cart.reduce((sum, item) => sum + item.quantity, 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-card">
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                )}
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-bold text-foreground/50 block uppercase tracking-wider">{t('pos.invoice_cart', 'Invoice Cart')}</span>
+                <span className="text-xs font-black text-foreground">{cart.reduce((sum, item) => sum + item.quantity, 0)} {t('pos.items', 'Items')}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-foreground/50 block uppercase tracking-wider">{t('pos.grand_total', 'Total')}</span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">${grandTotal.toFixed(2)}</span>
+              </div>
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                </svg>
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* ── Cashier Payment Modal ── */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        totalAmount={grandTotal}
+        customers={customers}
+        selectedCustomerId={selectedCustomerId}
+        onConfirmPayment={handleConfirmPayment}
+        isProcessing={isCheckingOut}
+      />
 
       {/* ── Receipt Modal (Printable) ── */}
       <ReceiptModal

@@ -13,6 +13,8 @@ export interface PrintReceiptData {
   customer_name: string;
   customer_phone?: string;
   payment_method: string;
+  reference_number?: string;
+  notes?: string;
   items: PrintReceiptItem[];
   subtotal: number;
   discount_amount: number;
@@ -40,8 +42,8 @@ export function printReceipt(order: PrintReceiptData) {
       <td style="padding:6px 4px;font-size:9px;">
         <div style="font-weight:700;">${item.product_name}</div>
         ${item.discount_amount && item.discount_amount > 0
-          ? `<div style="color:#16a34a;font-size:7.5px;font-weight:700;">Disc: -$${item.discount_amount.toFixed(2)}</div>`
-          : ''}
+      ? `<div style="color:#16a34a;font-size:7.5px;font-weight:700;">Disc: -$${item.discount_amount.toFixed(2)}</div>`
+      : ''}
       </td>
       <td style="padding:6px 0;text-align:center;font-size:9px;">${item.quantity}</td>
       <td style="padding:6px 0;text-align:right;font-size:9px;">$${item.unit_price.toFixed(2)}</td>
@@ -110,6 +112,11 @@ export function printReceipt(order: PrintReceiptData) {
       <span style="color:#555;">Payment Method:</span>
       <span style="font-weight:900;">${order.payment_method}</span>
     </div>
+    ${order.reference_number ? `
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+      <span style="color:#555;">Ref #:</span>
+      <span style="font-weight:900;color:#4f46e5;">${order.reference_number}</span>
+    </div>` : ''}
   </div>
 
   <!-- ITEMS TABLE -->

@@ -74,26 +74,7 @@ export default function Login() {
                     </p>
                 </div>
 
-                {/* Bottom: Glassmorphic spec details */}
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 relative z-10 shadow-xl shadow-black/5 hover:border-white/15 transition-all duration-300">
-                    <h3 className="text-xs uppercase tracking-widest font-extrabold text-white/90 mb-3.5">
-                        POS Enterprise Core
-                    </h3>
-                    <ul className="space-y-3 text-sm font-sans text-white/85">
-                        <li className="flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white border border-white/15 shadow-sm">✓</span>
-                            <span className="font-medium">FIFO Batch Inventory Control</span>
-                        </li>
-                        <li className="flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white border border-white/15 shadow-sm">✓</span>
-                            <span className="font-medium">Secure Digital Receipts</span>
-                        </li>
-                        <li className="flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-white border border-white/15 shadow-sm">✓</span>
-                            <span className="font-medium">Telegram Bot Admin Alerts</span>
-                        </li>
-                    </ul>
-                </div>
+
             </div>
 
             {/* RIGHT COLUMN: Form & Authorization Container */}

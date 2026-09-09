@@ -142,6 +142,7 @@ export default function AdminSettingsPage() {
   const [isBackupsLoading, setIsBackupsLoading] = useState(false);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isRestoring, setIsRestoring] = useState<number | null>(null);
+  const [isDownloading, setIsDownloading] = useState<number | null>(null);
   const [confirmRestoreBackup, setConfirmRestoreBackup] = useState<BackupListItem | null>(null);
 
   // Manual operations states
@@ -285,6 +286,21 @@ export default function AdminSettingsPage() {
       setErrorMessage(err.message || 'Failed to restore backup.');
     } finally {
       setIsRestoring(null);
+    }
+  };
+
+  const handleDownloadBackup = async (item: BackupListItem) => {
+    try {
+      setIsDownloading(item.backup_id);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      await backupService.downloadBackup(item.backup_id, item.backup_name);
+      setSuccessMessage(`Backup "${item.backup_name}" downloaded successfully.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to download backup file.');
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -624,14 +640,27 @@ export default function AdminSettingsPage() {
                                 <td className="py-2 text-right font-medium text-foreground/60">{formattedSize}</td>
                                 <td className="py-2 text-center text-foreground/50">{date}</td>
                                 <td className="py-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => setConfirmRestoreBackup(item)}
-                                    disabled={isRestoring !== null}
-                                    className="px-2.5 py-1 text-[9px] font-extrabold bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded transition-colors disabled:opacity-50 cursor-pointer"
-                                  >
-                                    {isRestoring === item.backup_id ? t('settings.restoring', 'Restoring...') : t('settings.restore', 'Restore')}
-                                  </button>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadBackup(item)}
+                                      disabled={isDownloading === item.backup_id}
+                                      className="px-2.5 py-1 text-[9px] font-extrabold bg-primary/10 text-primary hover:bg-primary hover:text-white rounded transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                      {isDownloading === item.backup_id ? 'Downloading...' : t('common.download', 'Download')}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmRestoreBackup(item)}
+                                      disabled={isRestoring !== null}
+                                      className="px-2.5 py-1 text-[9px] font-extrabold bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded transition-colors disabled:opacity-50 cursor-pointer"
+                                    >
+                                      {isRestoring === item.backup_id ? t('settings.restoring', 'Restoring...') : t('settings.restore', 'Restore')}
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
