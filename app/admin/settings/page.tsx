@@ -5,6 +5,7 @@ import { settingService } from '../../../services/settingService';
 import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
 import { useLanguage } from '../../../contexts/language-context';
+import PaymentMethodsTab from '../../../components/settings/payment-methods-tab';
 
 const TIMEZONES = [
   'Asia/Phnom_Penh',
@@ -111,7 +112,7 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 
 export default function AdminSettingsPage() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'backup' | 'invoice'>('backup');
+  const [activeTab, setActiveTab] = useState<'backup' | 'invoice' | 'payment_methods'>('backup');
   const [settings, setSettings] = useState<AppSetting | null>(null);
   const [form, setForm] = useState<UpdateSettingsRequest>({
     auto_backup: true,
@@ -418,6 +419,21 @@ export default function AdminSettingsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           {t('settings.tab_invoice', 'Invoice & Store Info')}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('payment_methods')}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === 'payment_methods'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          {t('settings.tab_payment_methods', 'Payment Methods')}
         </button>
       </div>
 
@@ -914,6 +930,9 @@ export default function AdminSettingsPage() {
             </div>
           </div>
           )}
+
+          {/* ── TAB 3: Payment Methods ── */}
+          {activeTab === 'payment_methods' && <PaymentMethodsTab />}
 
         </div>
       )}
