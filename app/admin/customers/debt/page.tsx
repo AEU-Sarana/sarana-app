@@ -9,6 +9,8 @@ import {
   CustomerDebtItem,
   CustomerPaymentItem,
 } from '@/services/customerService';
+import SearchableSelect from '../../../../components/ui/searchable-select';
+import { PaymentSlipAttachment, SlipPreviewModal } from '../../../../components/ui/payment-slip-attachment';
 
 export default function CustomerDebtPage() {
   const { t } = useLanguage();
@@ -25,6 +27,8 @@ export default function CustomerDebtPage() {
   const [collectAmount, setCollectAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
   const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [attachmentUrl, setAttachmentUrl] = useState<string>('');
+  const [inspectSlip, setInspectSlip] = useState<{ url: string; ref?: string; method?: string; amount?: number } | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -70,6 +74,7 @@ export default function CustomerDebtPage() {
     setCollectAmount(defaultAmount ? defaultAmount.toString() : customer.totalDebt.toString());
     setPaymentMethod('CASH');
     setReferenceNumber('');
+    setAttachmentUrl('');
     setNotes('');
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -80,6 +85,7 @@ export default function CustomerDebtPage() {
     setIsCollectModalOpen(false);
     setSelectedCustomer(null);
     setSelectedOrderId(undefined);
+    setAttachmentUrl('');
   };
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
@@ -103,6 +109,7 @@ export default function CustomerDebtPage() {
         amount: amountNum,
         payment_method: paymentMethod,
         reference_number: referenceNumber || undefined,
+        attachment_url: attachmentUrl || undefined,
         notes: notes || undefined,
       });
 
@@ -447,6 +454,7 @@ export default function CustomerDebtPage() {
                     <th className="px-6 py-4">Receipt Ref</th>
                     <th className="px-6 py-4">Method</th>
                     <th className="px-6 py-4">Ref Number</th>
+                    <th className="px-6 py-4">Slip Proof</th>
                     <th className="px-6 py-4">Date</th>
                     <th className="px-6 py-4 text-right">Amount Collected</th>
                   </tr>
@@ -469,6 +477,29 @@ export default function CustomerDebtPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs text-foreground/70 font-mono">{p.referenceNumber || 'N/A'}</td>
+                      <td className="px-6 py-4">
+                        {p.attachmentUrl ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setInspectSlip({
+                                url: p.attachmentUrl!,
+                                ref: p.referenceNumber || undefined,
+                                method: p.paymentMethod,
+                                amount: p.amount,
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold border border-primary/20 transition-all cursor-pointer hover:scale-102"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            View Slip
+                          </button>
+                        ) : (
+                          <span className="text-foreground/30 text-xs italic">No slip</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-xs font-semibold text-foreground/70">{formatDate(p.paymentDate)}</td>
                       <td className="px-6 py-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(p.amount)}
@@ -550,28 +581,53 @@ export default function CustomerDebtPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-foreground/70 mb-1.5">Payment Method *</label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'CASH', label: '💵 Cash' },
+                      { value: 'ABA_BANK', label: '🏦 ABA Bank (QR / Transfer)' },
+                      { value: 'WING', label: '🟢 Wing Bank' },
+                      { value: 'BANK_TRANSFER', label: '🏛️ Other Bank Transfer' },
+                    ]}
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-background border border-border/60 rounded-xl text-xs font-bold text-foreground focus:border-primary outline-none transition-all"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="ABA_BANK">ABA Bank Transfer</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                  </select>
+                    onChange={(val) => setPaymentMethod(String(val))}
+                    placeholder="Select payment method..."
+                    className="w-full"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-foreground/70 mb-1.5">Reference Number (Optional)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-foreground/70">
+                    Reference / Transaction ID
+                  </label>
+                  {paymentMethod !== 'CASH' && (
+                    <span className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      Recommended for {paymentMethod === 'ABA_BANK' ? 'ABA' : paymentMethod === 'WING' ? 'Wing' : 'Bank'}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder="e.g. TRX-ABA-98124 / Receipt Ref"
+                  placeholder={
+                    paymentMethod === 'ABA_BANK'
+                      ? 'e.g. 984712 (ABA Transaction #)'
+                      : paymentMethod === 'WING'
+                      ? 'e.g. WING-89471928'
+                      : 'e.g. TRX-98124 / Bank Reference #'
+                  }
                   className="w-full px-4 py-2.5 bg-background border border-border/60 rounded-xl text-xs font-semibold text-foreground focus:border-primary outline-none transition-all"
                 />
               </div>
+
+              {/* Slip / Receipt Attachment */}
+              <PaymentSlipAttachment
+                value={attachmentUrl}
+                onChange={setAttachmentUrl}
+                recommended={paymentMethod !== 'CASH'}
+              />
 
               <div>
                 <label className="block text-xs font-bold text-foreground/70 mb-1.5">Notes (Optional)</label>
@@ -604,6 +660,17 @@ export default function CustomerDebtPage() {
           </div>
         </div>
       )}
+
+      {/* Slip Proof Lightbox Modal */}
+      <SlipPreviewModal
+        isOpen={!!inspectSlip}
+        onClose={() => setInspectSlip(null)}
+        imageUrl={inspectSlip?.url || ''}
+        title="Customer Debt Collection Slip Proof"
+        referenceNumber={inspectSlip?.ref}
+        paymentMethod={inspectSlip?.method}
+        amount={inspectSlip?.amount}
+      />
     </div>
   );
 }

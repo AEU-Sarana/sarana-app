@@ -40,6 +40,7 @@ export interface RecordSupplierPaymentRequest {
   amount: number;
   payment_method: string;
   reference_number?: string;
+  attachment_url?: string;
   notes?: string;
   payment_date?: string;
 }
@@ -54,6 +55,7 @@ export interface SupplierPaymentItem {
   amount: number;
   paymentMethod: string;
   referenceNumber?: string | null;
+  attachmentUrl?: string | null;
   paymentDate: string;
   notes?: string | null;
   createdBy: number;

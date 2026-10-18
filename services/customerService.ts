@@ -74,6 +74,7 @@ export interface RecordCustomerPaymentRequest {
   amount: number;
   payment_method: string;
   reference_number?: string;
+  attachment_url?: string;
   notes?: string;
   payment_date?: string;
 }
@@ -89,6 +90,7 @@ export interface CustomerPaymentItem {
   amount: number;
   paymentMethod: string;
   referenceNumber?: string | null;
+  attachmentUrl?: string | null;
   paymentDate: string;
   notes?: string | null;
   createdBy: number;
