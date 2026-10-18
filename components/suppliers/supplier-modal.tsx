@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
 import { BASE_URL } from '@/services/apiClient';
+import SearchableSelect from '../ui/searchable-select';
 
 interface SupplierModalProps {
   isOpen: boolean;
@@ -176,17 +177,20 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Payment Terms
             </label>
-            <select
+            <SearchableSelect
               value={paymentTerms}
-              onChange={(e) => setPaymentTerms(e.target.value)}
-              className="w-full bg-secondary/50 border border-border/50 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-foreground focus:outline-none focus:border-primary text-sm"
-            >
-              <option value="COD">COD (Cash on Delivery)</option>
-              <option value="NET_7">NET 7 Days</option>
-              <option value="NET_15">NET 15 Days</option>
-              <option value="NET_30">NET 30 Days</option>
-              <option value="NET_60">NET 60 Days</option>
-            </select>
+              onChange={(val) => setPaymentTerms(String(val))}
+              placeholder="Select or enter payment terms..."
+              searchPlaceholder="Search or type custom terms (e.g. NET_45)..."
+              allowCustomValue
+              options={[
+                { value: 'COD', label: 'COD (Cash on Delivery)', sublabel: 'Immediate settlement upon receipt' },
+                { value: 'NET_7', label: 'NET 7 Days', sublabel: 'Payment due within 7 calendar days' },
+                { value: 'NET_15', label: 'NET 15 Days', sublabel: 'Payment due within 15 calendar days' },
+                { value: 'NET_30', label: 'NET 30 Days', sublabel: 'Payment due within 30 calendar days (Standard)' },
+                { value: 'NET_60', label: 'NET 60 Days', sublabel: 'Extended payment terms 60 days' },
+              ]}
+            />
           </div>
 
           <div>

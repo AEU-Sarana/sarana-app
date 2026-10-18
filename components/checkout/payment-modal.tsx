@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Customer } from './customer-selector';
 import { useLanguage } from '../../contexts/language-context';
 import { paymentMethodService, PaymentMethod } from '../../services/paymentMethodService';
+import SearchableSelect from '../ui/searchable-select';
 
 export interface PaymentData {
   payment_method: string;
@@ -409,18 +410,21 @@ export default function PaymentModal({
                 <label className="text-[11px] font-bold text-foreground/70 mb-1 block">
                   Customer Account <span className="text-rose-500">*</span>
                 </label>
-                <select
+                <SearchableSelect
                   value={debtCustomerId}
-                  onChange={(e) => setDebtCustomerId(e.target.value)}
-                  className="w-full px-3 py-2 bg-secondary/30 border border-border/60 rounded-xl text-sm font-black focus:outline-none focus:border-primary"
-                >
-                  <option value="walk-in">-- Select Customer for Debt --</option>
-                  {customers.map((c) => (
-                    <option key={c.customerId} value={c.customerId}>
-                      {c.fullName} ({c.phone || 'No Phone'}) - Debt: ${Number(c.totalDebt || 0).toFixed(2)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setDebtCustomerId(String(val))}
+                  placeholder="-- Select Customer for Debt --"
+                  searchPlaceholder="Search customer name or phone..."
+                  options={[
+                    { value: 'walk-in', label: '-- Select Customer for Debt --', disabled: true },
+                    ...customers.map((c) => ({
+                      value: String(c.customerId),
+                      label: c.fullName,
+                      sublabel: c.phone ? `Phone: ${c.phone}` : 'No phone number',
+                      badge: Number(c.totalDebt || 0) > 0 ? `Debt: $${Number(c.totalDebt).toFixed(2)}` : undefined,
+                    })),
+                  ]}
+                />
                 {debtCustomerId === 'walk-in' && (
                   <p className="text-[10px] text-rose-500 font-bold mt-1">
                     ⚠️ Customer account is required for Debt / Credit sales.

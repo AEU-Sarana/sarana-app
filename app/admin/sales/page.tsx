@@ -10,6 +10,7 @@ import { User } from '../../../features/user/types';
 import { SalesListTable } from '../../../components/sales/sales-list-table';
 import OrderDetailModal from '../../../components/sales/order-detail-modal';
 import { useLanguage } from '../../../contexts/language-context';
+import SearchableSelect from '../../../components/ui/searchable-select';
 
 const PAGE_LIMIT = 10;
 
@@ -217,18 +218,22 @@ export default function AdminSalesPage() {
               {t('sales.cashier_label', 'Cashier / Staff')}
             </label>
             {isAdmin ? (
-              <select
+              <SearchableSelect
                 value={selectedSeller}
-                onChange={(e) => { setPage(1); setSelectedSeller(e.target.value); }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-xs font-bold text-foreground focus:border-primary outline-none cursor-pointer min-h-[42px]"
-              >
-                <option value="">{t('sales.all_cashiers_admins', 'All Cashiers & Admins')}</option>
-                {sellersList.map((seller) => (
-                  <option key={seller.userId} value={seller.userId}>
-                    {seller.fullName} (@{seller.username})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => { setPage(1); setSelectedSeller(String(val)); }}
+                placeholder={t('sales.all_cashiers_admins', 'All Cashiers & Admins')}
+                searchPlaceholder="Search staff name or username..."
+                allowClear
+                options={[
+                  { value: '', label: t('sales.all_cashiers_admins', 'All Cashiers & Admins') },
+                  ...sellersList.map((seller) => ({
+                    value: String(seller.userId),
+                    label: seller.fullName || seller.username,
+                    sublabel: `@${seller.username}`,
+                    badge: seller.role,
+                  })),
+                ]}
+              />
             ) : (
               <div className="w-full px-3.5 py-2.5 rounded-xl border border-border/20 bg-secondary/10 text-xs font-semibold text-foreground/45 select-none min-h-[42px] flex items-center">
                 {t('sales.viewing_own_records', 'Viewing: Your sales records only')}

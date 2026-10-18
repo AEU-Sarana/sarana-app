@@ -11,6 +11,7 @@ import { StatCard } from '../../../components/stocks/stat-card';
 import { StockListTable } from '../../../components/stocks/stock-list-table';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
+import SearchableSelect from '../../../components/ui/searchable-select';
 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -265,16 +266,20 @@ function StockPageContent() {
 
           {/* Category Filter */}
           <div className="lg:col-span-3">
-            <select
+            <SearchableSelect
               value={categoryFilter}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
-            >
-              <option value="">{t('products.all_categories', 'All Categories')}</option>
-              {categories.map((c) => (
-                <option key={c.categoryId} value={String(c.categoryId)}>{c.name}</option>
-              ))}
-            </select>
+              onChange={(val) => handleFilterChange('category', String(val))}
+              placeholder={t('products.all_categories', 'All Categories')}
+              searchPlaceholder={t('products.search_category', 'Search category...')}
+              allowClear
+              options={[
+                { value: '', label: t('products.all_categories', 'All Categories') },
+                ...categories.map((c) => ({
+                  value: String(c.categoryId),
+                  label: c.name,
+                })),
+              ]}
+            />
           </div>
 
           {/* Status Filter */}

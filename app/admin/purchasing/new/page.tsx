@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { tokenStorage } from '@/services/tokenStorage';
 import { BASE_URL } from '@/services/apiClient';
+import SearchableSelect from '@/components/ui/searchable-select';
 
 export default function AdminCreatePOPage() {
   const router = useRouter();
@@ -189,18 +190,21 @@ export default function AdminCreatePOPage() {
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                   Supplier / Vendor *
                 </label>
-                <select
+                <SearchableSelect
                   value={supplierId}
-                  onChange={(e) => setSupplierId(Number(e.target.value))}
-                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
-                >
-                  <option value="">Select Supplier</option>
-                  {suppliers.map((s) => (
-                    <option key={s.supplierId || s.supplier_id} value={s.supplierId || s.supplier_id}>
-                      {s.companyName || s.company_name} ({s.phone || 'No phone'})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSupplierId(val === '' ? '' : Number(val))}
+                  placeholder="Select Supplier"
+                  searchPlaceholder="Search supplier company or phone..."
+                  allowClear
+                  options={[
+                    { value: '', label: 'Select Supplier' },
+                    ...suppliers.map((s) => ({
+                      value: s.supplierId || s.supplier_id,
+                      label: s.companyName || s.company_name,
+                      sublabel: s.phone || s.email,
+                    })),
+                  ]}
+                />
               </div>
 
               <div>

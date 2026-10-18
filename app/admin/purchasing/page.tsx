@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '../../../contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
 import { BASE_URL } from '@/services/apiClient';
+import SearchableSelect from '../../../components/ui/searchable-select';
 
 export default function AdminPurchasingDashboardPage() {
   const { t } = useLanguage();
@@ -157,18 +158,23 @@ export default function AdminPurchasingDashboardPage() {
           />
         </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-full md:w-48 bg-secondary/50 border border-border/50 rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
-        >
-          <option value="">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="APPROVED">Approved</option>
-          <option value="PARTIAL_RECEIVED">Partial Received</option>
-          <option value="RECEIVED">Fully Received</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
+        <div className="w-full md:w-56 shrink-0">
+          <SearchableSelect
+            value={statusFilter}
+            onChange={(val) => setStatusFilter(String(val))}
+            placeholder="All Statuses"
+            searchPlaceholder="Search PO status..."
+            allowClear
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'DRAFT', label: 'Draft', badge: 'Draft' },
+              { value: 'APPROVED', label: 'Approved', badge: 'Active' },
+              { value: 'PARTIAL_RECEIVED', label: 'Partial Received', badge: 'Partial' },
+              { value: 'RECEIVED', label: 'Fully Received', badge: 'Complete' },
+              { value: 'CANCELLED', label: 'Cancelled', badge: 'Cancelled' },
+            ]}
+          />
+        </div>
       </div>
 
       {/* Mobile Card View (< md) */}

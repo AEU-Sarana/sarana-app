@@ -5,6 +5,7 @@ import { User, CreateUserRequest, UpdateUserRequest } from '../../features/user/
 import { userService } from '../../services/userService';
 import { roleService, Role as RoleModel } from '../../services/roleService';
 import { useLanguage } from '../../contexts/language-context';
+import SearchableSelect from '../ui/searchable-select';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -228,25 +229,25 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
               <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/50 mb-1.5">
                 {t('user_modal.role_clearance', 'Role Clearance')} <span className="text-destructive">*</span>
               </label>
-              <select
+              <SearchableSelect
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed min-h-[42px]"
+                onChange={(val) => setRole(String(val))}
+                placeholder={t('user_modal.select_role', 'Select Role')}
+                searchPlaceholder="Search role..."
                 disabled={isSubmitting}
-              >
-                {availableRoles.length > 0 ? (
-                  availableRoles.map((r) => (
-                    <option key={r.key} value={r.key}>
-                      {r.name} ({r.key})
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="CASHIER">Cashier (CASHIER)</option>
-                    <option value="ADMIN">Administrator (ADMIN)</option>
-                  </>
-                )}
-              </select>
+                options={
+                  availableRoles.length > 0
+                    ? availableRoles.map((r) => ({
+                        value: r.key,
+                        label: r.name,
+                        sublabel: r.key,
+                      }))
+                    : [
+                        { value: 'CASHIER', label: 'Cashier', sublabel: 'CASHIER' },
+                        { value: 'ADMIN', label: 'Administrator', sublabel: 'ADMIN' },
+                      ]
+                }
+              />
             </div>
 
             {/* Password (Required on Create, Optional on Edit) */}

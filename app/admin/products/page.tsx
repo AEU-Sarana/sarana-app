@@ -11,6 +11,7 @@ import ProductDeleteModal from '../../../components/products/product-delete-moda
 import ProductDetailModal from '../../../components/products/product-detail-modal';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
+import SearchableSelect from '../../../components/ui/searchable-select';
 
 export default function AdminProductsPage() {
   const { t } = useLanguage();
@@ -333,21 +334,23 @@ export default function AdminProductsPage() {
 
           {/* Category Dropdown */}
           <div className="lg:col-span-3">
-            <select
+            <SearchableSelect
               value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
+              onChange={(val) => {
+                setSelectedCategory(val);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
-            >
-              <option value="">{t('products.all_categories', 'All Categories')}</option>
-              {categoriesList.map((cat) => (
-                <option key={cat.categoryId} value={cat.categoryId}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              placeholder={t('products.all_categories', 'All Categories')}
+              searchPlaceholder={t('products.search_category', 'Search category...')}
+              allowClear
+              options={[
+                { value: '', label: t('products.all_categories', 'All Categories') },
+                ...categoriesList.map((cat) => ({
+                  value: String(cat.categoryId),
+                  label: cat.name,
+                })),
+              ]}
+            />
           </div>
 
           {/* Status Dropdown */}

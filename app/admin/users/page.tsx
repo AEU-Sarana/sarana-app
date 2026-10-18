@@ -12,6 +12,8 @@ import UserPermissionsModal from '../../../components/admin/user-permissions-mod
 import { UserDetailsModal } from '../../../components/users/user-details-modal';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
+import SearchableSelect from '../../../components/ui/searchable-select';
+import { roleService, Role } from '../../../services/roleService';
 
 const PAGE_LIMIT = 10;
 
@@ -33,6 +35,13 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+
+  useEffect(() => {
+    roleService.listRoles().then((data) => {
+      if (Array.isArray(data)) setAvailableRoles(data);
+    }).catch(() => {});
+  }, []);
 
   // Modals state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -219,15 +228,27 @@ export default function AdminUsersPage() {
 
           {/* Role Filter */}
           <div className="lg:col-span-3">
-            <select
+            <SearchableSelect
               value={roleFilter}
-              onChange={(e) => handleFilterChange('role', e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl border border-border/60 bg-secondary/15 dark:bg-secondary/5 text-sm font-semibold focus:border-primary outline-none transition-all duration-200 cursor-pointer"
-            >
-              <option value="">{t('users.all_roles', 'All Roles')}</option>
-              <option value="ADMIN">{t('common.administrator', 'Administrator')}</option>
-              <option value="CASHIER">{t('common.cashier', 'Cashier')}</option>
-            </select>
+              onChange={(val) => handleFilterChange('role', String(val))}
+              placeholder={t('users.all_roles', 'All Roles')}
+              searchPlaceholder="Search role..."
+              allowClear
+              options={[
+                { value: '', label: t('users.all_roles', 'All Roles') },
+                ...(availableRoles.length > 0
+                  ? availableRoles.map((r) => ({
+                      value: r.key,
+                      label: r.name,
+                      sublabel: r.description || undefined,
+                      badge: r.is_system ? 'System' : 'Custom',
+                    }))
+                  : [
+                      { value: 'ADMIN', label: t('common.administrator', 'Administrator'), badge: 'System' },
+                      { value: 'CASHIER', label: t('common.cashier', 'Cashier'), badge: 'System' },
+                    ]),
+              ]}
+            />
           </div>
 
           {/* Status Filter */}

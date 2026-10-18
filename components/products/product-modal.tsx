@@ -6,6 +6,7 @@ import { Category } from '../../features/category/types';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { useLanguage } from '../../contexts/language-context';
+import SearchableSelect from '../ui/searchable-select';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -290,19 +291,21 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                   <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
                     {t('products.col_category', 'Category')}
                   </label>
-                  <select
+                  <SearchableSelect
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150 cursor-pointer"
+                    onChange={(val) => setCategoryId(val === '' ? '' : Number(val))}
+                    placeholder={t('products.uncategorized', 'Uncategorized')}
+                    searchPlaceholder={t('products.search_category', 'Search category...')}
                     disabled={isCategoriesLoading}
-                  >
-                    <option value="">{t('products.uncategorized', 'Uncategorized')}</option>
-                    {categories.map((cat) => (
-                      <option key={cat.categoryId} value={cat.categoryId}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    allowClear
+                    options={[
+                      { value: '', label: t('products.uncategorized', 'Uncategorized') },
+                      ...categories.map((cat) => ({
+                        value: cat.categoryId,
+                        label: cat.name,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
 
