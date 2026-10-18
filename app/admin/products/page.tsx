@@ -133,6 +133,10 @@ export default function AdminProductsPage() {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPagination((prev) => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
   // Clear Filters
   const handleResetFilters = () => {
     setSearch('');
@@ -396,7 +400,9 @@ export default function AdminProductsPage() {
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
           totalEntries={pagination.total}
+          pageSize={pagination.limit}
           onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
         />
       </div>
 

@@ -76,6 +76,10 @@ export default function AdminCustomersPage() {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPagination((prev) => ({ ...prev, limit: newPageSize, page: 1 }));
+  };
+
   const handleAddCustomer = () => {
     setEditingCustomer(null);
     setIsModalOpen(true);
@@ -230,7 +234,9 @@ export default function AdminCustomersPage() {
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
           totalEntries={pagination.total}
+          pageSize={pagination.limit}
           onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
         />
       </div>
 

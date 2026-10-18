@@ -53,6 +53,7 @@ function StockPageContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,12 +65,13 @@ function StockPageContent() {
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
   const fetchStock = useCallback(async (opts: {
-    search?: string; status?: string; categoryId?: string; page?: number;
+    search?: string; status?: string; categoryId?: string; page?: number; limit?: number;
   }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const params: any = { page: opts.page ?? 1, limit: PAGE_LIMIT };
+      const currentLimit = opts.limit ?? limit;
+      const params: any = { page: opts.page ?? 1, limit: currentLimit };
       if (opts.search) params.search = opts.search;
       if (opts.status) params.status = opts.status;
       if (opts.categoryId) params.category_id = Number(opts.categoryId);
@@ -84,7 +86,7 @@ function StockPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   // Load categories once
   useEffect(() => {
@@ -122,7 +124,13 @@ function StockPageContent() {
     setStatusFilter('');
     setCategoryFilter('');
     setPage(1);
-    fetchStock({ search: '', status: '', categoryId: '', page: 1 });
+    fetchStock({ search: '', status: '', categoryId: '', page: 1, limit });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    fetchStock({ page: 1, limit: newLimit, search, status: statusFilter, categoryId: categoryFilter });
   };
 
   return (
@@ -309,7 +317,9 @@ function StockPageContent() {
         page={page}
         totalPages={totalPages}
         total={total}
+        pageSize={limit}
         onPageChange={setPage}
+        onPageSizeChange={handleLimitChange}
       />
     </div>
   );

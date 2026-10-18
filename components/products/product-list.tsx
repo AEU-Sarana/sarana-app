@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Product } from '../../features/product/types';
 import { useLanguage } from '../../contexts/language-context';
 import { useAuth } from '../../hooks/useAuth';
+import TablePagination from '../ui/table-pagination';
 
 interface ProductListProps {
   products: Product[];
@@ -19,7 +20,10 @@ interface ProductListProps {
   currentPage: number;
   totalPages: number;
   totalEntries: number;
+  pageSize?: number;
+  pageSizeOptions?: number[];
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 // Uniquely maps product name to a beautiful soft gradient so placeholders look dynamic and premium
@@ -52,7 +56,10 @@ export default function ProductList({
   currentPage,
   totalPages,
   totalEntries,
+  pageSize = 10,
+  pageSizeOptions,
   onPageChange,
+  onPageSizeChange,
 }: ProductListProps) {
   const { t } = useLanguage();
   const { can } = useAuth();
@@ -480,54 +487,16 @@ export default function ProductList({
       </div>
 
       {/* Pagination Controls Footer */}
-      {totalPages > 1 && totalEntries > 10 && (
-        <div className="px-6 py-4.5 border-t border-border/20 bg-secondary/5 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
-          <span className="text-xs text-foreground/45 font-semibold">
-            Showing page {currentPage} of {totalPages} ({totalEntries} entries found)
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled={currentPage <= 1}
-              onClick={() => onPageChange(currentPage - 1)}
-              className="w-8.5 h-8.5 rounded-xl border border-border bg-card text-foreground/60 hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-card disabled:cursor-not-allowed transition-all duration-150 cursor-pointer flex items-center justify-center shadow-sm"
-              title="Previous Page"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, index) => {
-              const p = index + 1;
-              const isCurrent = p === currentPage;
-              return (
-                <button
-                  key={p}
-                  onClick={() => onPageChange(p)}
-                  className={`w-8.5 h-8.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm ${
-                    isCurrent
-                      ? 'bg-gradient-to-tr from-primary to-accent text-white shadow-md shadow-primary/20 border border-transparent'
-                      : 'border border-border bg-card text-foreground/75 hover:bg-secondary'
-                  }`}
-                >
-                  {p}
-                </button>
-              );
-            })}
-
-            <button
-              disabled={currentPage >= totalPages}
-              onClick={() => onPageChange(currentPage + 1)}
-              className="w-8.5 h-8.5 rounded-xl border border-border bg-card text-foreground/60 hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-card disabled:cursor-not-allowed transition-all duration-150 cursor-pointer flex items-center justify-center shadow-sm"
-              title="Next Page"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalEntries={totalEntries}
+        pageSize={pageSize}
+        pageSizeOptions={pageSizeOptions}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        entryLabel="products"
+      />
     </>
   );
 }

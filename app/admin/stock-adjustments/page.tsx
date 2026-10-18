@@ -80,15 +80,15 @@ export default function AdminStockAdjustmentsPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
-  const HISTORY_LIMIT = 10;
+  const [historyLimit, setHistoryLimit] = useState(10);
 
-  const fetchHistory = useCallback(async (page = 1) => {
+  const fetchHistory = useCallback(async (page = 1, limit = historyLimit) => {
     setHistoryLoading(true);
     try {
       const res = await stockService.getMovements({
         movement_type: 'ADJUSTMENT',
         page,
-        limit: HISTORY_LIMIT,
+        limit,
       });
       setHistory(res.movements);
       setHistoryTotal(res.pagination.total);
@@ -98,7 +98,13 @@ export default function AdminStockAdjustmentsPage() {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [historyLimit]);
+
+  const handleHistoryLimitChange = (newLimit: number) => {
+    setHistoryLimit(newLimit);
+    setHistoryPage(1);
+    fetchHistory(1, newLimit);
+  };
 
   useEffect(() => {
     fetchHistory(historyPage);
@@ -321,7 +327,9 @@ export default function AdminStockAdjustmentsPage() {
         page={historyPage}
         totalPages={historyTotalPages}
         total={historyTotal}
+        pageSize={historyLimit}
         onPageChange={setHistoryPage}
+        onPageSizeChange={handleHistoryLimitChange}
         type="adjustment"
       />
 

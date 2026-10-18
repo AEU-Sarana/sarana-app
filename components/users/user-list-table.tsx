@@ -5,8 +5,7 @@ import { User } from '../../features/user/types';
 import { useLanguage } from '../../contexts/language-context';
 import { getInitials } from '../../libs/utils';
 import { useAuth } from '../../hooks/useAuth';
-
-const PAGE_LIMIT = 10;
+import TablePagination from '../ui/table-pagination';
 
 interface UserListTableProps {
   users: User[];
@@ -15,7 +14,10 @@ interface UserListTableProps {
   page: number;
   totalPages: number;
   total: number;
+  pageSize?: number;
+  pageSizeOptions?: number[];
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
   onManagePermissions?: (user: User) => void;
@@ -30,7 +32,10 @@ export function UserListTable({
   page,
   totalPages,
   total,
+  pageSize = 10,
+  pageSizeOptions,
   onPageChange,
+  onPageSizeChange,
   onEdit,
   onDeactivate,
   onManagePermissions,
@@ -314,59 +319,16 @@ export function UserListTable({
           )}
 
           {/* Pagination Controls */}
-          {totalPages > 1 && total > PAGE_LIMIT && (
-            <div className="px-6 py-4.5 border-t border-border/20 bg-secondary/5 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
-              <span className="text-xs text-foreground/45 font-semibold">
-                {t('common.showing_page', 'Showing page {{page}} of {{totalPages}} ({{total}} entries found)')
-                  .replace('{{page}}', String(page))
-                  .replace('{{totalPages}}', String(totalPages))
-                  .replace('{{total}}', String(total))}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => onPageChange(Math.max(1, page - 1))}
-                  className="w-8.5 h-8.5 rounded-xl border border-border bg-card text-foreground/60 hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-card disabled:cursor-not-allowed transition-all duration-150 cursor-pointer flex items-center justify-center shadow-sm"
-                  title="Previous Page"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-
-                {/* Page Numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                  const p = start + i;
-                  const isCurrent = p === page;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => onPageChange(p)}
-                      className={`w-8.5 h-8.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm ${
-                        isCurrent
-                          ? 'bg-gradient-to-tr from-primary to-accent text-white shadow-md shadow-primary/20 border border-transparent'
-                          : 'border border-border bg-card text-foreground/75 hover:bg-secondary'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-                  className="w-8.5 h-8.5 rounded-xl border border-border bg-card text-foreground/60 hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-card disabled:cursor-not-allowed transition-all duration-150 cursor-pointer flex items-center justify-center shadow-sm"
-                  title="Next Page"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalEntries={total}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            entryLabel="users"
+          />
         </>
       )}
     </div>

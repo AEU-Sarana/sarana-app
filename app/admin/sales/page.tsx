@@ -25,6 +25,7 @@ export default function AdminSalesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
 
   // Filters State
   const [receiptSearch, setReceiptSearch] = useState('');
@@ -57,6 +58,7 @@ export default function AdminSalesPage() {
   // Fetch sales records
   const fetchSalesList = useCallback(async (opts: {
     page?: number;
+    limit?: number;
     search?: string;
     startDate?: string;
     endDate?: string;
@@ -65,9 +67,10 @@ export default function AdminSalesPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const currentLimit = opts.limit ?? limit;
       const params: any = {
         page: opts.page ?? 1,
-        limit: PAGE_LIMIT,
+        limit: currentLimit,
       };
 
       // Add filter queries if present
@@ -89,7 +92,7 @@ export default function AdminSalesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   // Fetch on mount or when pagination/filters change
   useEffect(() => {
@@ -141,6 +144,16 @@ export default function AdminSalesPage() {
   const handleViewDetails = (order: Order) => {
     setSelectedOrderId(order.order_id);
     setIsDetailModalOpen(true);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    fetchSalesList({ page: 1, limit: newLimit, search: receiptSearch, startDate, endDate, sellerId: selectedSeller });
   };
 
   const hasActiveFilters = receiptSearch !== '' || startDate !== '' || endDate !== '' || selectedSeller !== '';
@@ -249,7 +262,9 @@ export default function AdminSalesPage() {
         page={page}
         totalPages={totalPages}
         total={total}
-        onPageChange={setPage}
+        pageSize={limit}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handleLimitChange}
         onViewDetails={handleViewDetails}
       />
 

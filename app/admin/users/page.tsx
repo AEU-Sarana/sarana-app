@@ -27,6 +27,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -43,9 +44,9 @@ export default function AdminUsersPage() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch user list
   const fetchUserList = useCallback(async (opts: {
     page?: number;
+    limit?: number;
     search?: string;
     role?: string;
     status?: string;
@@ -53,9 +54,10 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const currentLimit = opts.limit ?? limit;
       const params: any = {
         page: opts.page ?? 1,
-        limit: PAGE_LIMIT,
+        limit: currentLimit,
       };
       if (opts.search) params.search = opts.search;
       if (opts.role) params.role = opts.role;
@@ -70,7 +72,7 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   // Initial load / fetch when filters change
   useEffect(() => {
@@ -103,7 +105,13 @@ export default function AdminUsersPage() {
   };
 
   const handleRefresh = () => {
-    fetchUserList({ page, search, role: roleFilter, status: statusFilter });
+    fetchUserList({ page, limit, search, role: roleFilter, status: statusFilter });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    fetchUserList({ page: 1, limit: newLimit, search, role: roleFilter, status: statusFilter });
   };
 
   // Triggers for creation/edit modal
@@ -261,7 +269,9 @@ export default function AdminUsersPage() {
         page={page}
         totalPages={totalPages}
         total={total}
+        pageSize={limit}
         onPageChange={setPage}
+        onPageSizeChange={handleLimitChange}
         onEdit={handleEditUser}
         onDeactivate={handleDeactivateToggle}
         onManagePermissions={(user) => setPermissionsTarget(user)}

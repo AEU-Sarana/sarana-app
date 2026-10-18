@@ -47,6 +47,8 @@ export default function CashierCheckoutPage() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [productPage, setProductPage] = useState(1);
   const [totalProductPages, setTotalProductPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [productLimit, setProductLimit] = useState(12);
 
   // Cart & Invoice States
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -116,24 +118,31 @@ export default function CashierCheckoutPage() {
   }, [loadMetadata]);
 
   // Fetch Products based on Category & Search
-  const fetchProducts = useCallback(async (pageToFetch: number) => {
+  const fetchProducts = useCallback(async (pageToFetch: number, limitToFetch = productLimit) => {
     try {
       setIsLoadingProducts(true);
       const response = await productService.listProducts({
         page: pageToFetch,
-        limit: 12,
+        limit: limitToFetch,
         status: 'active',
         search: searchQuery.trim() || undefined,
         category_id: selectedCategory || undefined,
       });
       setProducts(response.products || []);
       setTotalProductPages(response.pagination?.totalPages || 1);
+      setTotalProducts(response.pagination?.total || 0);
     } catch (error) {
       console.error('Failed to fetch products:', error);
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, productLimit]);
+
+  const handlePageSizeChange = (newLimit: number) => {
+    setProductLimit(newLimit);
+    setProductPage(1);
+    fetchProducts(1, newLimit);
+  };
 
   useEffect(() => {
     setProductPage(1);
@@ -478,10 +487,15 @@ export default function CashierCheckoutPage() {
           <Pagination
             currentPage={productPage}
             totalPages={totalProductPages}
+            totalEntries={totalProducts}
+            pageSize={productLimit}
+            pageSizeOptions={[12, 24, 36, 48, 60]}
             onPageChange={(page) => {
               setProductPage(page);
               fetchProducts(page);
             }}
+            onPageSizeChange={handlePageSizeChange}
+            entryLabel="products"
           />
 
         </div>

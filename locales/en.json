@@ -24,7 +24,12 @@
     "clear": "Clear",
     "type": "Type",
     "records_total": "{{count}} records total",
-    "showing_page": "Showing page {{page}} of {{totalPages}} ({{total}} entries found)"
+    "showing_page": "Showing page {{page}} of {{totalPages}} ({{total}} entries found)",
+    "showing_range": "Showing {{from}}–{{to}} of {{total}} {{label}}",
+    "rows_per_page": "Per page:",
+    "per_page": "/ page",
+    "custom_limit": "Custom...",
+    "entries": "entries"
   },
   "sidebar": {
     "brand_sub": "Pharmacy System",
