@@ -213,6 +213,54 @@ export default function CashierCheckoutPage() {
     setNewCustomerPhone('');
   };
 
+  // Handle barcode scanned from phone camera or barcode scanner
+  const handleBarcodeScanned = async (barcode: string) => {
+    const cleanBarcode = barcode.trim();
+    if (!cleanBarcode) return;
+
+    try {
+      // 1. Check local catalog first
+      const localMatch = products.find(
+        (p) => p.barcode?.toLowerCase() === cleanBarcode.toLowerCase()
+      );
+      if (localMatch) {
+        if (localMatch.stock_quantity > 0) {
+          addToCart(localMatch);
+          triggerToast(`${t('scanner.item_added', 'Added to cart')}: ${localMatch.product_name}`);
+        } else {
+          triggerToast(`⚠️ ${localMatch.product_name}: ${t('pos.out_of_stock', 'Out of stock')}`);
+        }
+        return;
+      }
+
+      // 2. Direct API search by barcode if not in current page
+      const res = await productService.listProducts({
+        search: cleanBarcode,
+        status: 'active',
+        limit: 5,
+      });
+
+      const matchedProduct =
+        res.products.find((p) => p.barcode?.toLowerCase() === cleanBarcode.toLowerCase()) ||
+        res.products[0];
+
+      if (matchedProduct) {
+        if (matchedProduct.stock_quantity > 0) {
+          addToCart(matchedProduct);
+          triggerToast(`${t('scanner.item_added', 'Added to cart')}: ${matchedProduct.product_name}`);
+        } else {
+          triggerToast(`⚠️ ${matchedProduct.product_name}: ${t('pos.out_of_stock', 'Out of stock')}`);
+        }
+      } else {
+        setSearch(cleanBarcode);
+        triggerToast(`🔍 ${t('scanner.scanned_code', 'Scanned Barcode: {{code}}').replace('{{code}}', cleanBarcode)}`);
+      }
+    } catch (err) {
+      console.error('Failed to lookup product by barcode:', err);
+      setSearch(cleanBarcode);
+    }
+  };
+
   // --- Invoice Calculations ---
   const getSubtotal = () => {
     return cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -451,6 +499,7 @@ export default function CashierCheckoutPage() {
             categories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
+            onScanBarcode={handleBarcodeScanned}
           />
 
           {/* Products Grid */}

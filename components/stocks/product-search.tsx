@@ -5,6 +5,8 @@ import { Product } from '../../features/product/types';
 import { productService } from '../../services/productService';
 import { useLanguage } from '../../contexts/language-context';
 
+import BarcodeScannerModal from '../ui/barcode-scanner-modal';
+
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-foreground/55 mb-2">
@@ -25,6 +27,7 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
   const [results, setResults] = useState<Product[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -70,28 +73,79 @@ export function ProductSearch({ value, onSelect }: ProductSearchProps) {
     setIsOpen(false);
   };
 
+  const handleScanBarcode = async (code: string) => {
+    const cleanCode = code.trim();
+    setQuery(cleanCode);
+    setIsSearching(true);
+    try {
+      const res = await productService.listProducts({ search: cleanCode, status: 'active', limit: 5 });
+      if (res.products.length === 1) {
+        handleSelect(res.products[0]);
+      } else if (res.products.length > 1) {
+        const exact = res.products.find(
+          (p) => p.barcode?.toLowerCase() === cleanCode.toLowerCase()
+        );
+        if (exact) {
+          handleSelect(exact);
+        } else {
+          setResults(res.products);
+          setIsOpen(true);
+        }
+      } else {
+        setResults([]);
+        setIsOpen(true);
+      }
+    } catch {
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <div ref={wrapperRef} className="relative">
       <FieldLabel required>{t('stock_in_page.product', 'Product')}</FieldLabel>
-      <div className="relative">
+      <div className="relative flex items-center">
         <input
           id="product-search"
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={t('stock_in_page.search_placeholder', 'Search by product name or barcode…')}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
+          className="w-full pl-10 pr-20 py-3 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200 placeholder:text-foreground/30"
           autoComplete="off"
         />
         <svg className="absolute left-3 top-3.5 w-4 h-4 text-foreground/35 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        {isSearching && (
-          <div className="absolute right-3 top-3.5">
+
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {isSearching && (
             <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors cursor-pointer border border-primary/20"
+            title={t('scanner.scan_barcode', 'Scan Barcode')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 9h2v6H7zm4 0h2v6h-2zm4 0h2v6h-2z" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleScanBarcode}
+        title={t('scanner.scan_barcode', 'Scan Barcode')}
+        subtitle={t('stock_in_page.search_placeholder', 'Search by product name or barcode…')}
+        allowContinuous={false}
+      />
 
       {/* Dropdown */}
       {isOpen && (

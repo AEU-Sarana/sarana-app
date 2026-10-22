@@ -7,6 +7,7 @@ import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { useLanguage } from '../../contexts/language-context';
 import SearchableSelect from '../ui/searchable-select';
+import BarcodeScannerModal from '../ui/barcode-scanner-modal';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
   // Form Fields State
   const [productName, setProductName] = useState('');
   const [barcode, setBarcode] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [price, setPrice] = useState<number | ''>('');
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [description, setDescription] = useState('');
@@ -256,17 +258,43 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
 
               {/* Barcode / SKU */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60 mb-2">
-                  {t('products.barcode_sku', 'Barcode / SKU')} <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('products.scan_or_enter_barcode', 'Scan or enter barcode')}
-                  value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
-                  required
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-foreground/60">
+                    {t('products.barcode_sku', 'Barcode / SKU')} <span className="text-destructive">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-primary hover:bg-primary/10 transition-colors cursor-pointer border border-primary/20"
+                    title={t('scanner.scan_barcode', 'Scan Barcode')}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 9h2v6H7zm4 0h2v6h-2zm4 0h2v6h-2z" />
+                    </svg>
+                    <span>{t('scanner.scan_barcode', 'Scan')}</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={t('products.scan_or_enter_barcode', 'Scan or enter barcode')}
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 rounded-xl border border-border/80 bg-background text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-150"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsScannerOpen(true)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-foreground/45 hover:text-primary p-1 cursor-pointer transition-colors"
+                    title={t('scanner.scan_barcode', 'Scan Barcode')}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Price & Category */}
@@ -505,6 +533,19 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
           </button>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={(code) => {
+          setBarcode(code);
+          setIsScannerOpen(false);
+        }}
+        title={t('scanner.scan_barcode', 'Scan Barcode')}
+        subtitle={t('products.scan_or_enter_barcode', 'Scan or enter barcode')}
+        allowContinuous={false}
+      />
     </div>
   );
 }
