@@ -3,8 +3,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { roleService, Role } from '../../../services/roleService';
 import RoleModal from '../../../components/admin/role-modal';
+import { useAuth } from '../../../hooks/useAuth';
+import AccessDenied from '../../../components/ui/access-denied';
 
 export default function AdminRolesPage() {
+  const { can, user: authUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +19,10 @@ export default function AdminRolesPage() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchRoles = useCallback(async () => {
     setIsLoading(true);
@@ -63,6 +71,10 @@ export default function AdminRolesPage() {
       r.key.toLowerCase().includes(search.toLowerCase()) ||
       (r.description && r.description.toLowerCase().includes(search.toLowerCase()))
   );
+
+  if (mounted && authUser && !can('roles.manage')) {
+    return <AccessDenied feature="Role and Permission" />;
+  }
 
   return (
     <div className="space-y-6">

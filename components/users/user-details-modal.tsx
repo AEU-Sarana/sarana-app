@@ -39,7 +39,7 @@ export function UserDetailsModal({
       setUser(data);
 
       // Fetch user assigned permissions
-      if (data.role !== 'ADMIN') {
+      if (data.role !== 'ADMIN' && data.role !== 'ADMINISTRATOR') {
         const permRes = await authService.getUserPermissions(id);
         setPermissions(permRes?.data?.permissions || []);
       }
@@ -102,12 +102,19 @@ export function UserDetailsModal({
                   <p className="text-xs font-semibold text-foreground/50 mt-0.5">@{user.username}</p>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2.5">
-                    {user.role === 'ADMIN' ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-500/15">
+                    {user.role === 'ADMINISTRATOR' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold border border-purple-500/20">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                         {t('common.administrator', 'Administrator')}
+                      </span>
+                    ) : user.role === 'ADMIN' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-500/15">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        {t('common.admin', 'Admin')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold border border-success/15">

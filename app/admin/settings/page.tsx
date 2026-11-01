@@ -6,6 +6,8 @@ import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
 import { useLanguage } from '../../../contexts/language-context';
 import PaymentMethodsTab from '../../../components/settings/payment-methods-tab';
+import { useAuth } from '../../../hooks/useAuth';
+import AccessDenied from '../../../components/ui/access-denied';
 
 const TIMEZONES = [
   'Asia/Phnom_Penh',
@@ -112,6 +114,13 @@ function FieldLabel({ children, optional }: { children: React.ReactNode; optiona
 
 export default function AdminSettingsPage() {
   const { t } = useLanguage();
+  const { can, user: authUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'backup' | 'invoice' | 'payment_methods'>('backup');
   const [settings, setSettings] = useState<AppSetting | null>(null);
   const [form, setForm] = useState<UpdateSettingsRequest>({
@@ -334,6 +343,10 @@ export default function AdminSettingsPage() {
         timeStyle: 'short',
       })
     : null;
+
+  if (mounted && authUser && !can('settings.manage')) {
+    return <AccessDenied feature="App Settings & Backup" />;
+  }
 
   return (
     <div className="space-y-6">

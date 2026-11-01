@@ -6,7 +6,7 @@ export interface UserSession {
   userId: number;
   fullName: string;
   email: string;
-  role: 'ADMIN' | 'CASHIER';
+  role: 'ADMINISTRATOR' | 'ADMIN' | 'CASHIER' | string;
   permissions?: string[];
 }
 

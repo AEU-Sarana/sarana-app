@@ -11,7 +11,7 @@ export interface LoginResponse {
       userId: number;
       fullName: string;
       email: string;
-      role: 'ADMIN' | 'CASHIER';
+      role: 'ADMINISTRATOR' | 'ADMIN' | 'CASHIER' | string;
       isActive: boolean;
       permissions?: string[];
     };

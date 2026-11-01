@@ -55,7 +55,8 @@ export default function Navbar() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdministrator = user?.role === 'ADMINISTRATOR';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'ADMINISTRATOR';
   const { t } = useLanguage();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -102,7 +103,7 @@ export default function Navbar() {
 
   const displayUser = mounted ? user : null;
   const displayFullName = displayUser?.fullName || 'Admin';
-  const displayRole = displayUser?.role || 'Administrator';
+  const displayRole = displayUser?.role === 'ADMINISTRATOR' ? 'Administrator' : displayUser?.role === 'ADMIN' ? 'Admin' : (displayUser?.role || 'Staff');
   const displayEmail = displayUser?.email || '';
   const initials = getInitials(displayFullName);
 
@@ -188,7 +189,7 @@ export default function Navbar() {
                     Profile
                   </Link>
 
-                  {isAdmin && (
+                  {isAdministrator && (
                     <Link
                       href="/admin/settings"
                       onClick={() => setDropdownOpen(false)}

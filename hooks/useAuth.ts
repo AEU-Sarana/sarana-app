@@ -50,9 +50,48 @@ export function useAuth() {
     }
   };
 
+  const roleUpper = (user?.role || '').toUpperCase();
+  const isAdministrator = roleUpper === 'ADMINISTRATOR' || roleUpper === 'SUPER_ADMIN';
+  const isStoreAdmin = roleUpper === 'ADMIN';
+  const isCashier = roleUpper === 'CASHIER';
+
   const can = (featureKey: string, action: string = 'read'): boolean => {
     if (!user) return false;
-    if (user.role === 'ADMIN') return true;
+
+    // 1. ADMINISTRATOR has unrestricted access to all features (including all 5 system admin modules)
+    if (isAdministrator) return true;
+
+    // 2. Restricted system administration features that ADMIN (Store Manager) is strictly FORBIDDEN from accessing:
+    // - User management
+    // - Role and Permission
+    // - App Setting
+    // - Backup
+    // - Audit Log
+    const restrictedForAdmin = [
+      'users.manage',
+      'roles.manage',
+      'settings.manage',
+      'settings.view',
+      'settings.update',
+      'backup.manage',
+      'backup.list',
+      'backup.create',
+      'backup.restore',
+      'backup.export',
+      'security.audit_logs',
+      'audit.view',
+      'audit.export',
+    ];
+
+    if (isStoreAdmin) {
+      if (restrictedForAdmin.includes(featureKey)) {
+        return false;
+      }
+      // ADMIN has full access to store operations: products, categories, stock, purchasing, suppliers, sales, customers, reports, etc.
+      return true;
+    }
+
+    // 3. For Cashiers and custom roles, check explicit permissions array
     if (!Array.isArray(user.permissions)) return false;
 
     return user.permissions.some((p: any) => {
@@ -69,8 +108,10 @@ export function useAuth() {
     user,
     isAuthenticated,
     token,
-    isAdmin: user?.role === 'ADMIN',
-    isCashier: user?.role === 'CASHIER',
+    isAdministrator,
+    isStoreAdmin,
+    isAdmin: isStoreAdmin || isAdministrator,
+    isCashier,
     can,
     login,
     logout,

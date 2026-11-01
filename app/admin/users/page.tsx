@@ -14,13 +14,20 @@ import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
 import SearchableSelect from '../../../components/ui/searchable-select';
 import { roleService, Role } from '../../../services/roleService';
+import AccessDenied from '../../../components/ui/access-denied';
 
 const PAGE_LIMIT = 10;
 
 export default function AdminUsersPage() {
   const { t } = useLanguage();
+  const { can, user: authUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const currentUser = useSelector(selectCurrentUser);
   const currentUserId = currentUser?.userId;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // List & pagination state
   const [users, setUsers] = useState<User[]>([]);
@@ -168,7 +175,10 @@ export default function AdminUsersPage() {
     }
   };
 
-  const { can } = useAuth();
+  if (mounted && authUser && !can('users.manage')) {
+    return <AccessDenied feature="User Management" />;
+  }
+
   const canCreateUser = can('users.manage', 'create');
 
   return (

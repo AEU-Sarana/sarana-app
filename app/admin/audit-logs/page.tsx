@@ -11,9 +11,17 @@ import { AuditLogFilters } from '../../../components/audit-logs/audit-log-filter
 import { AuditLogTable } from '../../../components/audit-logs/audit-log-table';
 import { AuditLogDetailModal } from '../../../components/audit-logs/audit-log-detail-modal';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
+import AccessDenied from '../../../components/ui/access-denied';
 
 export default function AdminAuditLogsPage() {
   const { t } = useLanguage();
+  const { can, user: authUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Data & loading states
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
@@ -197,6 +205,10 @@ export default function AdminAuditLogsPage() {
       dateFrom ||
       dateTo
   );
+
+  if (mounted && authUser && !can('security.audit_logs')) {
+    return <AccessDenied feature="Audit Logs" />;
+  }
 
   return (
     <div className="space-y-6">

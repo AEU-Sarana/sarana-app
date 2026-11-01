@@ -243,8 +243,9 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                         sublabel: r.key,
                       }))
                     : [
+                        { value: 'ADMINISTRATOR', label: 'Administrator (System)', sublabel: 'ADMINISTRATOR' },
+                        { value: 'ADMIN', label: 'Admin (Store Manager)', sublabel: 'ADMIN' },
                         { value: 'CASHIER', label: 'Cashier', sublabel: 'CASHIER' },
-                        { value: 'ADMIN', label: 'Administrator', sublabel: 'ADMIN' },
                       ]
                 }
               />
