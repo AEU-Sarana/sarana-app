@@ -48,6 +48,9 @@
     "sales": "Sales History",
     "all_customers": "All Customers",
     "users": "Users / Cashiers",
+    "roles": "Roles & Permissions",
+    "settings": "App Setting",
+    "backup": "Backup",
     "audit_logs": "Audit Logs",
     "quick_settings": "Quick Settings"
   },
@@ -407,7 +410,7 @@
     "subtitle": "Configure backup, report delivery, and invoice information.",
     "tab_backup": "Backup & Maintenance",
     "tab_reports": "Daily Reports & Telegram",
-    "tab_invoice": "Invoice & Store Info",
+    "tab_invoice": "App Setting & Store Info",
     "tab_payment_methods": "Payment Methods",
     "payment_methods_title": "Payment Methods Management",
     "payment_methods_desc": "Configure payment channels (Cash, ABA, Wing, Cards) for cashier checkout and QR scanning.",
