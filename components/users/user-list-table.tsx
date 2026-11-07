@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { User } from '../../features/user/types';
+import { Role } from '../../services/roleService';
 import { useLanguage } from '../../contexts/language-context';
 import { getInitials } from '../../libs/utils';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,6 +10,7 @@ import TablePagination from '../ui/table-pagination';
 
 interface UserListTableProps {
   users: User[];
+  availableRoles?: Role[];
   isLoading: boolean;
   error: string | null;
   page: number;
@@ -27,6 +29,7 @@ interface UserListTableProps {
 
 export function UserListTable({
   users,
+  availableRoles = [],
   isLoading,
   error,
   page,
@@ -46,6 +49,96 @@ export function UserListTable({
   const { can } = useAuth();
   const canUpdateUser = can('users.manage', 'update');
   const canDeleteUser = can('users.manage', 'delete');
+
+  const renderRoleBadge = (roleKey: string, isMobile = false) => {
+    const rawKey = roleKey || '';
+    const normalizedKey = rawKey.toUpperCase();
+    const matchedRole = availableRoles.find((r) => r.key?.toUpperCase() === normalizedKey);
+    const displayName =
+      matchedRole?.name ||
+      (normalizedKey === 'ADMINISTRATOR'
+        ? t('common.administrator', 'Administrator')
+        : normalizedKey === 'ADMIN'
+        ? t('common.admin', 'Admin')
+        : normalizedKey === 'CASHIER'
+        ? t('common.cashier', 'Cashier')
+        : rawKey.charAt(0).toUpperCase() + rawKey.slice(1).toLowerCase());
+
+    if (normalizedKey === 'ADMINISTRATOR') {
+      return (
+        <span
+          className={
+            isMobile
+              ? 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+              : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold border border-purple-500/20'
+          }
+        >
+          {!isMobile && (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          )}
+          {displayName}
+        </span>
+      );
+    }
+
+    if (normalizedKey === 'ADMIN') {
+      return (
+        <span
+          className={
+            isMobile
+              ? 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/15'
+              : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-500/15'
+          }
+        >
+          {!isMobile && (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          )}
+          {displayName}
+        </span>
+      );
+    }
+
+    if (normalizedKey === 'CASHIER') {
+      return (
+        <span
+          className={
+            isMobile
+              ? 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-success/10 text-success border border-success/15'
+              : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold border border-success/15'
+          }
+        >
+          {!isMobile && (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          )}
+          {displayName}
+        </span>
+      );
+    }
+
+    // Custom role badge (e.g. RECIVER)
+    return (
+      <span
+        className={
+          isMobile
+            ? 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20'
+            : 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-bold border border-sky-500/20'
+        }
+      >
+        {!isMobile && (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+        {displayName}
+      </span>
+    );
+  };
 
   return (
     <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden">
@@ -127,19 +220,7 @@ export function UserListTable({
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
-                        {user.role === 'ADMINISTRATOR' ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                            Administrator
-                          </span>
-                        ) : user.role === 'ADMIN' ? (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/15">
-                            Admin
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-success/10 text-success border border-success/15">
-                            Cashier
-                          </span>
-                        )}
+                        {renderRoleBadge(user.role, true)}
 
                         <div className="flex items-center gap-2">
                           <button
@@ -212,28 +293,7 @@ export function UserListTable({
 
                         {/* Role */}
                         <td className="px-6 py-4">
-                          {user.role === 'ADMINISTRATOR' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold border border-purple-500/20">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                              {t('common.administrator', 'Administrator')}
-                            </span>
-                          ) : user.role === 'ADMIN' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold border border-indigo-500/15">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                              </svg>
-                              {t('common.admin', 'Admin')}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold border border-success/15">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                              </svg>
-                              {t('common.cashier', 'Cashier')}
-                            </span>
-                          )}
+                          {renderRoleBadge(user.role, false)}
                         </td>
 
                         {/* Status */}
@@ -268,7 +328,7 @@ export function UserListTable({
                               </button>
                             )}
 
-                            {onManagePermissions && user.role !== 'ADMIN' && (
+                            {onManagePermissions && user.role !== 'ADMINISTRATOR' && (
                               <button
                                 onClick={() => onManagePermissions(user)}
                                 className="flex items-center gap-1 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[10px] font-extrabold rounded-lg transition-all cursor-pointer shadow-sm"

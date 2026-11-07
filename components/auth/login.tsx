@@ -29,7 +29,7 @@ export default function Login() {
             dispatch(setCredentials({ user, accessToken }));
 
             // Redirect based on role
-            if (user.role === 'ADMIN') {
+            if (user.role === 'ADMIN' || user.role === 'ADMINISTRATOR') {
                 router.push('/admin');
             } else {
                 router.push('/cashier');

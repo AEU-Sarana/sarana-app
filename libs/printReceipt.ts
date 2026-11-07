@@ -24,6 +24,15 @@ export interface PrintReceiptData {
   received_amount?: number;
   change_amount?: number;
   exchange_rate?: number;
+  // Dynamic Store Settings
+  store_name?: string;
+  store_logo?: string | null;
+  store_phone?: string | null;
+  store_address?: string | null;
+  store_tax_id?: string | null;
+  footer_note?: string | null;
+  is_logo_enabled?: boolean;
+  is_footer_enabled?: boolean;
 }
 
 /**
@@ -33,7 +42,14 @@ export interface PrintReceiptData {
 export function printReceipt(order: PrintReceiptData) {
   if (typeof window === 'undefined') return;
 
-  const logoSrc = `${window.location.origin}/logo.jpg`;
+  const logoSrc = order.store_logo || `${window.location.origin}/logo.jpg`;
+  const showLogo = order.is_logo_enabled ?? true;
+  const storeName = order.store_name || 'ឱសថស្ថាន';
+  const storePhone = order.store_phone || '017 62 26 26';
+  const storeAddress = order.store_address;
+  const storeTaxId = order.store_tax_id;
+  const footerNote = order.footer_note || 'THANK YOU FOR YOUR PURCHASE!';
+  const showFooter = order.is_footer_enabled ?? true;
   const isCash = order.payment_method === 'CASH' || order.payment_method === 'Cash';
 
   const itemRows = order.items.map((item, idx) => `
@@ -72,19 +88,22 @@ export function printReceipt(order: PrintReceiptData) {
               border-bottom:1px dashed #ccc;padding-bottom:14px;margin-bottom:14px;">
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;
                 width:38%;flex-shrink:0;">
+      ${showLogo ? `
       <div style="width:72px;height:72px;min-width:72px;max-width:72px;
                   overflow:hidden;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0;">
         <img src="${logoSrc}" alt="Logo"
              style="width:100%;height:100%;object-fit:cover;display:block;"/>
-      </div>
-      <span style="font-size:9px;font-weight:700;color:#374151;">ទូរស័ព្ទ: 017 62 26 26</span>
+      </div>` : ''}
+      ${storePhone ? `<span style="font-size:9px;font-weight:700;color:#374151;">ទូរស័ព្ទ: ${storePhone}</span>` : ''}
+      ${storeAddress ? `<span style="font-size:8px;color:#6b7280;max-width:180px;line-height:1.2;">${storeAddress}</span>` : ''}
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;flex:1;
                 padding-left:16px;gap:2px;">
-      <span style="font-size:14px;font-weight:900;color:#000;line-height:1.2;">ឱសថស្ថាន</span>
+      <span style="font-size:14px;font-weight:900;color:#000;line-height:1.2;">${storeName}</span>
       <span style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;">PHARMACIE</span>
       <span style="font-size:15px;font-weight:900;color:#000;line-height:1.2;margin-top:6px;">វិក្កយបត្រ</span>
       <span style="font-size:11px;font-weight:900;color:#000;text-transform:uppercase;letter-spacing:1.5px;">INVOICE</span>
+      ${storeTaxId ? `<span style="font-size:8px;color:#6b7280;">VATTIN: ${storeTaxId}</span>` : ''}
     </div>
   </div>
 
@@ -155,9 +174,13 @@ export function printReceipt(order: PrintReceiptData) {
     <!-- TOTAL box -->
     <div style="border:2px solid #000;padding:8px 12px;margin-top:8px;
                 display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:13px;font-weight:900;text-transform:uppercase;">សរុប TOTAL</span>
+      <div>
+        <div style="font-size:13px;font-weight:900;text-transform:uppercase;">សរុប TOTAL</div>
+        <div style="font-size:8px;color:#555;font-weight:700;">Rate: $1 = ${(order.exchange_rate ?? 4000).toLocaleString()} ៛</div>
+      </div>
       <div style="text-align:right;">
         <div style="font-size:18px;font-weight:900;letter-spacing:-0.5px;">$${order.total_amount.toFixed(2)}</div>
+        <div style="font-size:10.5px;font-weight:900;color:#000;">${Math.round(order.total_amount * (order.exchange_rate ?? 4000)).toLocaleString()} ៛</div>
       </div>
     </div>
   </div>
@@ -187,14 +210,15 @@ export function printReceipt(order: PrintReceiptData) {
   </div>
 
   <!-- FOOTER -->
+  ${showFooter ? `
   <div style="border-top:1px dashed #ccc;padding-top:12px;text-align:center;">
     <p style="font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">
-      THANK YOU FOR YOUR PURCHASE!
+      ${footerNote}
     </p>
     <p style="font-size:8px;color:#9ca3af;">
       Medicines are non-refundable once opened. Please check expiry dates.
     </p>
-  </div>
+  </div>` : ''}
 
 </div>
 </body>

@@ -295,6 +295,7 @@ export default function AdminUsersPage() {
       {/* Main Table view */}
       <UserListTable
         users={users}
+        availableRoles={availableRoles}
         isLoading={isLoading}
         error={error}
         page={page}
@@ -343,6 +344,7 @@ export default function AdminUsersPage() {
       <UserDetailsModal
         isOpen={!!viewDetailUserId}
         userId={viewDetailUserId}
+        availableRoles={availableRoles}
         onClose={() => setViewDetailUserId(null)}
       />
     </div>

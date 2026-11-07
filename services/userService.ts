@@ -18,6 +18,7 @@ function mapUser(data: any): User {
     phone: data.phone,
     status: data.status,
     deviceId: data.deviceId ?? data.device_id,
+    allowDashboard: data.allowDashboard ?? data.allow_dashboard,
     createdAt: data.createdAt ?? data.created_at,
     updatedAt: data.updatedAt ?? data.updated_at,
     deactivatedDate: data.deactivatedDate ?? data.deactivated_date,

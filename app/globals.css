@@ -80,7 +80,7 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), var(--font-noto-khmer), 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS Battambang', 'Khmer OS', 'Segoe UI', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 
   --animate-fade-in: fade-in 0.2s ease-out;
@@ -122,10 +122,27 @@ tr {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
 }
 
+@font-face {
+  font-family: 'Noto Sans Khmer';
+  src: url('/fonts/NotoSansKhmer-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans Khmer';
+  src: url('/fonts/NotoSansKhmer-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), var(--font-noto-khmer), 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS Battambang', 'Khmer OS', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.5;
 }
 
 /* ─────────────── GLOBAL PRINT STYLES ─────────────── */
@@ -171,7 +188,7 @@ body {
     padding: 20px 24px !important;
     margin: 0 auto !important;
     max-width: 560px !important;
-    font-family: 'Courier New', Courier, monospace !important;
+    font-family: var(--font-noto-khmer), 'Noto Sans Khmer', 'Khmer OS Battambang', 'Courier New', Courier, monospace !important;
     font-size: 11px !important;
     color: #000 !important;
     -webkit-print-color-adjust: exact;

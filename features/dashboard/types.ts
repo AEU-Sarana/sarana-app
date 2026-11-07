@@ -57,3 +57,17 @@ export interface DashboardOverviewResponse {
   sync_status: DashboardSyncStatus;
   top_products?: TopSellingProduct[];
 }
+
+export interface MonthlyRevenueItem {
+  month: string;
+  monthIndex: number;
+  revenue: number;
+}
+
+export interface MonthlyRevenueResponse {
+  year: number;
+  months: MonthlyRevenueItem[];
+  values: number[];
+  total_revenue: number;
+  max_revenue: number;
+}

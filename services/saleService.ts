@@ -45,6 +45,7 @@ export const saleService = {
     discount_amount?: number;
     tax_amount?: number;
     service_fee?: number;
+    exchange_rate?: number;
     items: {
       product_id: number;
       quantity: number;

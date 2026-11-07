@@ -188,7 +188,11 @@ export default function AdminRolesPage() {
                         Permissions
                       </span>
                       <span className="font-extrabold text-primary text-sm mt-0.5 block">
-                        {role.key === 'ADMIN' ? 'Full System (*)' : `${activePermCount} feature(s)`}
+                        {role.key === 'ADMINISTRATOR'
+                          ? 'Full System (*)'
+                          : role.key === 'ADMIN'
+                          ? `Store Ops (${activePermCount} features)`
+                          : `${activePermCount} feature(s)`}
                       </span>
                     </div>
                   </div>

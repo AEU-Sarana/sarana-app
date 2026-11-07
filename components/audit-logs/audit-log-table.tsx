@@ -14,7 +14,7 @@ interface AuditLogTableProps {
   limit: number;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
-  onSelectLog: (log: AuditLogItem) => void;
+  onSelectLog?: (log: AuditLogItem) => void;
 }
 
 export function AuditLogTable({
@@ -26,7 +26,6 @@ export function AuditLogTable({
   limit,
   onPageChange,
   onLimitChange,
-  onSelectLog,
 }: AuditLogTableProps) {
   const { t } = useLanguage();
 
@@ -217,7 +216,6 @@ export function AuditLogTable({
               <th className="py-4 px-6">{t('audit.col_date', 'Date & Time')}</th>
               <th className="py-4 px-6">{t('audit.col_device', 'Device / IP')}</th>
               <th className="py-4 px-6">{t('audit.col_status', 'Status / Changes')}</th>
-              <th className="py-4 px-6 text-right">{t('audit.col_inspect', 'Inspect')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20 font-medium">
@@ -251,15 +249,12 @@ export function AuditLogTable({
                   <td className="py-4 px-6">
                     <div className="h-5 w-20 bg-secondary/60 rounded-full" />
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <div className="h-8 w-16 bg-secondary/60 rounded-xl ml-auto" />
-                  </td>
                 </tr>
               ))
             ) : logs.length === 0 ? (
               // Empty State
               <tr>
-                <td colSpan={7} className="py-16 px-6 text-center">
+                <td colSpan={6} className="py-16 px-6 text-center">
                   <div className="max-w-xs mx-auto flex flex-col items-center justify-center">
                     <div className="w-14 h-14 rounded-2xl bg-secondary/40 flex items-center justify-center text-foreground/40 mb-3.5">
                       <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,20 +399,6 @@ export function AuditLogTable({
                           {t('audit.action_executed', 'Action executed')}
                         </span>
                       )}
-                    </td>
-
-                    {/* Inspect Button */}
-                    <td className="py-4 px-6 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => onSelectLog(log)}
-                        className="px-3 py-1.5 rounded-xl bg-secondary/50 hover:bg-primary hover:text-primary-foreground text-foreground/80 text-xs font-bold transition-all duration-150 inline-flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span>{t('audit.inspect_button', 'Inspect')}</span>
-                      </button>
                     </td>
                   </tr>
                 );

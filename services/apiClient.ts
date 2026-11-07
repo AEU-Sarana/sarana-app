@@ -35,6 +35,7 @@ class ApiClient {
     }
 
     const config: RequestInit = {
+      cache: 'no-store',
       ...customOptions,
       headers: requestHeaders,
     };

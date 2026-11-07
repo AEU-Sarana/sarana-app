@@ -3,11 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/language-context';
 import { tokenStorage } from '@/services/tokenStorage';
 import { BASE_URL } from '@/services/apiClient';
+import { paymentMethodService, PaymentMethod } from '@/services/paymentMethodService';
 import SearchableSelect from '@/components/ui/searchable-select';
 
 export default function AdminCreatePOPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -20,7 +23,8 @@ export default function AdminCreatePOPage() {
   // Payment & Debt State
   const [paymentType, setPaymentType] = useState<'PAID' | 'DEBT' | 'PARTIAL'>('DEBT');
   const [initialPaidAmount, setInitialPaidAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<string>('ABA_BANK');
+  const [paymentMethod, setPaymentMethod] = useState<string>('ABA');
+  const [paymentMethodsList, setPaymentMethodsList] = useState<PaymentMethod[]>([]);
   const [paymentDueDate, setPaymentDueDate] = useState<string>('');
 
   const [items, setItems] = useState<any[]>([]);
@@ -46,6 +50,16 @@ export default function AdminCreatePOPage() {
         const list = Array.isArray(d.data) ? d.data : (Array.isArray(d.data?.products) ? d.data.products : (Array.isArray(d.data?.items) ? d.data.items : []));
         setProducts(list);
       });
+
+    paymentMethodService
+      .getPaymentMethods(false)
+      .then((methods) => {
+        if (methods && methods.length > 0) {
+          setPaymentMethodsList(methods);
+          setPaymentMethod((prev) => (methods.some((m) => m.code === prev) ? prev : methods[0].code));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleAddProduct = (prod: any) => {
@@ -159,12 +173,12 @@ export default function AdminCreatePOPage() {
         <div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
             <Link href="/admin/purchasing" className="hover:underline">
-              Purchase Orders
+              {t('purchasing.title', 'Purchase Orders')}
             </Link>
             <span>/</span>
-            <span className="text-foreground">New Order</span>
+            <span className="text-foreground">{t('purchasing.new_order_breadcrumb', 'New Order')}</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Create Purchase Order</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('purchasing.new_title', 'Create Purchase Order')}</h1>
         </div>
 
         <Link
@@ -174,7 +188,7 @@ export default function AdminCreatePOPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Purchase Orders
+          {t('suppliers.back_to_po', 'Back to Purchase Orders')}
         </Link>
       </div>
 
@@ -248,13 +262,28 @@ export default function AdminCreatePOPage() {
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
+                  className="w-full bg-secondary/50 border border-border/50 rounded-xl px-4 py-2.5 text-foreground text-sm font-bold focus:outline-none focus:border-primary"
                 >
-                  <option value="ABA_BANK">ABA Bank Transfer</option>
-                  <option value="CASH">Cash</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
-                  <option value="CHEQUE">Cheque</option>
-                  <option value="CREDIT_TERMS">Supplier Credit Terms</option>
+                  {paymentMethodsList.length > 0 ? (
+                    <>
+                      {paymentMethodsList.map((m) => (
+                        <option key={m.code} value={m.code}>
+                          {m.name} ({m.code})
+                        </option>
+                      ))}
+                      <option value="CHEQUE">Cheque (មូលប្បទានបត្រ)</option>
+                      <option value="CREDIT_TERMS">Supplier Credit Terms</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="ABA">ABA Bank</option>
+                      <option value="WING">Wing Bank</option>
+                      <option value="ACLEDA">ACLEDA Bank</option>
+                      <option value="CASH">Cash</option>
+                      <option value="CHEQUE">Cheque</option>
+                      <option value="CREDIT_TERMS">Supplier Credit Terms</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, CreateUserRequest, UpdateUserRequest } from '../../features/user/types';
 import { userService } from '../../services/userService';
+import { authService } from '../../services/authService';
 import { roleService, Role as RoleModel } from '../../services/roleService';
 import { useLanguage } from '../../contexts/language-context';
 import SearchableSelect from '../ui/searchable-select';
@@ -26,9 +27,11 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<string>('CASHIER');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [allowDashboard, setAllowDashboard] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<RoleModel[]>([]);
 
   // UI state
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +52,24 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
       setPhone(user.phone || '');
       setRole(user.role || 'CASHIER');
       setStatus(user.status || 'active');
+
+      if (user.allowDashboard !== undefined) {
+        setAllowDashboard(user.allowDashboard);
+      } else {
+        authService
+          .getUserPermissions(user.userId)
+          .then((res) => {
+            const perms = res?.data?.permissions || [];
+            const hasDash = perms.some(
+              (p: any) =>
+                (typeof p === 'string' ? p === 'dashboard.view' : p?.featureKey === 'dashboard.view')
+            );
+            setAllowDashboard(hasDash);
+          })
+          .catch(() => {
+            setAllowDashboard(user.role === 'ADMIN' || user.role === 'ADMINISTRATOR');
+          });
+      }
     } else {
       setFullName('');
       setUsername('');
@@ -57,7 +78,9 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
       setPhone('');
       setRole('CASHIER');
       setStatus('active');
+      setAllowDashboard(false);
     }
+    setShowPassword(false);
     setError(null);
   }, [user, isOpen]);
 
@@ -124,6 +147,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
           role: role,
           password: password.trim() ? password : undefined,
           status: status,
+          allow_dashboard: allowDashboard,
         };
         await userService.updateUser(user.userId, payload);
       } else {
@@ -134,6 +158,7 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
           role,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
+          allow_dashboard: allowDashboard,
         };
         await userService.createUser(payload);
       }
@@ -231,7 +256,17 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
               </label>
               <SearchableSelect
                 value={role}
-                onChange={(val) => setRole(String(val))}
+                onChange={(val) => {
+                  const newRole = String(val);
+                  setRole(newRole);
+                  if (!isEditMode) {
+                    if (newRole === 'ADMINISTRATOR' || newRole === 'ADMIN') {
+                      setAllowDashboard(true);
+                    } else {
+                      setAllowDashboard(false);
+                    }
+                  }
+                }}
                 placeholder={t('user_modal.select_role', 'Select Role')}
                 searchPlaceholder="Search role..."
                 disabled={isSubmitting}
@@ -257,19 +292,39 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 {isEditMode ? 'New Password (Optional)' : t('user_modal.password', 'Password')}{' '}
                 {!isEditMode && <span className="text-destructive">*</span>}
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={
-                  isEditMode
-                    ? 'Leave blank to keep current password'
-                    : t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')
-                }
-                className="w-full px-3.5 py-2.5 sm:px-4 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
-                disabled={isSubmitting}
-                required={!isEditMode}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={
+                    isEditMode
+                      ? 'Leave blank to keep current password'
+                      : t('user_modal.password_placeholder', 'Minimum 4 characters, 1 uppercase, 1 lowercase, 1 digit')
+                  }
+                  className="w-full pl-3.5 pr-11 py-2.5 sm:pl-4 sm:pr-11 rounded-xl border border-border/60 bg-secondary/10 text-sm font-semibold focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all placeholder:text-foreground/25 min-h-[42px]"
+                  disabled={isSubmitting}
+                  required={!isEditMode}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-foreground/40 hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               <p className="text-[9px] text-foreground/40 font-medium mt-1">
                 {isEditMode
                   ? 'Enter a new password only if you want to update this user\'s login password.'
@@ -324,6 +379,51 @@ export function UserModal({ isOpen, onClose, onSave, user }: UserModalProps) {
                 </select>
               </div>
             )}
+
+            {/* Dashboard Access Permission Toggle */}
+            <div className="sm:col-span-2 p-3.5 rounded-2xl bg-secondary/15 dark:bg-secondary/10 border border-border/40 flex items-center justify-between gap-3 mt-1">
+              <div className="space-y-0.5 pr-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-foreground">
+                    {t('user_modal.dashboard_access', 'Dashboard Page Access')}
+                  </span>
+                  {role === 'ADMINISTRATOR' ? (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      Always Granted
+                    </span>
+                  ) : allowDashboard ? (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Enabled
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-secondary text-foreground/40 border border-border/40">
+                      Disabled
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-foreground/50 font-medium leading-relaxed">
+                  {role === 'ADMINISTRATOR'
+                    ? 'Administrator accounts inherently have unrestricted full access to all system dashboards.'
+                    : t('user_modal.dashboard_access_desc', 'Allow this user to access and view the sales & business performance dashboard.')}
+                </p>
+              </div>
+
+              <label className={`relative inline-flex items-center shrink-0 ${role === 'ADMINISTRATOR' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  checked={role === 'ADMINISTRATOR' ? true : allowDashboard}
+                  disabled={isSubmitting || role === 'ADMINISTRATOR'}
+                  onChange={(e) => setAllowDashboard(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-secondary/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border/20 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
           </div>
 
           {/* Modal Actions */}

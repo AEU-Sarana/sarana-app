@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../../features/user/types';
+import { Role } from '../../services/roleService';
 import { userService } from '../../services/userService';
 import { authService } from '../../services/authService';
 import { getInitials } from '../../libs/utils';
@@ -10,12 +11,14 @@ import { useLanguage } from '../../contexts/language-context';
 interface UserDetailsModalProps {
   isOpen: boolean;
   userId: number | null;
+  availableRoles?: Role[];
   onClose: () => void;
 }
 
 export function UserDetailsModal({
   isOpen,
   userId,
+  availableRoles = [],
   onClose,
 }: UserDetailsModalProps) {
   const { t } = useLanguage();
@@ -39,7 +42,7 @@ export function UserDetailsModal({
       setUser(data);
 
       // Fetch user assigned permissions
-      if (data.role !== 'ADMIN' && data.role !== 'ADMINISTRATOR') {
+      if (data.role !== 'ADMINISTRATOR') {
         const permRes = await authService.getUserPermissions(id);
         setPermissions(permRes?.data?.permissions || []);
       }
@@ -116,12 +119,20 @@ export function UserDetailsModal({
                         </svg>
                         {t('common.admin', 'Admin')}
                       </span>
-                    ) : (
+                    ) : user.role === 'CASHIER' ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success/10 text-success text-xs font-bold border border-success/15">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                         {t('common.cashier', 'Cashier')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-bold border border-sky-500/20">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {availableRoles.find((r) => r.key?.toUpperCase() === (user.role || '').toUpperCase())?.name ||
+                          (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : 'User')}
                       </span>
                     )}
 
@@ -188,7 +199,7 @@ export function UserDetailsModal({
               </div>
 
               {/* Assigned Permissions Summary */}
-              {user.role === 'CASHIER' && (
+              {user.role !== 'ADMINISTRATOR' && (
                 <div className="space-y-3">
                   <h4 className="text-xs font-extrabold text-foreground/40 uppercase tracking-wider font-sans border-b border-border/30 pb-1 flex items-center justify-between">
                     <span>{t('user_details_modal.assigned_permissions', 'ASSIGNED FEATURE PERMISSIONS')}</span>
@@ -199,10 +210,10 @@ export function UserDetailsModal({
 
                   {permissions.length === 0 ? (
                     <p className="text-xs font-semibold text-foreground/40 italic p-3 rounded-xl bg-secondary/20 border border-border/30">
-                      {t('user_details_modal.no_permissions', 'No additional feature permissions assigned to this cashier.')}
+                      {t('user_details_modal.no_permissions', 'No feature permissions assigned to this user.')}
                     </p>
                   ) : (
-                    <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                       {permissions.map((p) => (
                         <div
                           key={p.featureKey}

@@ -87,7 +87,18 @@ export function useAuth() {
       if (restrictedForAdmin.includes(featureKey)) {
         return false;
       }
-      // ADMIN has full access to store operations: products, categories, stock, purchasing, suppliers, sales, customers, reports, etc.
+      // If store admin has custom explicit permissions configured, check them:
+      if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+        return user.permissions.some((p: any) => {
+          if (typeof p === 'string') return p === featureKey;
+          if (p && typeof p === 'object' && p.featureKey === featureKey) {
+            const actions = Array.isArray(p.actions) ? p.actions : ['read'];
+            return actions.includes('all') || actions.includes(action);
+          }
+          return false;
+        });
+      }
+      // ADMIN default: full access to store operations
       return true;
     }
 

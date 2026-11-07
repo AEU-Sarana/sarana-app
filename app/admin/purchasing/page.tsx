@@ -102,7 +102,7 @@ export default function AdminPurchasingDashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-extrabold text-foreground">{metrics.total}</div>
-            <div className="text-xs text-muted-foreground font-medium">Total PO Requests</div>
+            <div className="text-xs text-muted-foreground font-medium">{t('purchasing.total_po', 'Total PO Requests')}</div>
           </div>
         </div>
 
@@ -114,7 +114,7 @@ export default function AdminPurchasingDashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-extrabold text-foreground">{metrics.pending}</div>
-            <div className="text-xs text-muted-foreground font-medium">Pending Deliveries</div>
+            <div className="text-xs text-muted-foreground font-medium">{t('purchasing.pending_deliveries', 'Pending Deliveries')}</div>
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export default function AdminPurchasingDashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-extrabold text-foreground">{metrics.received}</div>
-            <div className="text-xs text-muted-foreground font-medium">Completed / Stocked In</div>
+            <div className="text-xs text-muted-foreground font-medium">{t('purchasing.stocked_in', 'Completed / Stocked In')}</div>
           </div>
         </div>
 
@@ -138,7 +138,7 @@ export default function AdminPurchasingDashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-extrabold text-foreground">{metrics.drafts}</div>
-            <div className="text-xs text-muted-foreground font-medium">Draft Orders</div>
+            <div className="text-xs text-muted-foreground font-medium">{t('purchasing.draft_orders', 'Draft Orders')}</div>
           </div>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function AdminPurchasingDashboardPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search PO # or Supplier company..."
+            placeholder={t('purchasing.search_placeholder', 'Search PO # or Supplier company...')}
             className="w-full pl-10 pr-4 py-2 bg-secondary/50 border border-border/50 rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
           />
         </div>
@@ -162,16 +162,16 @@ export default function AdminPurchasingDashboardPage() {
           <SearchableSelect
             value={statusFilter}
             onChange={(val) => setStatusFilter(String(val))}
-            placeholder="All Statuses"
-            searchPlaceholder="Search PO status..."
+            placeholder={t('purchasing.all_statuses', 'All Statuses')}
+            searchPlaceholder={t('purchasing.search_placeholder', 'Search PO status...')}
             allowClear
             options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'DRAFT', label: 'Draft', badge: 'Draft' },
-              { value: 'APPROVED', label: 'Approved', badge: 'Active' },
-              { value: 'PARTIAL_RECEIVED', label: 'Partial Received', badge: 'Partial' },
-              { value: 'RECEIVED', label: 'Fully Received', badge: 'Complete' },
-              { value: 'CANCELLED', label: 'Cancelled', badge: 'Cancelled' },
+              { value: '', label: t('purchasing.all_statuses', 'All Statuses') },
+              { value: 'DRAFT', label: t('purchasing.status_draft', 'Draft'), badge: t('purchasing.status_draft', 'Draft') },
+              { value: 'APPROVED', label: t('purchasing.status_approved', 'Approved'), badge: t('purchasing.status_approved', 'Approved') },
+              { value: 'PARTIAL_RECEIVED', label: t('purchasing.status_partial', 'Partial Received'), badge: t('purchasing.status_partial', 'Partial Received') },
+              { value: 'RECEIVED', label: t('purchasing.status_received', 'Fully Received'), badge: t('purchasing.status_received', 'Fully Received') },
+              { value: 'CANCELLED', label: t('purchasing.status_cancelled', 'Cancelled'), badge: t('purchasing.status_cancelled', 'Cancelled') },
             ]}
           />
         </div>
@@ -181,11 +181,11 @@ export default function AdminPurchasingDashboardPage() {
       <div className="block md:hidden divide-y divide-border/20 bg-card border border-border/40 rounded-2xl p-4 space-y-4">
         {loading ? (
           <div className="py-8 text-center text-xs font-semibold text-muted-foreground">
-            Loading purchase orders...
+            {t('purchasing.loading', 'Loading purchase orders...')}
           </div>
         ) : pos.length === 0 ? (
           <div className="py-8 text-center text-xs font-semibold text-muted-foreground">
-            No purchase orders found. Create a new purchase order to start processing stock.
+            {t('purchasing.no_data', 'No purchase orders found. Create a new purchase order to start processing stock.')}
           </div>
         ) : (
           pos.map((po) => (
@@ -197,7 +197,7 @@ export default function AdminPurchasingDashboardPage() {
                   </Link>
                   <h4 className="text-xs font-semibold text-foreground mt-0.5">{po.supplier?.companyName || po.suppliers?.company_name || '—'}</h4>
                   <span className="text-[10px] text-muted-foreground block mt-0.5">
-                    Order Date: {new Date(po.orderDate || po.order_date).toLocaleDateString()}
+                    {t('purchasing.col_order_date', 'Order Date')}: {new Date(po.orderDate || po.order_date).toLocaleDateString()}
                   </span>
                 </div>
 
@@ -216,7 +216,7 @@ export default function AdminPurchasingDashboardPage() {
                   href={`/admin/purchasing/${po.poId || po.po_id}`}
                   className="px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-semibold transition-colors border border-border/40 inline-block"
                 >
-                  View & Print
+                  {t('purchasing.view_print', 'View & Print')}
                 </Link>
               </div>
             </div>
@@ -230,25 +230,25 @@ export default function AdminPurchasingDashboardPage() {
           <table className="w-full text-left text-sm text-foreground">
             <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
               <tr>
-                <th className="px-6 py-4">PO Number</th>
-                <th className="px-6 py-4">Supplier</th>
-                <th className="px-6 py-4">Order Date</th>
-                <th className="px-6 py-4 text-right">Total ($)</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{t('purchasing.col_po_number', 'PO Number')}</th>
+                <th className="px-6 py-4">{t('purchasing.col_supplier', 'Supplier')}</th>
+                <th className="px-6 py-4">{t('purchasing.col_order_date', 'Order Date')}</th>
+                <th className="px-6 py-4 text-right">{t('purchasing.col_total', 'Total ($)')}</th>
+                <th className="px-6 py-4">{t('purchasing.col_status', 'Status')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    Loading purchase orders...
+                    {t('purchasing.loading', 'Loading purchase orders...')}
                   </td>
                 </tr>
               ) : pos.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No purchase orders found. Create a new purchase order to start processing stock.
+                    {t('purchasing.no_data', 'No purchase orders found. Create a new purchase order to start processing stock.')}
                   </td>
                 </tr>
               ) : (
@@ -282,7 +282,7 @@ export default function AdminPurchasingDashboardPage() {
                         href={`/admin/purchasing/${po.poId || po.po_id}`}
                         className="px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-medium transition-colors border border-border/40 inline-block"
                       >
-                        View & Print
+                        {t('purchasing.view_print', 'View & Print')}
                       </Link>
                     </td>
                   </tr>

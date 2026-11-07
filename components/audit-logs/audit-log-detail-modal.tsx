@@ -275,9 +275,17 @@ export function AuditLogDetailModal({
                     </div>
                   ) : (
                     <div className="py-10 px-4 text-center border border-dashed border-border/60 rounded-2xl bg-secondary/5">
-                      <span className="text-xs text-foreground/50 block font-medium">
+                      <div className="w-9 h-9 rounded-full bg-secondary/60 flex items-center justify-center mx-auto mb-2 text-foreground/40">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs text-foreground/70 block font-semibold mb-1">
                         {t('audit.modal_no_diff', 'No field-level changes were recorded for this action.')}
                       </span>
+                      <p className="text-[11px] text-foreground/40 max-w-sm mx-auto">
+                        This action was a read-only query or did not modify any existing field values.
+                      </p>
                     </div>
                   )}
                 </div>

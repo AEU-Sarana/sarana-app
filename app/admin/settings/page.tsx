@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { settingService } from '../../../services/settingService';
+import { receiptSettingService } from '../../../services/receiptSettingService';
 import { backupService, BackupListItem } from '../../../services/backupService';
 import { AppSetting, BackupFrequency, UpdateSettingsRequest } from '../../../features/setting/types';
 import { useLanguage } from '../../../contexts/language-context';
@@ -116,7 +117,7 @@ export default function AdminSettingsPage() {
   const { t } = useLanguage();
   const { can, user: authUser } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'backup' | 'invoice' | 'payment_methods'>('invoice');
+  const [activeTab, setActiveTab] = useState<'backup' | 'invoice' | 'payment_methods' | 'more'>('invoice');
 
   useEffect(() => {
     setMounted(true);
@@ -127,13 +128,15 @@ export default function AdminSettingsPage() {
         setActiveTab('backup');
       } else if (tabParam === 'payment_methods' || tabParam === 'payment') {
         setActiveTab('payment_methods');
+      } else if (tabParam === 'more' || tabParam === 'currency' || tabParam === 'exchange_rate') {
+        setActiveTab('more');
       } else if (tabParam === 'invoice' || tabParam === 'settings' || tabParam === 'app_setting') {
         setActiveTab('invoice');
       }
     }
   }, []);
 
-  const handleTabChange = (tab: 'backup' | 'invoice' | 'payment_methods') => {
+  const handleTabChange = (tab: 'backup' | 'invoice' | 'payment_methods' | 'more') => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -153,6 +156,7 @@ export default function AdminSettingsPage() {
     store_footer_note: '',
     is_logo_enabled: true,
     is_footer_enabled: true,
+    exchange_rate: 4000,
   });
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -187,6 +191,7 @@ export default function AdminSettingsPage() {
       setErrorMessage(null);
       const data = await settingService.getSettings();
       setSettings(data);
+      const effectiveRate = data.exchange_rate ? Number(data.exchange_rate) : 4000;
       setForm({
         auto_backup: data.auto_backup,
         backup_frequency: data.backup_frequency as BackupFrequency,
@@ -198,7 +203,11 @@ export default function AdminSettingsPage() {
         store_footer_note: data.store_footer_note ?? '',
         is_logo_enabled: data.is_logo_enabled ?? true,
         is_footer_enabled: data.is_footer_enabled ?? true,
+        exchange_rate: effectiveRate,
       });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pos_exchange_rate', String(effectiveRate));
+      }
       if (data.store_logo_path) setLogoPreview(data.store_logo_path);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to load settings. Please try again.');
@@ -229,7 +238,7 @@ export default function AdminSettingsPage() {
     fetchBackups();
   }, [fetchSettings, fetchBackups]);
 
-  // Single unified save — sends settings through PUT /settings
+  // Single unified save — sends settings through PUT /settings and synchronizes exchange rate
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -240,7 +249,31 @@ export default function AdminSettingsPage() {
       const updated = await settingService.updateSettings(form);
       setSettings(updated);
 
-      setSuccessMessage('All settings saved successfully.');
+      // Also ensure receipt-settings endpoint is explicitly updated with exchange_rate
+      if (form.exchange_rate) {
+        receiptSettingService.updateSettings({
+          store_name: form.store_name || updated.store_name || 'My Store',
+          phone: form.store_phone || undefined,
+          address: form.store_address || undefined,
+          tax_id: form.store_tax_id || undefined,
+          footer_note: form.store_footer_note || undefined,
+          is_logo_enabled: form.is_logo_enabled,
+          is_footer_enabled: form.is_footer_enabled,
+          exchange_rate: Number(form.exchange_rate),
+        }).catch((e) => console.warn('Secondary receipt settings sync:', e));
+      }
+
+      // Store in localStorage & notify POS checkout tabs in real-time
+      if (typeof window !== 'undefined' && form.exchange_rate) {
+        localStorage.setItem('pos_exchange_rate', String(form.exchange_rate));
+        window.dispatchEvent(new CustomEvent('pos_exchange_rate_updated', { detail: form.exchange_rate }));
+      }
+
+      if (activeTab === 'more') {
+        setSuccessMessage(`បានរក្សាទុកអត្រាប្តូរប្រាក់ 1 USD = ${(form.exchange_rate ?? 4000).toLocaleString()} ៛ ដោយជោគជ័យ!`);
+      } else {
+        setSuccessMessage('All settings saved successfully.');
+      }
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to save settings. Please try again.');
@@ -465,6 +498,21 @@ export default function AdminSettingsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
           {t('settings.tab_payment_methods', 'Payment Methods')}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('more')}
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            activeTab === 'more'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
+              : 'text-foreground/70 hover:bg-secondary/40 hover:text-foreground'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          {t('settings.tab_more', 'More')}
         </button>
       </div>
 
@@ -964,6 +1012,115 @@ export default function AdminSettingsPage() {
 
           {/* ── TAB 3: Payment Methods ── */}
           {activeTab === 'payment_methods' && <PaymentMethodsTab />}
+
+          {/* ── TAB 4: More Settings (Exchange Rate & Currency) ── */}
+          {activeTab === 'more' && (
+            <div className="bg-card border border-border/40 rounded-3xl shadow-sm overflow-hidden space-y-6">
+              <div className="flex items-center justify-between gap-4 px-7 py-6 border-b border-border/20 bg-secondary/10">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <span className="text-xl font-black">៛</span>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-extrabold text-foreground tracking-tight">
+                      {t('settings.more_title', 'More Settings / ការកំណត់ផ្សេងៗ')}
+                    </h2>
+                    <p className="text-[11px] text-foreground/50 mt-0.5">
+                      {t('settings.more_desc', 'Daily currency exchange rates and advanced financial configurations for POS checkout.')}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-white font-extrabold text-xs rounded-xl shadow-md shadow-primary/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      <span>{t('settings.saving', 'Saving...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{t('settings.save_rate', 'Save Rate')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="p-7 space-y-6">
+                {/* Exchange Rate Card */}
+                <div className="p-6 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-sm flex items-center justify-center shrink-0">
+                          ៛
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-black text-foreground">
+                            {t('settings.exchange_rate_title', 'Daily Exchange Rate / អត្រាប្តូរប្រាក់ប្រចាំថ្ងៃ (1 USD = ? ៛)')}
+                          </h3>
+                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                            {t('settings.exchange_rate_current', `អត្រាបច្ចុប្បន្ន: $1.00 = ${(form.exchange_rate ?? 4000).toLocaleString()} ៛`)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-foreground/60 mt-2 leading-relaxed max-w-xl">
+                        {t('settings.exchange_rate_desc', 'អត្រានេះនឹងត្រូវយកទៅគណនាស្វ័យប្រវត្តិនៅលើផ្ទាំងទូទាត់ប្រាក់ (POS Checkout), ប្រាក់អាប់ (Change), ប្រាក់នៅខ្វះ (Amount Short) និងការបោះពុម្ពវិក្កយបត្រ។ ឧទាហរណ៍៖ ថ្ងៃនេះ 4,000៛ ស្អែក 4,100៛។')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+                      <span className="text-xs font-black text-foreground/70">$1.00 =</span>
+                      <div className="relative w-44">
+                        <input
+                          id="exchange-rate-input"
+                          type="number"
+                          min="100"
+                          step="50"
+                          value={form.exchange_rate ?? 4000}
+                          onChange={(e) => updateForm('exchange_rate', parseFloat(e.target.value) || 0)}
+                          placeholder="4000"
+                          className="w-full pl-4 pr-10 py-3 rounded-xl border border-amber-500/40 bg-white dark:bg-card text-base font-black text-amber-600 dark:text-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/25 outline-none transition-all shadow-sm"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-amber-600/70 dark:text-amber-400/70">
+                          ៛
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Rate Presets */}
+                  <div className="pt-3 border-t border-amber-500/15 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-bold text-foreground/45 uppercase tracking-wider mr-1">Quick Select:</span>
+                    {[4000, 4050, 4100, 4150, 4200].map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => updateForm('exchange_rate', rate)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          form.exchange_rate === rate
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'bg-secondary/40 text-foreground/70 hover:bg-secondary hover:text-foreground'
+                        }`}
+                      >
+                        1$ = {rate.toLocaleString()} ៛
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

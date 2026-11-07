@@ -39,17 +39,26 @@ export default function AccessDenied({
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          {feature?.toLowerCase().includes('dashboard') ? (
+            <Link
+              href="/cashier/checkout"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all duration-150 shadow-md shadow-primary/20 text-center"
+            >
+              Go to Checkout POS
+            </Link>
+          ) : (
+            <Link
+              href="/admin/dashboard"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all duration-150 shadow-md shadow-primary/20 text-center"
+            >
+              Back to Dashboard
+            </Link>
+          )}
           <Link
-            href="/admin/dashboard"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all duration-150 shadow-md shadow-primary/20 text-center"
-          >
-            Back to Dashboard
-          </Link>
-          <Link
-            href="/admin/sales"
+            href="/admin/products"
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-bold transition-all duration-150 text-center"
           >
-            Store Operations
+            Product Catalog
           </Link>
         </div>
       </div>

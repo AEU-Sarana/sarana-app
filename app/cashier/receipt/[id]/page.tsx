@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { saleService } from '../../../../services/saleService';
 import { printReceipt } from '../../../../libs/printReceipt';
+import { receiptSettingService } from '../../../../services/receiptSettingService';
+import { ReceiptSetting } from '../../../../features/receipt/types';
 
 // Approximate KHR per USD exchange rate
 const KHR_RATE = 4100;
@@ -32,6 +34,7 @@ interface MockOrder {
   payment_method: string;
   received_amount: number;
   change_amount: number;
+  exchange_rate?: number;
 }
 
 const MOCK_RECEIPTS_DB: Record<string, MockOrder> = {
@@ -176,10 +179,15 @@ interface PageProps {
 export default function CashierReceiptPage({ params }: PageProps) {
   const router = useRouter();
   const [order, setOrder] = useState<MockOrder | null>(null);
+  const [storeSettings, setStoreSettings] = useState<ReceiptSetting | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    receiptSettingService.getSettings()
+      .then(setStoreSettings)
+      .catch(() => {});
+
     async function loadReceipt() {
       setIsLoading(true);
       setError(null);
@@ -230,6 +238,7 @@ export default function CashierReceiptPage({ params }: PageProps) {
               0,
               (apiOrder.received_amount || apiOrder.total_amount) - apiOrder.total_amount,
             ),
+            exchange_rate: apiOrder.exchange_rate ? Number(apiOrder.exchange_rate) : undefined,
           });
         } catch (err) {
           console.error('Failed to load order from API:', err);
@@ -281,6 +290,21 @@ export default function CashierReceiptPage({ params }: PageProps) {
     loadReceipt();
   }, [params.id]);
 
+  const logoSrc = storeSettings?.logo_path || '/logo.jpg';
+  const showLogo = storeSettings?.is_logo_enabled ?? true;
+  const storeName = storeSettings?.store_name || 'ឱសថស្ថាន';
+  const storePhone = storeSettings?.phone || '017 62 26 26';
+  const storeAddress = storeSettings?.address;
+  const storeTaxId = storeSettings?.tax_id;
+  const footerNote = storeSettings?.footer_note || 'THANK YOU FOR YOUR PURCHASE!';
+  const showFooter = storeSettings?.is_footer_enabled ?? true;
+
+  const cachedRate = typeof window !== 'undefined' ? Number(localStorage.getItem('pos_exchange_rate')) : 0;
+  const activeRate =
+    order?.exchange_rate ||
+    (storeSettings?.exchange_rate ? Number(storeSettings.exchange_rate) : 0) ||
+    (cachedRate > 0 ? cachedRate : 4000);
+
   const handlePrint = () => {
     if (!order) return;
 
@@ -305,7 +329,16 @@ export default function CashierReceiptPage({ params }: PageProps) {
       total_amount: order.total_amount,
       received_amount: order.received_amount,
       change_amount: order.change_amount,
-      exchange_rate: KHR_RATE
+      exchange_rate: activeRate,
+      // Dynamic store settings
+      store_name: storeName,
+      store_logo: logoSrc,
+      store_phone: storePhone,
+      store_address: storeAddress,
+      store_tax_id: storeTaxId,
+      footer_note: footerNote,
+      is_logo_enabled: showLogo,
+      is_footer_enabled: showFooter,
     });
   };
 
@@ -331,7 +364,7 @@ export default function CashierReceiptPage({ params }: PageProps) {
     );
   }
 
-  const totalKHR = Math.round(order.total_amount * KHR_RATE).toLocaleString();
+  const totalKHR = Math.round(order.total_amount * activeRate).toLocaleString();
   const isCash = order.payment_method === 'CASH' || order.payment_method === 'Cash';
 
   return (
@@ -378,40 +411,51 @@ export default function CashierReceiptPage({ params }: PageProps) {
 
             {/* Left: logo (in fixed-size wrapper) + phone */}
             <div className="flex flex-col items-start gap-1.5 shrink-0 w-[38%]">
-              {/* Wrapper div enforces logo size in both screen and print */}
-              <div
-                className="receipt-logo-box"
-                style={{
-                  width: '72px',
-                  height: '72px',
-                  minWidth: '72px',
-                  maxWidth: '72px',
-                  minHeight: '72px',
-                  maxHeight: '72px',
-                  overflow: 'hidden',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  flexShrink: 0,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo.jpg"
-                  alt="Pharmacy Logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-              <span className="text-[9px] font-bold text-gray-700 leading-snug">
-                ទូរស័ព្ទ: 017 62 26 26
-              </span>
+              {showLogo && (
+                <div
+                  className="receipt-logo-box"
+                  style={{
+                    width: '72px',
+                    height: '72px',
+                    minWidth: '72px',
+                    maxWidth: '72px',
+                    minHeight: '72px',
+                    maxHeight: '72px',
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoSrc}
+                    alt="Pharmacy Logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              )}
+              {storePhone && (
+                <span className="text-[9px] font-bold text-gray-700 leading-snug">
+                  ទូរស័ព្ទ: {storePhone}
+                </span>
+              )}
+              {storeAddress && (
+                <span className="text-[8px] text-gray-500 leading-tight">
+                  {storeAddress}
+                </span>
+              )}
             </div>
 
             {/* Right: bilingual pharmacy + invoice label */}
             <div className="flex flex-col items-end justify-center flex-1 pl-4 gap-0.5">
-              <span className="text-[14px] font-black text-black leading-tight">ឱសថស្ថាន</span>
+              <span className="text-[14px] font-black text-black leading-tight">{storeName}</span>
               <span className="text-[9px] font-extrabold text-gray-600 uppercase tracking-widest">PHARMACIE</span>
               <span className="text-[15px] font-black text-black leading-tight mt-1.5">វិក្កយបត្រ</span>
               <span className="text-[11px] font-black text-black uppercase tracking-widest">INVOICE</span>
+              {storeTaxId && (
+                <span className="text-[8px] text-gray-500 mt-0.5">VATTIN: {storeTaxId}</span>
+              )}
             </div>
           </div>
 
@@ -504,10 +548,16 @@ export default function CashierReceiptPage({ params }: PageProps) {
             )}
             {/* TOTAL box */}
             <div className="receipt-total-box flex justify-between items-center border-2 border-black p-2.5 mt-2">
-              <span className="text-[11px] font-black uppercase text-black">សរុប TOTAL</span>
+              <div>
+                <span className="text-[11px] font-black uppercase text-black block">សរុប TOTAL</span>
+                <span className="text-[8px] font-bold text-gray-500 block">Rate: $1 = {activeRate.toLocaleString()} ៛</span>
+              </div>
               <div className="text-right">
                 <div className="text-[16px] font-black text-black tracking-tight">
                   ${order.total_amount.toFixed(2)}
+                </div>
+                <div className="text-[10px] font-bold text-black">
+                  {totalKHR} ៛
                 </div>
               </div>
             </div>
@@ -547,14 +597,16 @@ export default function CashierReceiptPage({ params }: PageProps) {
           </div>
 
           {/* ── FOOTER ── */}
-          <div className="text-center space-y-1.5">
-            <p className="text-[9.5px] font-black uppercase tracking-widest text-black">
-              THANK YOU FOR YOUR PURCHASE!
-            </p>
-            <p className="text-[7.5px] text-gray-400">
-              Medicines are non-refundable once opened. Please check expiry dates.
-            </p>
-          </div>
+          {showFooter && (
+            <div className="text-center space-y-1.5">
+              <p className="text-[9.5px] font-black uppercase tracking-widest text-black">
+                {footerNote}
+              </p>
+              <p className="text-[7.5px] text-gray-400">
+                Medicines are non-refundable once opened. Please check expiry dates.
+              </p>
+            </div>
+          )}
 
         </div>
         {/* End #printable-receipt-content */}

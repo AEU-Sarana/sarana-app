@@ -100,9 +100,9 @@ export default function AdminCancellationsPage() {
       {/* Page Title Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/40 rounded-3xl p-6 shadow-sm select-none">
         <div>
-          <h2 className="text-xl font-black text-foreground tracking-tight">Order Cancellation Requests</h2>
+          <h2 className="text-xl font-black text-foreground tracking-tight">{t('cancellations.title', 'Order Cancellation Requests')}</h2>
           <p className="text-xs text-foreground/50 mt-1 font-medium">
-            Review, approve, or reject cashier order cancellation requests. Approving will automatically restock items into inventory.
+            {t('cancellations.subtitle', 'Review, approve, or reject cashier order cancellation requests. Approving will automatically restock items into inventory.')}
           </p>
         </div>
         <button
@@ -114,7 +114,7 @@ export default function AdminCancellationsPage() {
           <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Refresh Queue
+          {t('cancellations.refresh_queue', 'Refresh Queue')}
         </button>
       </div>
 
@@ -142,7 +142,7 @@ export default function AdminCancellationsPage() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            <p className="text-xs font-bold text-foreground/45">Loading pending cancellation requests...</p>
+            <p className="text-xs font-bold text-foreground/45">{t('cancellations.loading', 'Loading pending cancellation requests...')}</p>
           </div>
         )}
 
@@ -153,8 +153,8 @@ export default function AdminCancellationsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-sm font-bold text-foreground/75">No pending cancellation requests</p>
-            <p className="text-xs text-foreground/40 font-semibold">All cashier orders are clean and up to date.</p>
+            <p className="text-sm font-bold text-foreground/75">{t('cancellations.no_requests', 'No pending cancellation requests')}</p>
+            <p className="text-xs text-foreground/40 font-semibold">{t('cancellations.all_clean', 'All cashier orders are clean and up to date.')}</p>
           </div>
         )}
 
@@ -170,20 +170,20 @@ export default function AdminCancellationsPage() {
                         {order.receipt_number}
                       </span>
                       <span className="text-[10px] text-foreground/50 font-semibold block mt-0.5">
-                        Requested {new Date(order.order_date).toLocaleString()}
+                        {t('cancellations.requested', 'Requested')} {new Date(order.order_date).toLocaleString()}
                       </span>
                     </div>
                     <span className="text-base font-black text-foreground">{formatUSD(order.total_amount)}</span>
                   </div>
 
                   <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 p-2.5 rounded-xl text-xs font-semibold">
-                    <span className="text-[10px] font-bold uppercase tracking-wider block text-amber-600/70 mb-0.5">Reason:</span>
-                    &quot;{order.cancel_reason || 'No reason specified'}&quot;
+                    <span className="text-[10px] font-bold uppercase tracking-wider block text-amber-600/70 mb-0.5">{t('cancellations.reason_label', 'Reason:')}</span>
+                    &quot;{order.cancel_reason || t('cancellations.no_reason', 'No reason specified')}&quot;
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
                     <span className="text-[10px] text-foreground/50 font-bold">
-                      Cashier: {order.seller_name || `User #${order.seller_id}`}
+                      {t('cancellations.cashier_label', 'Cashier:')} {order.seller_name || `User #${order.seller_id}`}
                     </span>
 
                     <div className="flex items-center gap-2">
@@ -195,21 +195,21 @@ export default function AdminCancellationsPage() {
                         }}
                         className="px-2.5 py-1.5 bg-secondary/60 hover:bg-secondary text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
-                        Details
+                        {t('cancellations.btn_details', 'Details')}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOpenApproveModal(order)}
                         className="px-2.5 py-1.5 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
                       >
-                        Approve
+                        {t('cancellations.btn_approve', 'Approve')}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOpenRejectModal(order)}
                         className="px-2.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
                       >
-                        Reject
+                        {t('cancellations.btn_reject', 'Reject')}
                       </button>
                     </div>
                   </div>
@@ -222,12 +222,12 @@ export default function AdminCancellationsPage() {
               <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/30 bg-secondary/15">
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Receipt ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Order Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Cashier</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">Cancellation Reason</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Total Amount</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('cancellations.col_receipt_id', 'Receipt ID')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('cancellations.col_order_date', 'Order Date')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('cancellations.col_cashier', 'Cashier')}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-foreground/45">{t('cancellations.col_reason', 'Cancellation Reason')}</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('cancellations.col_total', 'Total Amount')}</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-foreground/45">{t('common.actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/10">
@@ -249,7 +249,7 @@ export default function AdminCancellationsPage() {
 
                     <td className="px-6 py-4">
                       <div className="max-w-xs bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-xl text-xs font-semibold">
-                        &quot;{order.cancel_reason || 'No reason specified'}&quot;
+                        &quot;{order.cancel_reason || t('cancellations.no_reason', 'No reason specified')}&quot;
                       </div>
                     </td>
 
@@ -267,7 +267,7 @@ export default function AdminCancellationsPage() {
                           }}
                           className="px-3 py-1.5 bg-secondary/60 hover:bg-secondary text-foreground text-xs font-bold rounded-xl transition-all cursor-pointer"
                         >
-                          View Details
+                          {t('cancellations.btn_details', 'View Details')}
                         </button>
 
                         <button
@@ -275,7 +275,7 @@ export default function AdminCancellationsPage() {
                           onClick={() => handleOpenApproveModal(order)}
                           className="px-3 py-1.5 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
                         >
-                          Approve
+                          {t('cancellations.btn_approve', 'Approve')}
                         </button>
 
                         <button
@@ -283,7 +283,7 @@ export default function AdminCancellationsPage() {
                           onClick={() => handleOpenRejectModal(order)}
                           className="px-3 py-1.5 bg-destructive hover:bg-destructive/90 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
                         >
-                          Reject
+                          {t('cancellations.btn_reject', 'Reject')}
                         </button>
                       </div>
                     </td>
@@ -310,9 +310,9 @@ export default function AdminCancellationsPage() {
           <div className="bg-card w-full max-w-md rounded-3xl border border-border/60 shadow-2xl p-6 space-y-4 animate-scale-up relative">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="text-base font-black text-foreground">Approve Order Cancellation</h4>
+                <h4 className="text-base font-black text-foreground">{t('cancellations.modal_approve_title', 'Approve Order Cancellation')}</h4>
                 <p className="text-xs text-foreground/60 mt-1">
-                  Are you sure you want to approve cancellation for Order <span className="font-mono font-bold text-foreground bg-secondary/40 px-1.5 py-0.5 rounded">{approvingOrder.receipt_number}</span>?
+                  {t('cancellations.modal_approve_confirm', 'Are you sure you want to approve cancellation for Order')} <span className="font-mono font-bold text-foreground bg-secondary/40 px-1.5 py-0.5 rounded">{approvingOrder.receipt_number}</span>?
                 </p>
               </div>
               <button
@@ -329,15 +329,15 @@ export default function AdminCancellationsPage() {
 
             <div className="bg-secondary/20 border border-border/30 rounded-2xl p-3.5 space-y-2 text-xs">
               <div className="flex justify-between text-foreground/70 font-semibold">
-                <span>Total Amount:</span>
+                <span>{t('cancellations.col_total', 'Total Amount')}:</span>
                 <span className="font-bold text-foreground">{formatUSD(approvingOrder.total_amount)}</span>
               </div>
               <div className="flex justify-between text-foreground/70 font-semibold">
-                <span>Requested Reason:</span>
+                <span>{t('cancellations.modal_reason_label', 'Requested Reason:')}</span>
                 <span className="font-medium text-amber-600 dark:text-amber-400 max-w-[200px] truncate">&quot;{approvingOrder.cancel_reason}&quot;</span>
               </div>
               <div className="border-t border-border/20 pt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                Stock items will be automatically returned to inventory.
+                {t('cancellations.modal_restock_note', 'Stock items will be automatically returned to inventory.')}
               </div>
             </div>
 
@@ -348,7 +348,7 @@ export default function AdminCancellationsPage() {
                 disabled={isSubmittingApprove}
                 className="px-4 py-2 border border-border text-xs font-bold text-foreground/70 hover:bg-secondary/40 rounded-xl transition-all cursor-pointer"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -356,7 +356,7 @@ export default function AdminCancellationsPage() {
                 disabled={isSubmittingApprove}
                 className="px-4 py-2 bg-primary hover:bg-primary/95 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
               >
-                {isSubmittingApprove ? 'Approving...' : 'Confirm Approval'}
+                {isSubmittingApprove ? t('cancellations.modal_approving', 'Approving...') : t('cancellations.modal_confirm_approve', 'Confirm Approval')}
               </button>
             </div>
           </div>
@@ -369,9 +369,9 @@ export default function AdminCancellationsPage() {
           <div className="bg-card w-full max-w-md rounded-3xl border border-border/60 shadow-2xl p-6 space-y-4 animate-scale-up relative">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="text-base font-black text-foreground">Reject Cancellation Request</h4>
+                <h4 className="text-base font-black text-foreground">{t('cancellations.modal_reject_title', 'Reject Cancellation Request')}</h4>
                 <p className="text-xs text-foreground/60 mt-1">
-                  Rejecting this request will restore Order <span className="font-mono font-bold text-foreground bg-secondary/40 px-1.5 py-0.5 rounded">{rejectingOrder.receipt_number}</span> to COMPLETED status.
+                  {t('cancellations.modal_reject_desc', 'Rejecting this request will restore Order to COMPLETED status.')} <span className="font-mono font-bold text-foreground bg-secondary/40 px-1.5 py-0.5 rounded">{rejectingOrder.receipt_number}</span>
                 </p>
               </div>
               <button
@@ -389,7 +389,7 @@ export default function AdminCancellationsPage() {
             <form onSubmit={handleConfirmReject} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-foreground/75 mb-1">
-                  Rejection Reason (Optional)
+                  {t('cancellations.modal_reject_reason', 'Rejection Reason (Optional)')}
                 </label>
                 <textarea
                   rows={3}
@@ -407,14 +407,14 @@ export default function AdminCancellationsPage() {
                   disabled={isSubmittingReject}
                   className="px-4 py-2 border border-border text-xs font-bold text-foreground/70 hover:bg-secondary/40 rounded-xl transition-all cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingReject}
                   className="px-4 py-2 bg-destructive hover:bg-destructive/90 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
                 >
-                  {isSubmittingReject ? 'Rejecting...' : 'Confirm Rejection'}
+                  {isSubmittingReject ? t('cancellations.modal_rejecting', 'Rejecting...') : t('cancellations.modal_confirm_reject', 'Confirm Rejection')}
                 </button>
               </div>
             </form>

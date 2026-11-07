@@ -1,11 +1,30 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
+import { receiptSettingService } from '@/services/receiptSettingService';
+import { ReceiptSetting } from '@/features/receipt/types';
+
 interface POPrintableInvoiceProps {
   po: any;
 }
 
 export default function POPrintableInvoice({ po }: POPrintableInvoiceProps) {
+  const [storeSettings, setStoreSettings] = useState<ReceiptSetting | null>(null);
+
+  useEffect(() => {
+    receiptSettingService
+      .getSettings()
+      .then(setStoreSettings)
+      .catch(() => {});
+  }, []);
+
   if (!po) return null;
+
+  const storeName = storeSettings?.store_name || 'ឱសថស្ថាន ពេជ្រ ចំរើន (Pharmacy Pich Chamroeun)';
+  const storePhone = storeSettings?.phone || '017 62 26 26';
+  const storeAddress = storeSettings?.address || 'Phnom Penh, Cambodia';
+  const storeLogo = storeSettings?.logo_path;
+  const isLogoEnabled = storeSettings?.is_logo_enabled ?? false;
 
   const supplierName = po.supplier?.companyName || po.suppliers?.company_name || 'Vendor';
   const supplierPhone = po.supplier?.phone || po.suppliers?.phone;
@@ -15,14 +34,33 @@ export default function POPrintableInvoice({ po }: POPrintableInvoiceProps) {
 
   const items = po.purchase_order_items || [];
 
+  const calculatedSubtotal = Number(
+    po.subtotal ??
+    po.sub_total ??
+    (items.length > 0
+      ? items.reduce(
+          (sum: number, it: any) =>
+            sum + (Number(it.subtotal) || Number(it.orderedQuantity || 0) * Number(it.unitCost || 0)),
+          0
+        )
+      : (po.totalAmount || po.total_amount || 0))
+  );
+
   return (
     <div id="printable-po-invoice" className="hidden print:block print:p-8 bg-white text-black text-sm">
       {/* Header */}
       <div className="flex justify-between items-start border-b border-gray-300 pb-6 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">MICROSTORE POS</h1>
-          <p className="text-xs text-gray-600">Phnom Penh, Cambodia</p>
-          <p className="text-xs text-gray-600">Tel: +855 12 345 678 | Email: purchasing@microstore.com</p>
+        <div className="flex items-start gap-4">
+          {isLogoEnabled && storeLogo && (
+            <img src={storeLogo} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-gray-200" />
+          )}
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-gray-900">{storeName}</h1>
+            <p className="text-xs text-gray-600 font-medium">{storeAddress}</p>
+            <p className="text-xs text-gray-600 font-medium">
+              Tel: {storePhone} | Email: purchasing@pichchamroeun.com
+            </p>
+          </div>
         </div>
         <div className="text-right">
           <h2 className="text-xl font-bold text-gray-800 uppercase">Purchase Order</h2>
@@ -83,7 +121,7 @@ export default function POPrintableInvoice({ po }: POPrintableInvoiceProps) {
         <div className="w-64 space-y-2 text-right">
           <div className="flex justify-between text-xs text-gray-600">
             <span>Subtotal:</span>
-            <span>${Number(po.subtotal).toFixed(2)}</span>
+            <span>${calculatedSubtotal.toFixed(2)}</span>
           </div>
           {Number(po.discountAmount || po.discount_amount) > 0 ? (
             <div className="flex justify-between text-xs text-gray-600">

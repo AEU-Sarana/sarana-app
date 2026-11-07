@@ -18,6 +18,7 @@ export interface AppSetting {
   store_footer_note?: string | null;
   is_logo_enabled?: boolean;
   is_footer_enabled?: boolean;
+  exchange_rate?: number;
 }
 
 export interface UpdateSettingsRequest {
@@ -35,4 +36,5 @@ export interface UpdateSettingsRequest {
   store_footer_note?: string;
   is_logo_enabled?: boolean;
   is_footer_enabled?: boolean;
+  exchange_rate?: number;
 }

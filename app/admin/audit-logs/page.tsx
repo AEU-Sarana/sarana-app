@@ -4,12 +4,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   auditLogService,
   AuditLogItem,
-  AuditLogDetail,
   AuditFilterOptions,
 } from '../../../services/auditLogService';
 import { AuditLogFilters } from '../../../components/audit-logs/audit-log-filters';
 import { AuditLogTable } from '../../../components/audit-logs/audit-log-table';
-import { AuditLogDetailModal } from '../../../components/audit-logs/audit-log-detail-modal';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
 import AccessDenied from '../../../components/ui/access-denied';
@@ -45,12 +43,6 @@ export default function AdminAuditLogsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [isAutoRefresh, setIsAutoRefresh] = useState(false);
-
-  // Inspection modal state
-  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
-  const [logDetail, setLogDetail] = useState<AuditLogDetail | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Debounce ref for search
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,21 +140,6 @@ export default function AdminAuditLogsPage() {
     }, 15000);
     return () => clearInterval(interval);
   }, [isAutoRefresh, fetchLogs, page, limit]);
-
-  // Open log details
-  const handleSelectLog = async (log: AuditLogItem) => {
-    setSelectedLog(log);
-    setIsDetailModalOpen(true);
-    setIsLoadingDetail(true);
-    try {
-      const fullDetail = await auditLogService.getAuditLogById(log.logId);
-      setLogDetail(fullDetail);
-    } catch (error) {
-      console.error('Failed to fetch log details:', error);
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
 
   // Export CSV handler
   const handleExportCsv = async () => {
@@ -316,19 +293,6 @@ export default function AdminAuditLogsPage() {
           setLimit(newLimit);
           setPage(1);
         }}
-        onSelectLog={handleSelectLog}
-      />
-
-      {/* Inspection Detail Modal */}
-      <AuditLogDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => {
-          setIsDetailModalOpen(false);
-          setSelectedLog(null);
-          setLogDetail(null);
-        }}
-        logDetail={logDetail}
-        isLoading={isLoadingDetail}
       />
     </div>
   );

@@ -68,7 +68,7 @@ export default function AdminSuppliersPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Purchase Orders
+            {t('suppliers.back_to_po', 'Back to Purchase Orders')}
           </Link>
           <button
             onClick={handleOpenAdd}
@@ -102,11 +102,11 @@ export default function AdminSuppliersPage() {
       <div className="block md:hidden space-y-4">
         {loading ? (
           <div className="bg-card p-6 rounded-2xl border border-border/40 text-center text-sm text-muted-foreground">
-            Loading suppliers...
+            {t('suppliers.loading', 'Loading suppliers...')}
           </div>
         ) : suppliers.length === 0 ? (
           <div className="bg-card p-6 rounded-2xl border border-border/40 text-center text-sm text-muted-foreground">
-            No suppliers found. Click "Add Supplier" to create your first vendor profile.
+            {t('suppliers.no_data', 'No suppliers found. Click "Add Supplier" to create your first vendor profile.')}
           </div>
         ) : (
           suppliers.map((sup) => (
@@ -121,7 +121,7 @@ export default function AdminSuppliersPage() {
                   </div>
                   {sup.taxId || sup.tax_id ? (
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      Tax #: <span className="font-medium text-foreground">{sup.taxId || sup.tax_id}</span>
+                      {t('suppliers.tax_num', 'Tax #')}: <span className="font-medium text-foreground">{sup.taxId || sup.tax_id}</span>
                     </div>
                   ) : null}
                 </div>
@@ -132,23 +132,23 @@ export default function AdminSuppliersPage() {
                       : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                   }`}
                 >
-                  {sup.isActive || sup.is_active ? 'Active' : 'Inactive'}
+                  {sup.isActive || sup.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Contact Person</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">{t('suppliers.col_contact_person', 'Contact Person')}</span>
                   <span className="font-medium text-foreground">{sup.contactPerson || sup.contact_person || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Terms</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">{t('suppliers.col_terms', 'Terms')}</span>
                   <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-border/40">
                     {sup.paymentTerms || sup.payment_terms || 'NET_30'}
                   </span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Phone / Email</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">{t('suppliers.col_phone_email', 'Phone / Email')}</span>
                   <div className="font-medium text-foreground">{sup.phone || '—'}</div>
                   {sup.email ? <div className="text-muted-foreground">{sup.email}</div> : null}
                 </div>
@@ -159,7 +159,7 @@ export default function AdminSuppliersPage() {
                   onClick={() => handleOpenEdit(sup)}
                   className="px-4 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-medium transition-colors border border-border/40 cursor-pointer"
                 >
-                  Edit Supplier
+                  {t('suppliers.edit_supplier', 'Edit Supplier')}
                 </button>
               </div>
             </div>
@@ -173,25 +173,25 @@ export default function AdminSuppliersPage() {
           <table className="w-full text-left text-sm text-foreground">
             <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
               <tr>
-                <th className="px-6 py-4">Company Name</th>
-                <th className="px-6 py-4">Contact Person</th>
-                <th className="px-6 py-4">Phone / Email</th>
-                <th className="px-6 py-4">Terms</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{t('suppliers.col_company_name', 'Company Name')}</th>
+                <th className="px-6 py-4">{t('suppliers.col_contact_person', 'Contact Person')}</th>
+                <th className="px-6 py-4">{t('suppliers.col_phone_email', 'Phone / Email')}</th>
+                <th className="px-6 py-4">{t('suppliers.col_terms', 'Terms')}</th>
+                <th className="px-6 py-4">{t('suppliers.col_status', 'Status')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    Loading suppliers...
+                    {t('suppliers.loading', 'Loading suppliers...')}
                   </td>
                 </tr>
               ) : suppliers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No suppliers found. Click "Add Supplier" to create your first vendor profile.
+                    {t('suppliers.no_data', 'No suppliers found. Click "Add Supplier" to create your first vendor profile.')}
                   </td>
                 </tr>
               ) : (
@@ -200,7 +200,7 @@ export default function AdminSuppliersPage() {
                     <td className="px-6 py-4 font-semibold text-foreground">
                       {sup.companyName || sup.company_name}
                       {sup.taxId || sup.tax_id ? (
-                        <div className="text-xs font-normal text-muted-foreground mt-0.5">Tax #: {sup.taxId || sup.tax_id}</div>
+                        <div className="text-xs font-normal text-muted-foreground mt-0.5">{t('suppliers.tax_num', 'Tax #')}: {sup.taxId || sup.tax_id}</div>
                       ) : null}
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
@@ -223,7 +223,7 @@ export default function AdminSuppliersPage() {
                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                         }`}
                       >
-                        {sup.isActive || sup.is_active ? 'Active' : 'Inactive'}
+                        {sup.isActive || sup.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -231,7 +231,7 @@ export default function AdminSuppliersPage() {
                         onClick={() => handleOpenEdit(sup)}
                         className="px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg text-xs font-medium transition-colors border border-border/40 cursor-pointer"
                       >
-                        Edit
+                        {t('common.edit', 'Edit')}
                       </button>
                     </td>
                   </tr>

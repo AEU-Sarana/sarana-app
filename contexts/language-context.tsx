@@ -26,6 +26,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem(LANG_STORAGE_KEY) as Locale;
       if (saved && (saved === 'en' || saved === 'km')) {
         setLocaleState(saved);
+        document.documentElement.lang = saved;
       }
       setIsHydrated(true);
     }
@@ -35,6 +36,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale);
     if (typeof window !== 'undefined') {
       localStorage.setItem(LANG_STORAGE_KEY, newLocale);
+      document.documentElement.lang = newLocale;
     }
   };
 

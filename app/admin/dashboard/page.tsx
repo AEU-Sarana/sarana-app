@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import Link from 'next/link';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
 import { dashboardService } from '../../../services/dashboardService';
-import { DashboardOverviewResponse, TopSellingProduct } from '../../../features/dashboard/types';
+import { DashboardOverviewResponse, TopSellingProduct, MonthlyRevenueResponse } from '../../../features/dashboard/types';
 import { stockService } from '../../../services/stockService';
 import { customerService } from '../../../services/customerService';
 import DashboardCard from '../../../components/dashboard/dashboard-card';
@@ -14,6 +14,8 @@ import ProductHealthDonut from '../../../components/dashboard/product-health-don
 import { TopProductsCard } from '../../../components/dashboard/top-products-card';
 import { getInitials } from '../../../libs/utils';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
+import AccessDenied from '../../../components/ui/access-denied';
 
 export interface CustomerPurchase {
   productId: number;
@@ -130,39 +132,89 @@ const mockCustomers: CustomerWithPurchases[] = [
   }
 ];
 
-function RevenueGrowthChart() {
+interface RevenueGrowthChartProps {
+  data: MonthlyRevenueResponse | null;
+  isLoading: boolean;
+}
+
+function RevenueGrowthChart({ data, isLoading }: RevenueGrowthChartProps) {
   const { t } = useLanguage();
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const values = [1200, 1800, 2300, 1950, 2100, 1700, 1500, 1900, 2400, 2800, 2200, 3000];
-  const maxValue = 3500;
-
-  const yTicks = [
-    { label: '$0',  value: 0 },
-    { label: '$1K', value: 1000 },
-    { label: '$2K', value: 2000 },
-    { label: '$3K', value: 3000 },
+  const months = data?.months?.map((m) => m.month) || [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
+  const values = data?.values && data.values.length === 12
+    ? data.values
+    : new Array(12).fill(0);
 
-  const fmt = (v: number) => `$${(v / 1000).toFixed(1)}K`;
+  const rawMax = Math.max(...values, 0);
+
+  // Compute clean, human-readable y-axis intervals
+  let step = 1000;
+  if (rawMax <= 50) step = 15;
+  else if (rawMax <= 100) step = 25;
+  else if (rawMax <= 250) step = 50;
+  else if (rawMax <= 500) step = 100;
+  else if (rawMax <= 1000) step = 250;
+  else if (rawMax <= 2500) step = 500;
+  else if (rawMax <= 5000) step = 1000;
+  else if (rawMax <= 10000) step = 2500;
+  else if (rawMax <= 25000) step = 5000;
+  else {
+    const rough = Math.max(rawMax, 100) / 3;
+    const pow = Math.pow(10, Math.floor(Math.log10(rough)));
+    step = Math.ceil(rough / pow) * pow;
+  }
+
+  const ticksCount = 4;
+  const ceiling = Math.max(step * (ticksCount - 1), rawMax);
+  const maxValue = ceiling > 0 ? ceiling * 1.15 : 100;
+
+  const formatShort = (v: number) => {
+    if (v === 0) return '$0';
+    if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`;
+    return `$${v >= 100 ? Math.round(v) : v.toFixed(v % 1 === 0 ? 0 : 2)}`;
+  };
+
+  const yTicks = Array.from({ length: ticksCount }).map((_, i) => ({
+    label: formatShort(i * step),
+    value: i * step,
+  }));
+
+  const displayThreshold = rawMax > 0 ? rawMax * 0.5 : undefined;
+  const currentYear = data?.year || new Date().getFullYear();
+  const badgeLabel = `${t('dashboard.realtime', 'Real-time')} • ${currentYear}`;
 
   return (
-    <SplineChart
-      title={t('dashboard.revenue_growth', 'Revenue Growth')}
-      subtitle={t('dashboard.monthly_overview', 'Monthly analytics overview')}
-      badgeText={t('dashboard.realtime', 'Real-time')}
-      badgeAccentColor="emerald"
-      labels={months}
-      values={values}
-      maxValue={maxValue}
-      yTicks={yTicks}
-      peakLabelFormatter={fmt}
-      lineColor="#059669"
-      areaGradientId="area-gradient"
-      areaGradientColor="#10b981"
-      valueFormatter={fmt}
-      displayValueThreshold={2000}
-      fillClassName="fill-emerald-500 dark:fill-emerald-400"
-    />
+    <div className="relative h-full">
+      <SplineChart
+        title={t('dashboard.revenue_growth', 'Revenue Growth')}
+        subtitle={
+          data?.total_revenue !== undefined
+            ? `${t('dashboard.monthly_overview', 'Monthly analytics overview')} • Total: ${formatShort(data.total_revenue)}`
+            : t('dashboard.monthly_overview', 'Monthly analytics overview')
+        }
+        badgeText={badgeLabel}
+        badgeAccentColor="emerald"
+        labels={months}
+        values={values}
+        maxValue={maxValue}
+        yTicks={yTicks}
+        peakLabelFormatter={formatShort}
+        lineColor="#059669"
+        areaGradientId="area-gradient"
+        areaGradientColor="#10b981"
+        valueFormatter={formatShort}
+        displayValueThreshold={displayThreshold}
+        fillClassName="fill-emerald-500 dark:fill-emerald-400"
+      />
+      {isLoading && (
+        <div className="absolute top-4 right-28 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>Syncing...</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -217,10 +269,18 @@ function FormatBuyAtCell({ dateStr }: { dateStr: string | null }) {
 
 export default function AdminDashboardPage() {
   const currentUser = useSelector(selectCurrentUser);
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'ADMINISTRATOR';
+  const { can, user: authUser } = useAuth();
   const { t } = useLanguage();
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenueResponse | null>(null);
+  const [isRevenueLoading, setIsRevenueLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerWithPurchases[]>(mockCustomers);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -249,12 +309,14 @@ export default function AdminDashboardPage() {
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
+    setIsRevenueLoading(true);
     setError(null);
     try {
-      const [overviewRes, stockRes, customersRes] = await Promise.all([
+      const [overviewRes, stockRes, customersRes, revenueRes] = await Promise.all([
         dashboardService.getOverview().catch(() => null),
         stockService.getStockList({ limit: 1 }).catch(() => null),
         customerService.getCustomers({ limit: 100 }).catch(() => null),
+        dashboardService.getMonthlyRevenue().catch(() => null),
       ]);
       if (overviewRes) {
         setData(overviewRes);
@@ -268,11 +330,15 @@ export default function AdminDashboardPage() {
       if (customersRes && customersRes.customers) {
         setCustomers(customersRes.customers);
       }
+      if (revenueRes) {
+        setMonthlyRevenue(revenueRes);
+      }
       await fetchTopProducts(topProductsSort);
     } catch (err: any) {
       setError(err?.message || 'Failed to retrieve dashboard statistics.');
     } finally {
       setIsLoading(false);
+      setIsRevenueLoading(false);
     }
   }, [fetchTopProducts, topProductsSort]);
 
@@ -288,6 +354,16 @@ export default function AdminDashboardPage() {
     if (hour < 17) return t('dashboard.greeting_afternoon', 'Good afternoon');
     return t('dashboard.greeting_evening', 'Good evening');
   };
+
+  if (mounted && authUser && !can('dashboard.view')) {
+    return (
+      <AccessDenied
+        feature="Analytics Dashboard"
+        title="Dashboard Access Restricted"
+        message="Your account clearance does not have permission to view the performance dashboard. Please request clearance from your administrator."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -453,7 +529,7 @@ export default function AdminDashboardPage() {
               {/* Revenue Growth spline area chart + side cards area */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                 <div className="lg:col-span-7 flex flex-col gap-6">
-                  <RevenueGrowthChart />
+                  <RevenueGrowthChart data={monthlyRevenue} isLoading={isRevenueLoading} />
                 </div>
                 <div className="lg:col-span-5 flex flex-col gap-6">
                   <ProductHealthDonut

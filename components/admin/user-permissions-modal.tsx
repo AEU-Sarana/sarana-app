@@ -39,6 +39,14 @@ const ACTION_LABELS: Record<PermissionAction, { label: string }> = {
   all: { label: 'All' },
 };
 
+export const ADMIN_FORBIDDEN_FEATURES = [
+  'users.manage',
+  'roles.manage',
+  'settings.manage',
+  'backup.manage',
+  'security.audit_logs',
+];
+
 export default function UserPermissionsModal({
   isOpen,
   user,
@@ -51,6 +59,8 @@ export default function UserPermissionsModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const isStoreAdmin = user?.role === 'ADMIN';
 
   useEffect(() => {
     if (isOpen && user) {
@@ -80,8 +90,10 @@ export default function UserPermissionsModal({
       if (Array.isArray(rawPerms)) {
         for (const item of rawPerms) {
           if (typeof item === 'string') {
+            if (isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(item)) continue;
             newMap[item] = ['all', 'read', 'create', 'update', 'delete'];
           } else if (item && typeof item === 'object' && item.featureKey) {
+            if (isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(item.featureKey)) continue;
             newMap[item.featureKey] = Array.isArray(item.actions) ? item.actions : ['read'];
           }
         }
@@ -96,6 +108,8 @@ export default function UserPermissionsModal({
   };
 
   const handleActionToggle = (featureKey: string, action: PermissionAction) => {
+    if (isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(featureKey)) return;
+
     setPermissionMap((prev) => {
       const current = prev[featureKey] || [];
       let updated: PermissionAction[] = [];
@@ -137,6 +151,7 @@ export default function UserPermissionsModal({
   const handleSelectAllFull = () => {
     const fullMap: Record<string, PermissionAction[]> = {};
     for (const f of features) {
+      if (isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(f.key)) continue;
       fullMap[f.key] = ['all', 'read', 'create', 'update', 'delete'];
     }
     setPermissionMap(fullMap);
@@ -145,6 +160,7 @@ export default function UserPermissionsModal({
   const handleSelectAllRead = () => {
     const readMap: Record<string, PermissionAction[]> = {};
     for (const f of features) {
+      if (isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(f.key)) continue;
       readMap[f.key] = ['read'];
     }
     setPermissionMap(readMap);
@@ -156,9 +172,17 @@ export default function UserPermissionsModal({
 
   const handleResetDefault = () => {
     const defaultMap: Record<string, PermissionAction[]> = {};
-    for (const f of features) {
-      if (f.defaultCashier) {
-        defaultMap[f.key] = ['read', 'create', 'update'];
+    if (isStoreAdmin) {
+      for (const f of features) {
+        if (!ADMIN_FORBIDDEN_FEATURES.includes(f.key)) {
+          defaultMap[f.key] = ['all', 'read', 'create', 'update', 'delete'];
+        }
+      }
+    } else {
+      for (const f of features) {
+        if (f.defaultCashier) {
+          defaultMap[f.key] = ['read', 'create', 'update'];
+        }
       }
     }
     setPermissionMap(defaultMap);
@@ -171,10 +195,12 @@ export default function UserPermissionsModal({
     setSuccess('');
 
     try {
-      const payload = Object.entries(permissionMap).map(([featureKey, actions]) => ({
-        featureKey,
-        actions,
-      }));
+      const payload = Object.entries(permissionMap)
+        .filter(([featureKey]) => !(isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(featureKey)))
+        .map(([featureKey, actions]) => ({
+          featureKey,
+          actions,
+        }));
 
       await authService.updateUserPermissions(user.userId, payload);
       setSuccess('Permissions updated successfully!');
@@ -243,12 +269,13 @@ export default function UserPermissionsModal({
               onClick={handleResetDefault}
               className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
             >
-              Reset Default Cashier
+              {isStoreAdmin ? 'Reset Default Store Admin' : 'Reset Default Cashier'}
             </button>
           </div>
 
           <span className="text-xs font-bold text-foreground/60">
-            Active Features: <span className="text-primary font-extrabold">{totalAssignedCount}</span> / {features.length}
+            Active Features: <span className="text-primary font-extrabold">{totalAssignedCount}</span> /{' '}
+            {isStoreAdmin ? features.length - ADMIN_FORBIDDEN_FEATURES.length : features.length}
           </span>
         </div>
 
@@ -281,14 +308,17 @@ export default function UserPermissionsModal({
 
                   <div className="space-y-2.5">
                     {catFeatures.map((feat) => {
-                      const activeActions = permissionMap[feat.key] || [];
+                      const isForbidden = isStoreAdmin && ADMIN_FORBIDDEN_FEATURES.includes(feat.key);
+                      const activeActions = isForbidden ? [] : (permissionMap[feat.key] || []);
                       const supported = feat.supportedActions || ['read', 'create', 'update', 'delete', 'all'];
 
                       return (
                         <div
                           key={feat.key}
                           className={`p-3.5 rounded-xl border transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-                            activeActions.length > 0
+                            isForbidden
+                              ? 'bg-destructive/5 border-destructive/20 opacity-80'
+                              : activeActions.length > 0
                               ? 'bg-primary/[0.02] border-primary/30 shadow-sm'
                               : 'bg-card border-border/40'
                           }`}
@@ -299,41 +329,56 @@ export default function UserPermissionsModal({
                               <p className="text-xs font-extrabold text-foreground leading-tight">
                                 {feat.name}
                               </p>
-                              {feat.defaultCashier && (
+                              {isForbidden ? (
+                                <span className="text-[9px] font-extrabold text-destructive bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded uppercase">
+                                  Restricted to Administrator
+                                </span>
+                              ) : feat.defaultCashier ? (
                                 <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">
                                   Default Cashier
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                             <p className="text-[11px] text-foreground/50 leading-tight mt-0.5">
                               {feat.description}
                             </p>
                           </div>
 
-                          {/* Action Pill Selector */}
-                          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                            {supported.map((act) => {
-                              const isSelected = activeActions.includes(act);
-                              const info = ACTION_LABELS[act] || { label: act };
+                          {/* Action Pill Selector or Locked Badge */}
+                          {isForbidden ? (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-xs font-semibold text-destructive/70 italic px-2 py-1 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                Clearance Required
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                              {supported.map((act) => {
+                                const isSelected = activeActions.includes(act);
+                                const info = ACTION_LABELS[act] || { label: act };
 
-                              return (
-                                <button
-                                  key={act}
-                                  type="button"
-                                  onClick={() => handleActionToggle(feat.key, act)}
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer select-none border ${
-                                    isSelected
-                                      ? act === 'all'
-                                        ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
-                                        : 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                                      : 'bg-secondary/50 text-foreground/60 border-border/40 hover:bg-secondary hover:text-foreground'
-                                  }`}
-                                >
-                                  <span>{info.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                                return (
+                                  <button
+                                    key={act}
+                                    type="button"
+                                    onClick={() => handleActionToggle(feat.key, act)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer select-none border ${
+                                      isSelected
+                                        ? act === 'all'
+                                          ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/20'
+                                          : 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
+                                        : 'bg-secondary/50 text-foreground/60 border-border/40 hover:bg-secondary hover:text-foreground'
+                                    }`}
+                                  >
+                                    <span>{info.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

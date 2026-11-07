@@ -9,6 +9,7 @@ import {
   SupplierDebtItem,
   SupplierPaymentItem,
 } from '@/services/supplierService';
+import { paymentMethodService, PaymentMethod } from '@/services/paymentMethodService';
 import SearchableSelect from '../../../../components/ui/searchable-select';
 import { PaymentSlipAttachment, SlipPreviewModal } from '../../../../components/ui/payment-slip-attachment';
 
@@ -25,7 +26,8 @@ export default function SupplierDebtPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierDebtItem | null>(null);
   const [selectedPoId, setSelectedPoId] = useState<number | undefined>(undefined);
   const [payAmount, setPayAmount] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('ABA_BANK');
+  const [paymentMethod, setPaymentMethod] = useState<string>('ABA');
+  const [paymentMethodsList, setPaymentMethodsList] = useState<PaymentMethod[]>([]);
   const [referenceNumber, setReferenceNumber] = useState<string>('');
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [inspectSlip, setInspectSlip] = useState<{ url: string; ref?: string; method?: string; amount?: number } | null>(null);
@@ -33,6 +35,18 @@ export default function SupplierDebtPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    paymentMethodService
+      .getPaymentMethods(false)
+      .then((methods) => {
+        if (methods && methods.length > 0) {
+          setPaymentMethodsList(methods);
+          setPaymentMethod((prev) => (methods.some((m) => m.code === prev) ? prev : methods[0].code));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchOverview = useCallback(async () => {
     setLoading(true);
@@ -162,7 +176,7 @@ export default function SupplierDebtPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Purchase Orders
+            {t('supplier_debt.back_to_po', 'Back to Purchase Orders')}
           </Link>
           <button
             onClick={fetchOverview}
@@ -194,7 +208,7 @@ export default function SupplierDebtPage() {
             <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
               {loading ? '...' : formatCurrency(overview?.metrics.totalDebt || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Outstanding liabilities owed to active suppliers</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('supplier_debt.total_debt_desc', 'Outstanding liabilities owed to active suppliers')}</p>
           </div>
         </div>
 
@@ -214,7 +228,7 @@ export default function SupplierDebtPage() {
             <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
               {loading ? '...' : formatCurrency(overview?.metrics.overdueDebt || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Past due dates according to payment terms</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('supplier_debt.overdue_desc', 'Past due dates according to payment terms')}</p>
           </div>
         </div>
 
@@ -234,7 +248,7 @@ export default function SupplierDebtPage() {
             <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
               {loading ? '...' : formatCurrency(overview?.metrics.paidThisMonth || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Total payments settled to vendors in current month</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('supplier_debt.paid_month_desc', 'Total payments settled to vendors in current month')}</p>
           </div>
         </div>
       </div>
@@ -275,7 +289,7 @@ export default function SupplierDebtPage() {
         <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
           {loading ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground text-sm font-semibold">
-              Loading supplier balances...
+              {t('supplier_debt.loading', 'Loading supplier balances...')}
             </div>
           ) : !overview || overview.supplierDebts.length === 0 ? (
             <div className="text-center py-16 px-4">
@@ -284,8 +298,8 @@ export default function SupplierDebtPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-base font-extrabold text-foreground">No Supplier Debt Found</p>
-              <p className="text-xs text-foreground/50 mt-1">All purchase orders are fully settled.</p>
+              <p className="text-base font-extrabold text-foreground">{t('supplier_debt.no_debt_title', 'No Supplier Debt Found')}</p>
+              <p className="text-xs text-foreground/50 mt-1">{t('supplier_debt.no_debt_subtitle', 'All purchase orders are fully settled.')}</p>
             </div>
           ) : (
             <>
@@ -299,7 +313,7 @@ export default function SupplierDebtPage() {
                           <h4 className="text-sm font-bold text-foreground">{sup.companyName}</h4>
                           {sup.isOverdue && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
-                              Overdue
+                              {t('supplier_debt.badge_overdue', 'Overdue')}
                             </span>
                           )}
                         </div>
@@ -309,7 +323,7 @@ export default function SupplierDebtPage() {
                           </p>
                         )}
                         <span className="text-[10px] text-foreground/45 block mt-1">
-                          Terms: <strong className="text-foreground">{sup.paymentTerms || 'NET_30'}</strong> · Due: <strong className="text-foreground">{formatDate(sup.oldestDueDate)}</strong>
+                          {t('supplier_debt.terms_label', 'Terms:')} <strong className="text-foreground">{sup.paymentTerms || 'NET_30'}</strong> · {t('supplier_debt.due_label', 'Due:')} <strong className="text-foreground">{formatDate(sup.oldestDueDate)}</strong>
                         </span>
                       </div>
 
@@ -317,7 +331,7 @@ export default function SupplierDebtPage() {
                         <span className="text-base font-extrabold text-rose-600 dark:text-rose-400 block font-mono">
                           {formatCurrency(sup.totalDebt)}
                         </span>
-                        <span className="text-[10px] text-foreground/40 block font-semibold">{sup.openPOCount} Open POs</span>
+                        <span className="text-[10px] text-foreground/40 block font-semibold">{sup.openPOCount} {t('supplier_debt.open_pos_count', 'Open POs')}</span>
                       </div>
                     </div>
 
@@ -330,27 +344,27 @@ export default function SupplierDebtPage() {
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Pay Debt
+                        {t('supplier_debt.pay_debt_btn', 'Pay Debt')}
                       </button>
                     </div>
 
                     {sup.openPOs.length > 0 && (
                       <div className="pt-2 space-y-2 border-t border-border/10">
-                        <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">Open POs:</p>
+                        <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">{t('supplier_debt.open_pos_heading', 'Open Purchase Orders:')}</p>
                         <div className="space-y-2">
                           {sup.openPOs.map((po) => (
                             <div key={po.poId} className="p-3 bg-secondary/20 border border-border/30 rounded-xl flex items-center justify-between text-xs">
                               <div>
                                 <p className="font-extrabold text-foreground">{po.poNumber}</p>
                                 <p className="text-[10px] text-foreground/50 mt-0.5">
-                                  Due: {formatDate(po.dueDate)} | Balance: <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
+                                  {t('supplier_debt.due_label', 'Due:')} {formatDate(po.dueDate)} | {t('supplier_debt.balance_label', 'Balance:')} <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
                                 </p>
                               </div>
                               <button
                                 onClick={() => handleOpenPayModal(sup, po.poId, po.balanceDue)}
                                 className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[11px] rounded-lg transition-all cursor-pointer shrink-0"
                               >
-                                Pay PO
+                                {t('supplier_debt.pay_po_btn', 'Pay PO')}
                               </button>
                             </div>
                           ))}
@@ -366,12 +380,12 @@ export default function SupplierDebtPage() {
                 <table className="w-full text-left text-sm text-foreground">
                   <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                     <tr>
-                      <th className="px-6 py-4">Supplier / Vendor</th>
-                      <th className="px-6 py-4">Payment Terms</th>
-                      <th className="px-6 py-4 text-center">Open POs</th>
-                      <th className="px-6 py-4">Oldest Due Date</th>
-                      <th className="px-6 py-4 text-right">Total Debt</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_supplier', 'Supplier / Vendor')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_terms', 'Payment Terms')}</th>
+                      <th className="px-6 py-4 text-center">{t('supplier_debt.col_open_pos', 'Open POs')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_oldest_due', 'Oldest Due Date')}</th>
+                      <th className="px-6 py-4 text-right">{t('supplier_debt.col_total_debt', 'Total Debt')}</th>
+                      <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
@@ -383,7 +397,7 @@ export default function SupplierDebtPage() {
                               <span>{sup.companyName}</span>
                               {sup.isOverdue && (
                                 <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
-                                  Overdue
+                                  {t('supplier_debt.badge_overdue', 'Overdue')}
                                 </span>
                               )}
                             </div>
@@ -418,7 +432,7 @@ export default function SupplierDebtPage() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                               </svg>
-                              Pay Debt
+                              {t('supplier_debt.pay_debt_btn', 'Pay Debt')}
                             </button>
                           </td>
                         </tr>
@@ -429,7 +443,7 @@ export default function SupplierDebtPage() {
                             <td colSpan={6} className="px-8 py-3">
                               <div className="space-y-2">
                                 <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">
-                                  Open Purchase Orders:
+                                  {t('supplier_debt.open_pos_heading', 'Open Purchase Orders:')}
                                 </p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                   {sup.openPOs.map((po) => (
@@ -440,14 +454,14 @@ export default function SupplierDebtPage() {
                                       <div>
                                         <p className="font-extrabold text-foreground">{po.poNumber}</p>
                                         <p className="text-[10px] text-foreground/50 mt-0.5">
-                                          Due: {formatDate(po.dueDate)} | Balance: <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
+                                          {t('supplier_debt.due_label', 'Due:')} {formatDate(po.dueDate)} | {t('supplier_debt.balance_label', 'Balance:')} <span className="font-bold text-rose-500">{formatCurrency(po.balanceDue)}</span>
                                         </p>
                                       </div>
                                       <button
                                         onClick={() => handleOpenPayModal(sup, po.poId, po.balanceDue)}
                                         className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[11px] rounded-lg transition-all cursor-pointer"
                                       >
-                                        Pay PO
+                                        {t('supplier_debt.pay_po_btn', 'Pay PO')}
                                       </button>
                                     </div>
                                   ))}
@@ -471,12 +485,12 @@ export default function SupplierDebtPage() {
         <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
           {historyLoading ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground text-sm font-semibold">
-              Loading payment history...
+              {t('supplier_debt.loading_history', 'Loading payment history...')}
             </div>
           ) : payments.length === 0 ? (
             <div className="text-center py-16 px-4">
-              <p className="text-base font-extrabold text-foreground">No Payment History Recorded</p>
-              <p className="text-xs text-foreground/50 mt-1">Payment transactions will appear here when debt is paid down.</p>
+              <p className="text-base font-extrabold text-foreground">{t('supplier_debt.no_history_title', 'No Payment History Recorded')}</p>
+              <p className="text-xs text-foreground/50 mt-1">{t('supplier_debt.no_history_subtitle', 'Payment transactions will appear here when debt is paid down.')}</p>
             </div>
           ) : (
             <>
@@ -489,7 +503,7 @@ export default function SupplierDebtPage() {
                         <span className="text-xs font-mono font-extrabold text-primary block">{p.paymentNumber}</span>
                         <h4 className="text-sm font-bold text-foreground mt-0.5">{p.supplierName || `Supplier #${p.supplierId}`}</h4>
                         <span className="text-[10px] text-muted-foreground block mt-0.5">
-                          Date: {formatDate(p.paymentDate)} · Ref: {p.referenceNumber || 'N/A'}
+                          {t('supplier_debt.col_date', 'Date')}: {formatDate(p.paymentDate)} · {t('supplier_debt.col_ref_no', 'Ref')}: {p.referenceNumber || 'N/A'}
                         </span>
                         {p.attachmentUrl && (
                           <button
@@ -507,7 +521,7 @@ export default function SupplierDebtPage() {
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
-                            View Slip Proof
+                            {t('supplier_debt.view_slip', 'View Slip Proof')}
                           </button>
                         )}
                       </div>
@@ -530,14 +544,14 @@ export default function SupplierDebtPage() {
                 <table className="w-full text-left text-sm text-foreground">
                   <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                     <tr>
-                      <th className="px-6 py-4">Payment #</th>
-                      <th className="px-6 py-4">Supplier</th>
-                      <th className="px-6 py-4">PO Ref</th>
-                      <th className="px-6 py-4">Method</th>
-                      <th className="px-6 py-4">Ref Number</th>
-                      <th className="px-6 py-4">Slip Proof</th>
-                      <th className="px-6 py-4">Date</th>
-                      <th className="px-6 py-4 text-right">Amount Paid</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_payment_no', 'Payment #')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_supplier', 'Supplier')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_po_ref', 'PO Ref')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_method', 'Method')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_ref_no', 'Ref Number')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_slip', 'Slip Proof')}</th>
+                      <th className="px-6 py-4">{t('supplier_debt.col_date', 'Date')}</th>
+                      <th className="px-6 py-4 text-right">{t('supplier_debt.col_amount_paid', 'Amount Paid')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
@@ -549,7 +563,7 @@ export default function SupplierDebtPage() {
                           {p.poNumber ? (
                             <span className="px-2 py-0.5 bg-secondary rounded text-foreground">{p.poNumber}</span>
                           ) : (
-                            <span className="text-foreground/40">General Paydown</span>
+                            <span className="text-foreground/40">{t('supplier_debt.general_paydown', 'General Paydown')}</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-xs font-bold uppercase">
@@ -575,10 +589,10 @@ export default function SupplierDebtPage() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                               </svg>
-                              View Slip
+                              {t('supplier_debt.view_slip', 'View Slip')}
                             </button>
                           ) : (
-                            <span className="text-foreground/30 text-xs italic">No slip</span>
+                            <span className="text-foreground/30 text-xs italic">{t('supplier_debt.no_slip', 'No slip')}</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-xs font-semibold text-foreground/70">{formatDate(p.paymentDate)}</td>
@@ -601,8 +615,8 @@ export default function SupplierDebtPage() {
           <div className="bg-card border border-border/50 rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-border/30 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-foreground">Record Supplier Payment</h3>
-                <p className="text-xs text-foreground/50 mt-0.5">Pay down debt for <span className="font-bold text-foreground">{selectedSupplier.companyName}</span></p>
+                <h3 className="text-lg font-extrabold text-foreground">{t('supplier_debt.modal_title', 'Record Supplier Payment')}</h3>
+                <p className="text-xs text-foreground/50 mt-0.5">{t('supplier_debt.modal_desc', 'Pay down debt for')} <span className="font-bold text-foreground">{selectedSupplier.companyName}</span></p>
               </div>
               <button
                 onClick={handleClosePayModal}
@@ -626,7 +640,7 @@ export default function SupplierDebtPage() {
 
             <form onSubmit={handleSubmitPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-foreground/70 mb-1.5">Supplier</label>
+                <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('supplier_debt.col_supplier', 'Supplier')}</label>
                 <input
                   type="text"
                   readOnly
@@ -637,7 +651,7 @@ export default function SupplierDebtPage() {
 
               {selectedPoId && (
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Target Purchase Order ID</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('supplier_debt.modal_target_po', 'Target Purchase Order ID')}</label>
                   <input
                     type="text"
                     readOnly
@@ -649,7 +663,7 @@ export default function SupplierDebtPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Payment Amount ($) *</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('supplier_debt.modal_amount', 'Payment Amount ($)')}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -662,18 +676,28 @@ export default function SupplierDebtPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Payment Method *</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('supplier_debt.modal_method', 'Payment Method')}</label>
                   <SearchableSelect
-                    options={[
-                      { value: 'ABA_BANK', label: '🏦 ABA Bank (QR / Transfer)' },
-                      { value: 'WING', label: '🟢 Wing Bank' },
-                      { value: 'BANK_TRANSFER', label: '🏛️ Other Bank Transfer' },
-                      { value: 'CASH', label: '💵 Cash' },
-                      { value: 'CHEQUE', label: '📝 Cheque' },
-                    ]}
+                    options={
+                      paymentMethodsList.length > 0
+                        ? [
+                            ...paymentMethodsList.map((m) => ({
+                              value: m.code,
+                              label: `${m.name} (${m.code})`,
+                            })),
+                            { value: 'CHEQUE', label: 'Cheque' },
+                          ]
+                        : [
+                            { value: 'ABA', label: 'ABA Bank' },
+                            { value: 'WING', label: 'Wing Bank' },
+                            { value: 'ACLEDA', label: 'ACLEDA Bank' },
+                            { value: 'CASH', label: 'Cash' },
+                            { value: 'CHEQUE', label: 'Cheque' },
+                          ]
+                    }
                     value={paymentMethod}
                     onChange={(val) => setPaymentMethod(String(val))}
-                    placeholder="Select payment method..."
+                    placeholder={t('supplier_debt.select_method', 'Select payment method...')}
                     className="w-full"
                   />
                 </div>
@@ -682,7 +706,7 @@ export default function SupplierDebtPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-foreground/70">
-                    Reference Number / Cheque #
+                    {t('supplier_debt.modal_ref', 'Reference Number / Cheque #')}
                   </label>
                   {paymentMethod !== 'CASH' && (
                     <span className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
@@ -715,7 +739,7 @@ export default function SupplierDebtPage() {
               />
 
               <div>
-                <label className="block text-xs font-bold text-foreground/70 mb-1.5">Notes (Optional)</label>
+                <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('supplier_debt.modal_notes', 'Notes (Optional)')}</label>
                 <textarea
                   rows={2}
                   value={notes}
@@ -731,14 +755,14 @@ export default function SupplierDebtPage() {
                   onClick={handleClosePayModal}
                   className="px-4 py-2.5 rounded-xl border border-border/50 text-xs font-bold text-foreground/70 hover:bg-secondary transition-all cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Processing...' : 'Confirm & Save Payment'}
+                  {isSubmitting ? t('common.loading', 'Processing...') : t('supplier_debt.modal_submit', 'Confirm & Save Payment')}
                 </button>
               </div>
             </form>

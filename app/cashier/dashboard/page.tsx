@@ -10,6 +10,8 @@ import { dashboardService } from '../../../services/dashboardService';
 import { saleService } from '../../../services/saleService';
 import { DashboardOverviewResponse } from '../../../features/dashboard/types';
 import { Order } from '../../../features/sale/types';
+import { useAuth } from '../../../hooks/useAuth';
+import AccessDenied from '../../../components/ui/access-denied';
 
 function HourlyTransactionFlowChart() {
   const hours = ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
@@ -50,6 +52,11 @@ function HourlyTransactionFlowChart() {
 
 export default function CashierDashboardPage() {
   const currentUser = useAppSelector(selectCurrentUser);
+  const { can, user: authUser } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -112,6 +119,16 @@ export default function CashierDashboardPage() {
   const salesCount = data?.today_summary?.total_sales_count || 0;
   const averageTicket = salesCount > 0 ? salesAmount / salesCount : 0;
   const expectedCash = data?.today_summary?.expected_cash || 0;
+
+  if (mounted && authUser && !can('dashboard.view')) {
+    return (
+      <AccessDenied
+        feature="Cashier Dashboard"
+        title="Dashboard Access Restricted"
+        message="Your cashier account does not have permission to view the store overview dashboard. Please contact your manager or administrator."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 relative">

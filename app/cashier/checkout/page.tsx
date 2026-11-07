@@ -9,6 +9,8 @@ import { customerService } from '../../../services/customerService';
 import { saleService } from '../../../services/saleService';
 import { Product } from '../../../features/product/types';
 import { Category } from '../../../features/category/types';
+import { paymentMethodService, PaymentMethod } from '../../../services/paymentMethodService';
+import { receiptSettingService } from '../../../services/receiptSettingService';
 import ReceiptModal from '../../../components/sales/receipt-modal';
 import ProductCard from '../../../components/checkout/product-card';
 import CartItemRow from '../../../components/checkout/cart-item-row';
@@ -39,6 +41,15 @@ export default function CashierCheckoutPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [exchangeRate, setExchangeRate] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('pos_exchange_rate');
+      if (cached && !isNaN(Number(cached)) && Number(cached) > 0) {
+        return Number(cached);
+      }
+    }
+    return 4000;
+  });
   
   // Filtering & Pagination States
   const [search, setSearch] = useState('');
@@ -53,7 +64,8 @@ export default function CashierCheckoutPage() {
   // Cart & Invoice States
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountValue, setDiscountValue] = useState<string>('0');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ABA' | 'WING'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<PaymentMethod[]>([]);
   const [cashReceived, setCashReceived] = useState<string>('');
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   
@@ -88,6 +100,7 @@ export default function CashierCheckoutPage() {
     customerPhone: string;
     cashierName: string;
     dateString: string;
+    exchangeRate?: number;
   } | null>(null);
 
   // Debounce search input
@@ -98,18 +111,84 @@ export default function CashierCheckoutPage() {
     return () => clearTimeout(delayDebounce);
   }, [search]);
 
-  // Load Categories & Customers
+  // Load Categories, Customers & Payment Methods
   const loadMetadata = useCallback(async () => {
     try {
-      const [cats, custsRes] = await Promise.all([
+      const [cats, custsRes, pms, receiptSettings] = await Promise.all([
         categoryService.listCategories(false),
         customerService.getCustomers({ page: 1, limit: 100 }),
+        paymentMethodService.getPaymentMethods(false).catch(() => []),
+        receiptSettingService.getSettings().catch(() => null),
       ]);
       setCategories(cats);
       setCustomers((custsRes.customers as any) || []);
+      if (receiptSettings?.exchange_rate && Number(receiptSettings.exchange_rate) > 0) {
+        const rate = Number(receiptSettings.exchange_rate);
+        setExchangeRate(rate);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pos_exchange_rate', String(rate));
+        }
+      }
+      if (pms && pms.length > 0) {
+        setAvailablePaymentMethods(pms);
+        setPaymentMethod((prev) => (pms.some((m) => m.code === prev) ? prev : pms[0].code));
+      }
     } catch (error) {
       console.error('Failed to load initial metadata:', error);
     }
+  }, []);
+
+  // Real-time synchronization of exchange rate across tabs and on window focus
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pos_exchange_rate' && e.newValue) {
+        const rate = Number(e.newValue);
+        if (!isNaN(rate) && rate > 0) {
+          setExchangeRate(rate);
+        }
+      }
+    };
+
+    const handleCustomSync = (e: any) => {
+      if (e.detail && Number(e.detail) > 0) {
+        setExchangeRate(Number(e.detail));
+      }
+    };
+
+    const handleFocusOrVisible = () => {
+      // 1. Instant check from localStorage
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('pos_exchange_rate');
+        if (cached && !isNaN(Number(cached)) && Number(cached) > 0) {
+          setExchangeRate(Number(cached));
+        }
+      }
+      // 2. Background check latest from API
+      receiptSettingService
+        .getSettings()
+        .then((s) => {
+          if (s?.exchange_rate && Number(s.exchange_rate) > 0) {
+            const rate = Number(s.exchange_rate);
+            setExchangeRate(rate);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('pos_exchange_rate', String(rate));
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('pos_exchange_rate_updated', handleCustomSync);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('pos_exchange_rate_updated', handleCustomSync);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+    };
   }, []);
 
   // Load Categories & Customers on Mount
@@ -300,6 +379,14 @@ export default function CashierCheckoutPage() {
     e.preventDefault();
     if (cart.length === 0 || isCheckingOut) return;
 
+    // Refresh rate from localStorage right before opening payment modal
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('pos_exchange_rate');
+      if (cached && !isNaN(Number(cached)) && Number(cached) > 0) {
+        setExchangeRate(Number(cached));
+      }
+    }
+
     // Validate new customer if enabled
     if (isNewCustomerMode) {
       const errs: { name?: string; phone?: string } = {};
@@ -325,6 +412,12 @@ export default function CashierCheckoutPage() {
     if (isNewCustomerMode) {
       customerName = newCustomerName;
       customerPhone = newCustomerPhone;
+    } else if (paymentData.customer_id) {
+      const activeCust = customers.find((c) => c.customerId === paymentData.customer_id);
+      if (activeCust) {
+        customerName = activeCust.fullName;
+        customerPhone = activeCust.phone || 'N/A';
+      }
     } else if (selectedCustomerId !== 'walk-in') {
       const activeCust = customers.find((c) => String(c.customerId) === selectedCustomerId);
       if (activeCust) {
@@ -359,6 +452,7 @@ export default function CashierCheckoutPage() {
       reference_number: paymentData.reference_number,
       notes: paymentData.notes,
       customer_id: paymentData.customer_id,
+      exchange_rate: paymentData.exchange_rate || exchangeRate,
       discount_amount: discount,
       tax_amount: tax,
       service_fee: 0,
@@ -382,8 +476,10 @@ export default function CashierCheckoutPage() {
         customerPhone,
         cashierName: createdOrder.seller_name || currentUser?.fullName || 'Cashier One',
         dateString: new Date(createdOrder.order_date).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }),
+        exchangeRate: paymentData.exchange_rate || exchangeRate,
       });
 
+      setPaymentMethod(paymentData.payment_method);
       setIsPaymentModalOpen(false);
       setIsReceiptOpen(true);
       triggerToast('POS sale created successfully');
@@ -634,11 +730,13 @@ export default function CashierCheckoutPage() {
             onDiscountValueChange={setDiscountValue}
             paymentMethod={paymentMethod}
             onPaymentMethodChange={setPaymentMethod}
+            availableMethods={availablePaymentMethods}
             cashReceived={cashReceived}
             onCashReceivedChange={setCashReceived}
             subtotal={getSubtotal()}
             discountAmount={getDiscountAmount()}
             grandTotal={grandTotal}
+            exchangeRate={exchangeRate}
             changeAmount={changeAmount}
             onClearCart={clearCart}
             onCheckout={handleCheckout}
@@ -694,10 +792,12 @@ export default function CashierCheckoutPage() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         totalAmount={grandTotal}
+        exchangeRate={exchangeRate}
         customers={customers}
         selectedCustomerId={selectedCustomerId}
         onConfirmPayment={handleConfirmPayment}
         isProcessing={isCheckingOut}
+        initialMethod={paymentMethod}
       />
 
       {/* ── Receipt Modal (Printable) ── */}
@@ -705,6 +805,7 @@ export default function CashierCheckoutPage() {
         isOpen={isReceiptOpen}
         order={completedOrder}
         paymentMethod={paymentMethod}
+        exchangeRate={completedOrder?.exchangeRate || exchangeRate}
         onClose={handleNewOrder}
         onNewOrder={handleNewOrder}
       />

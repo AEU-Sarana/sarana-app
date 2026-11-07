@@ -14,6 +14,7 @@ interface SupplierModalProps {
 }
 
 export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: SupplierModalProps) {
+  const { t } = useLanguage();
   const [companyName, setCompanyName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
@@ -94,7 +95,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
       <div className="bg-card border border-border/60 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl text-foreground animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] flex flex-col">
         <div className="px-5 py-4 border-b border-border/40 flex justify-between items-center bg-card shrink-0">
           <h3 className="text-base sm:text-lg font-bold text-foreground">
-            {supplier ? 'Edit Supplier' : 'Add New Supplier'}
+            {supplier ? t('suppliers.modal_edit_title', 'Edit Supplier') : t('suppliers.modal_add_title', 'Add New Supplier')}
           </h3>
           <button
             onClick={onClose}
@@ -107,7 +108,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Company / Vendor Name *
+              {t('suppliers.company_name_label', 'Company / Vendor Name *')}
             </label>
             <input
               type="text"
@@ -122,7 +123,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Contact Person
+                {t('suppliers.contact_person_label', 'Contact Person')}
               </label>
               <input
                 type="text"
@@ -134,7 +135,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Phone Number
+                {t('suppliers.phone_label', 'Phone Number')}
               </label>
               <input
                 type="text"
@@ -149,7 +150,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Email
+                {t('suppliers.email_label', 'Email Address')}
               </label>
               <input
                 type="email"
@@ -161,7 +162,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Tax ID / VAT #
+                {t('suppliers.tax_id_label', 'Tax Identification Number (TIN)')}
               </label>
               <input
                 type="text"
@@ -175,7 +176,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Payment Terms
+              {t('suppliers.payment_terms_label', 'Payment Terms')}
             </label>
             <SearchableSelect
               value={paymentTerms}
@@ -195,7 +196,7 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Address
+              {t('suppliers.address_label', 'Business Address')}
             </label>
             <textarea
               rows={2}
@@ -212,14 +213,14 @@ export default function SupplierModal({ isOpen, onClose, onSuccess, supplier }: 
               onClick={onClose}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-border/40 bg-secondary hover:bg-secondary/80 text-foreground transition-colors text-sm font-medium cursor-pointer"
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50 cursor-pointer"
             >
-              {loading ? 'Saving...' : supplier ? 'Update Supplier' : 'Save Supplier'}
+              {loading ? (supplier ? t('suppliers.saving', 'Saving...') : t('suppliers.creating', 'Creating...')) : (supplier ? t('suppliers.save_btn', 'Save Supplier') : t('suppliers.create_btn', 'Create Supplier'))}
             </button>
           </div>
         </form>

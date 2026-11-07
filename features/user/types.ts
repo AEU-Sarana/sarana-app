@@ -10,6 +10,7 @@ export interface User {
   phone: string | null;
   status: UserStatus;
   deviceId: string | null;
+  allowDashboard?: boolean;
   createdAt: string;
   updatedAt: string;
   deactivatedDate?: string | null;
@@ -36,6 +37,7 @@ export interface CreateUserRequest {
   password?: string;
   phone?: string;
   role: UserRole;
+  allow_dashboard?: boolean;
 }
 
 export interface UpdateUserRequest {
@@ -45,4 +47,5 @@ export interface UpdateUserRequest {
   status?: UserStatus;
   password?: string;
   role?: UserRole;
+  allow_dashboard?: boolean;
 }

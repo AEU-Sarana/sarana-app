@@ -17,7 +17,7 @@ const PAGE_LIMIT = 10;
 export default function AdminSalesPage() {
   const { t } = useLanguage();
   const currentUser = useSelector(selectCurrentUser);
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'ADMINISTRATOR';
 
   // Sales and pagination state
   const [orders, setOrders] = useState<Order[]>([]);

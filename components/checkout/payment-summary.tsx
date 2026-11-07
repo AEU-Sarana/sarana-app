@@ -4,19 +4,22 @@ import React from 'react';
 import { CartItem } from './cart-item-row';
 import { useLanguage } from '../../contexts/language-context';
 import { useAuth } from '../../hooks/useAuth';
+import { PaymentMethod } from '../../services/paymentMethodService';
 
 interface PaymentSummaryProps {
   cart: CartItem[];
   discountValue: string;
   onDiscountValueChange: (val: string) => void;
-  paymentMethod: 'CASH' | 'ABA' | 'WING';
-  onPaymentMethodChange: (method: 'CASH' | 'ABA' | 'WING') => void;
-  cashReceived: string;
-  onCashReceivedChange: (val: string) => void;
+  paymentMethod: string;
+  onPaymentMethodChange: (method: string) => void;
+  availableMethods?: PaymentMethod[];
+  cashReceived?: string;
+  onCashReceivedChange?: (val: string) => void;
   subtotal: number;
   discountAmount: number;
   grandTotal: number;
-  changeAmount: number;
+  exchangeRate?: number;
+  changeAmount?: number;
   onClearCart: () => void;
   onCheckout: (e: React.FormEvent) => void;
   isLoading?: boolean;
@@ -28,11 +31,13 @@ export default function PaymentSummary({
   onDiscountValueChange,
   paymentMethod,
   onPaymentMethodChange,
+  availableMethods,
   cashReceived,
   onCashReceivedChange,
   subtotal,
   discountAmount,
   grandTotal,
+  exchangeRate = 4000,
   changeAmount,
   onClearCart,
   onCheckout,
@@ -41,6 +46,17 @@ export default function PaymentSummary({
   const { t } = useLanguage();
   const { can } = useAuth();
   const canApplyDiscount = can('pos.apply_discount', 'create');
+
+  const displayMethods = availableMethods && availableMethods.length > 0
+    ? availableMethods.map((m) => ({ id: m.code, label: m.name, type: m.type }))
+    : [
+        { id: 'CASH', label: t('pos.cash_pay', 'Cash Pay'), type: 'CASH' },
+        { id: 'ABA', label: t('pos.aba_pay', 'ABA Pay'), type: 'BANK_TRANSFER' },
+        { id: 'WING', label: t('pos.wing_pay', 'Wing Pay'), type: 'BANK_TRANSFER' }
+      ];
+
+  const currentMethodObj = displayMethods.find((m) => m.id === paymentMethod);
+  const isCash = paymentMethod === 'CASH' || currentMethodObj?.type === 'CASH';
 
   return (
     <>
@@ -104,7 +120,14 @@ export default function PaymentSummary({
           <div className="h-[1px] bg-border/40 my-1" />
           <div className="flex justify-between items-center text-sm font-black text-foreground">
             <span className="text-xs font-black uppercase tracking-wider text-foreground/60">{t('pos.grand_total', 'GRAND TOTAL:')}</span>
-            <span className="text-primary text-base tracking-tight">${grandTotal.toFixed(2)}</span>
+            <div className="text-right">
+              <span className="text-primary text-base tracking-tight block">${grandTotal.toFixed(2)}</span>
+              {grandTotal > 0 && (
+                <span className="text-[10px] font-bold text-foreground/50 block">
+                  ≈ {Math.round(grandTotal * exchangeRate).toLocaleString()} ៛
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -114,57 +137,28 @@ export default function PaymentSummary({
         <label className="block text-[10px] font-black uppercase tracking-wider text-foreground/50">
           {t('pos.payment_method', 'PAYMENT METHOD')}
         </label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 'CASH', label: t('pos.cash_pay', 'Cash Pay') },
-            { id: 'ABA', label: t('pos.aba_pay', 'ABA Pay') },
-            { id: 'WING', label: t('pos.wing_pay', 'Wing Pay') }
-          ].map((pm) => {
+        <div className={`grid gap-2 ${
+          displayMethods.length <= 3 ? 'grid-cols-3' : displayMethods.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'
+        }`}>
+          {displayMethods.map((pm) => {
             const isSelected = paymentMethod === pm.id;
             return (
               <button
                 key={pm.id}
                 type="button"
-                onClick={() => onPaymentMethodChange(pm.id as 'CASH' | 'ABA' | 'WING')}
-                className={`py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                onClick={() => onPaymentMethodChange(pm.id)}
+                className={`py-2 px-1.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-primary/5 text-primary border-primary border-2 shadow-sm font-black'
                     : 'bg-card text-foreground/75 border-border/60 hover:bg-secondary/40'
                 }`}
+                title={pm.label}
               >
-                <span>{pm.label}</span>
+                <span className="truncate max-w-full text-[11px]">{pm.label}</span>
               </button>
             );
           })}
         </div>
-
-        {/* Cash Received input (Cash calculations) */}
-        {paymentMethod === 'CASH' && (
-          <div className="space-y-2.5 animate-scale-up pt-1">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-foreground/50 mb-1.5">
-                  {t('pos.cash_received', 'CASH RECEIVED ($)')}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('pos.cash_received_placeholder', 'e.g. 50.00')}
-                  value={cashReceived}
-                  onChange={(e) => onCashReceivedChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-border/60 bg-card font-semibold focus:border-primary outline-none"
-                />
-              </div>
-              <div className="w-24 text-right self-end pb-1 select-none">
-                <span className="block text-[9px] font-bold uppercase tracking-wider text-foreground/50 mb-1">
-                  {t('pos.change_return', 'CHANGE RETURN')}
-                </span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                  ${changeAmount.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Place order CTA Button */}

@@ -9,6 +9,7 @@ import {
   CustomerDebtItem,
   CustomerPaymentItem,
 } from '@/services/customerService';
+import { paymentMethodService, PaymentMethod } from '@/services/paymentMethodService';
 import SearchableSelect from '../../../../components/ui/searchable-select';
 import { PaymentSlipAttachment, SlipPreviewModal } from '../../../../components/ui/payment-slip-attachment';
 
@@ -26,6 +27,7 @@ export default function CustomerDebtPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<number | undefined>(undefined);
   const [collectAmount, setCollectAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
+  const [paymentMethodsList, setPaymentMethodsList] = useState<PaymentMethod[]>([]);
   const [referenceNumber, setReferenceNumber] = useState<string>('');
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [inspectSlip, setInspectSlip] = useState<{ url: string; ref?: string; method?: string; amount?: number } | null>(null);
@@ -33,6 +35,18 @@ export default function CustomerDebtPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    paymentMethodService
+      .getPaymentMethods(false)
+      .then((methods) => {
+        if (methods && methods.length > 0) {
+          setPaymentMethodsList(methods);
+          setPaymentMethod((prev) => (methods.some((m) => m.code === prev) ? prev : methods[0].code));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchOverview = useCallback(async () => {
     setLoading(true);
@@ -162,7 +176,7 @@ export default function CustomerDebtPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Sales History
+            {t('customer_debt.back_to_sales', 'Back to Sales History')}
           </Link>
           <button
             onClick={fetchOverview}
@@ -194,7 +208,7 @@ export default function CustomerDebtPage() {
             <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
               {loading ? '...' : formatCurrency(overview?.metrics.totalDebt || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Total credit receivables owed by customers</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('customer_debt.total_debt_desc', 'Total credit receivables owed by customers')}</p>
           </div>
         </div>
 
@@ -214,7 +228,7 @@ export default function CustomerDebtPage() {
             <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
               {loading ? '...' : formatCurrency(overview?.metrics.overdueDebt || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Customer debts past 30 days due date</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('customer_debt.overdue_desc', 'Customer debts past 30 days due date')}</p>
           </div>
         </div>
 
@@ -234,7 +248,7 @@ export default function CustomerDebtPage() {
             <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
               {loading ? '...' : formatCurrency(overview?.metrics.collectedThisMonth || 0)}
             </div>
-            <p className="text-[11px] text-foreground/50 mt-1">Debt repayments collected in current month</p>
+            <p className="text-[11px] text-foreground/50 mt-1">{t('customer_debt.collected_desc', 'Debt repayments collected in current month')}</p>
           </div>
         </div>
       </div>
@@ -275,7 +289,7 @@ export default function CustomerDebtPage() {
         <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
           {loading ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground text-sm font-semibold">
-              Loading customer credit balances...
+              {t('customer_debt.loading', 'Loading customer credit balances...')}
             </div>
           ) : !overview || overview.customerDebts.length === 0 ? (
             <div className="text-center py-16 px-4">
@@ -284,8 +298,8 @@ export default function CustomerDebtPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-base font-extrabold text-foreground">No Customer Debt Found</p>
-              <p className="text-xs text-foreground/50 mt-1">All customer accounts are fully paid.</p>
+              <p className="text-base font-extrabold text-foreground">{t('customer_debt.no_debt_title', 'No Customer Debt Found')}</p>
+              <p className="text-xs text-foreground/50 mt-1">{t('customer_debt.no_debt_subtitle', 'All customer accounts are fully paid.')}</p>
             </div>
           ) : (
             <>
@@ -299,12 +313,12 @@ export default function CustomerDebtPage() {
                           <h4 className="text-sm font-bold text-foreground">{c.fullName}</h4>
                           {c.isOverdue && (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
-                              Overdue
+                              {t('customer_debt.badge_overdue', 'Overdue')}
                             </span>
                           )}
                         </div>
                         <span className="text-[11px] font-mono text-foreground/50 block mt-0.5">
-                          📞 {c.phone || 'No phone'}
+                          📞 {c.phone || t('common.no_phone', 'No phone')}
                         </span>
                       </div>
 
@@ -313,21 +327,21 @@ export default function CustomerDebtPage() {
                           {formatCurrency(c.totalDebt)}
                         </span>
                         <span className="text-[10px] text-foreground/40 block font-semibold">
-                          {c.openOrderCount} unpaid orders
+                          {c.openOrderCount} {t('customer_debt.col_unpaid_orders', 'unpaid orders')}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/10 text-xs">
                       <span className="text-[10px] text-foreground/50 font-bold">
-                        Oldest Due: {formatDate(c.oldestDueDate)}
+                        {t('customer_debt.col_oldest_due', 'Oldest Due Date')}: {formatDate(c.oldestDueDate)}
                       </span>
 
                       <button
                         onClick={() => handleOpenCollectModal(c)}
                         className="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md shadow-primary/20 cursor-pointer"
                       >
-                        Record Payment
+                        {t('customer_debt.collect_debt_btn', 'Record Payment')}
                       </button>
                     </div>
                   </div>
@@ -339,12 +353,12 @@ export default function CustomerDebtPage() {
                 <table className="w-full text-left text-sm text-foreground">
                 <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                   <tr>
-                    <th className="px-6 py-4">Customer Name</th>
-                    <th className="px-6 py-4">Phone / Contact</th>
-                    <th className="px-6 py-4 text-center">Unpaid Orders</th>
-                    <th className="px-6 py-4">Oldest Due Date</th>
-                    <th className="px-6 py-4 text-right">Debt Owed</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_customer', 'Customer Name')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_phone', 'Phone / Contact')}</th>
+                    <th className="px-6 py-4 text-center">{t('customer_debt.col_unpaid_orders', 'Unpaid Orders')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_oldest_due', 'Oldest Due Date')}</th>
+                    <th className="px-6 py-4 text-right">{t('customer_debt.col_debt_owed', 'Debt Owed')}</th>
+                    <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -356,7 +370,7 @@ export default function CustomerDebtPage() {
                             <span>{c.fullName}</span>
                             {c.isOverdue && (
                               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase">
-                                Overdue
+                                {t('customer_debt.badge_overdue', 'Overdue')}
                               </span>
                             )}
                           </div>
@@ -384,7 +398,7 @@ export default function CustomerDebtPage() {
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            Collect Debt
+                            {t('customer_debt.collect_debt_btn', 'Collect Debt')}
                           </button>
                         </td>
                       </tr>
@@ -395,7 +409,7 @@ export default function CustomerDebtPage() {
                           <td colSpan={6} className="px-8 py-3">
                             <div className="space-y-2">
                               <p className="text-[10px] uppercase tracking-wider font-extrabold text-foreground/40">
-                                Open Customer Credit Orders:
+                                {t('customer_debt.open_orders_heading', 'Open Customer Credit Orders:')}
                               </p>
                               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                 {c.openOrders.map((ord) => (
@@ -406,14 +420,14 @@ export default function CustomerDebtPage() {
                                     <div>
                                       <p className="font-extrabold text-foreground">{ord.receiptNumber}</p>
                                       <p className="text-[10px] text-foreground/50 mt-0.5">
-                                        Due: {formatDate(ord.dueDate)} | Balance: <span className="font-bold text-amber-500">{formatCurrency(ord.balanceDue)}</span>
+                                        {t('customer_debt.due_label', 'Due:')} {formatDate(ord.dueDate)} | {t('customer_debt.balance_label', 'Balance:')} <span className="font-bold text-amber-500">{formatCurrency(ord.balanceDue)}</span>
                                       </p>
                                     </div>
                                     <button
                                       onClick={() => handleOpenCollectModal(c, ord.orderId, ord.balanceDue)}
                                       className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-bold text-[11px] rounded-lg transition-all cursor-pointer"
                                     >
-                                      Collect
+                                      {t('customer_debt.collect_btn', 'Collect')}
                                     </button>
                                   </div>
                                 ))}
@@ -437,26 +451,26 @@ export default function CustomerDebtPage() {
         <div className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm">
           {historyLoading ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground text-sm font-semibold">
-              Loading collection ledger...
+              {t('customer_debt.loading_history', 'Loading collection ledger...')}
             </div>
           ) : payments.length === 0 ? (
             <div className="text-center py-16 px-4">
-              <p className="text-base font-extrabold text-foreground">No Debt Collections Recorded</p>
-              <p className="text-xs text-foreground/50 mt-1">Repayments collected from customers will appear here.</p>
+              <p className="text-base font-extrabold text-foreground">{t('customer_debt.no_history_title', 'No Debt Collections Recorded')}</p>
+              <p className="text-xs text-foreground/50 mt-1">{t('customer_debt.no_history_subtitle', 'Repayments collected from customers will appear here.')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-foreground">
                 <thead className="bg-secondary/40 text-xs uppercase font-semibold text-muted-foreground border-b border-border/40">
                   <tr>
-                    <th className="px-6 py-4">Collection #</th>
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Receipt Ref</th>
-                    <th className="px-6 py-4">Method</th>
-                    <th className="px-6 py-4">Ref Number</th>
-                    <th className="px-6 py-4">Slip Proof</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4 text-right">Amount Collected</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_collection_no', 'Collection #')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_customer', 'Customer')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_receipt_ref', 'Receipt Ref')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_method', 'Method')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_ref_no', 'Ref Number')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_slip', 'Slip Proof')}</th>
+                    <th className="px-6 py-4">{t('customer_debt.col_date', 'Date')}</th>
+                    <th className="px-6 py-4 text-right">{t('customer_debt.col_amount_collected', 'Amount Collected')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -468,7 +482,7 @@ export default function CustomerDebtPage() {
                         {p.receiptNumber ? (
                           <span className="px-2 py-0.5 bg-secondary rounded text-foreground">{p.receiptNumber}</span>
                         ) : (
-                          <span className="text-foreground/40">General Debt Collection</span>
+                          <span className="text-foreground/40">{t('customer_debt.general_collection', 'General Debt Collection')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-xs font-bold uppercase">
@@ -494,10 +508,10 @@ export default function CustomerDebtPage() {
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
-                            View Slip
+                            {t('customer_debt.view_slip', 'View Slip')}
                           </button>
                         ) : (
-                          <span className="text-foreground/30 text-xs italic">No slip</span>
+                          <span className="text-foreground/30 text-xs italic">{t('customer_debt.no_slip', 'No slip')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-xs font-semibold text-foreground/70">{formatDate(p.paymentDate)}</td>
@@ -519,8 +533,8 @@ export default function CustomerDebtPage() {
           <div className="bg-card border border-border/50 rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-border/30 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-foreground">Collect Customer Payment</h3>
-                <p className="text-xs text-foreground/50 mt-0.5">Collect debt repayment from <span className="font-bold text-foreground">{selectedCustomer.fullName}</span></p>
+                <h3 className="text-lg font-extrabold text-foreground">{t('customer_debt.modal_title', 'Collect Customer Payment')}</h3>
+                <p className="text-xs text-foreground/50 mt-0.5">{t('customer_debt.modal_desc', 'Collect debt repayment from')} <span className="font-bold text-foreground">{selectedCustomer.fullName}</span></p>
               </div>
               <button
                 onClick={handleCloseCollectModal}
@@ -544,7 +558,7 @@ export default function CustomerDebtPage() {
 
             <form onSubmit={handleSubmitPayment} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-foreground/70 mb-1.5">Customer</label>
+                <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('customer_debt.col_customer', 'Customer')}</label>
                 <input
                   type="text"
                   readOnly
@@ -555,7 +569,7 @@ export default function CustomerDebtPage() {
 
               {selectedOrderId && (
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Target Order ID</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('customer_debt.modal_target_order', 'Target Order ID')}</label>
                   <input
                     type="text"
                     readOnly
@@ -567,7 +581,7 @@ export default function CustomerDebtPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Collection Amount ($) *</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('customer_debt.modal_amount', 'Collection Amount ($)')}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -580,17 +594,25 @@ export default function CustomerDebtPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">Payment Method *</label>
+                  <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('customer_debt.modal_method', 'Payment Method *')}</label>
                   <SearchableSelect
-                    options={[
-                      { value: 'CASH', label: '💵 Cash' },
-                      { value: 'ABA_BANK', label: '🏦 ABA Bank (QR / Transfer)' },
-                      { value: 'WING', label: '🟢 Wing Bank' },
-                      { value: 'BANK_TRANSFER', label: '🏛️ Other Bank Transfer' },
-                    ]}
+                    options={
+                      paymentMethodsList.length > 0
+                        ? paymentMethodsList.map((m) => ({
+                            value: m.code,
+                            label: m.name,
+                          }))
+                        : [
+                            { value: 'CASH', label: 'Cash' },
+                            { value: 'ABA', label: 'ABA Bank' },
+                            { value: 'WING', label: 'Wing Bank' },
+                            { value: 'ACLEDA', label: 'ACLEDA Bank' },
+                            { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+                          ]
+                    }
                     value={paymentMethod}
                     onChange={(val) => setPaymentMethod(String(val))}
-                    placeholder="Select payment method..."
+                    placeholder={t('customer_debt.select_method', 'Select payment method...')}
                     className="w-full"
                   />
                 </div>
@@ -599,7 +621,7 @@ export default function CustomerDebtPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-foreground/70">
-                    Reference / Transaction ID
+                    {t('customer_debt.modal_ref', 'Reference / Transaction ID')}
                   </label>
                   {paymentMethod !== 'CASH' && (
                     <span className="text-[10px] font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
@@ -630,7 +652,7 @@ export default function CustomerDebtPage() {
               />
 
               <div>
-                <label className="block text-xs font-bold text-foreground/70 mb-1.5">Notes (Optional)</label>
+                <label className="block text-xs font-bold text-foreground/70 mb-1.5">{t('customer_debt.modal_notes', 'Notes (Optional)')}</label>
                 <textarea
                   rows={2}
                   value={notes}
@@ -646,14 +668,14 @@ export default function CustomerDebtPage() {
                   onClick={handleCloseCollectModal}
                   className="px-4 py-2.5 rounded-xl border border-border/50 text-xs font-bold text-foreground/70 hover:bg-secondary transition-all cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Processing...' : 'Confirm & Collect Payment'}
+                  {isSubmitting ? t('customer_debt.modal_submitting', 'Processing...') : t('customer_debt.modal_submit', 'Confirm & Collect Payment')}
                 </button>
               </div>
             </form>

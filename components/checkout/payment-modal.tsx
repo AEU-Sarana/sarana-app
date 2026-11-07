@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Customer } from './customer-selector';
 import { useLanguage } from '../../contexts/language-context';
 import { paymentMethodService, PaymentMethod } from '../../services/paymentMethodService';
+import { receiptSettingService } from '../../services/receiptSettingService';
 import SearchableSelect from '../ui/searchable-select';
 
 export interface PaymentData {
@@ -15,6 +16,7 @@ export interface PaymentData {
   received_khr: number;
   change_usd: number;
   change_khr: number;
+  exchange_rate?: number;
   reference_number: string;
   notes: string;
   customer_id?: number;
@@ -30,6 +32,7 @@ interface PaymentModalProps {
   selectedCustomerId: string;
   onConfirmPayment: (data: PaymentData) => void;
   isProcessing: boolean;
+  initialMethod?: string;
 }
 
 export default function PaymentModal({
@@ -41,12 +44,55 @@ export default function PaymentModal({
   selectedCustomerId,
   onConfirmPayment,
   isProcessing,
+  initialMethod,
 }: PaymentModalProps) {
   const { t } = useLanguage();
   
   // Dynamic payment methods from backend
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
-  const [activeCode, setActiveCode] = useState<string>('CASH');
+  const [activeCode, setActiveCode] = useState<string>(initialMethod || 'CASH');
+
+  // Exchange rate resolution: prop -> localStorage -> background API fetch
+  const [currentRate, setCurrentRate] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('pos_exchange_rate');
+      if (cached && !isNaN(Number(cached)) && Number(cached) > 0) {
+        return Number(cached);
+      }
+    }
+    return exchangeRate > 0 ? exchangeRate : 4000;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('pos_exchange_rate');
+      if (cached && !isNaN(Number(cached)) && Number(cached) > 0) {
+        setCurrentRate(Number(cached));
+      } else if (exchangeRate > 0) {
+        setCurrentRate(exchangeRate);
+      }
+    } else if (exchangeRate > 0) {
+      setCurrentRate(exchangeRate);
+    }
+  }, [isOpen, exchangeRate]);
+
+  // Fetch freshest receipt settings whenever payment modal opens
+  useEffect(() => {
+    if (isOpen) {
+      receiptSettingService
+        .getSettings()
+        .then((s) => {
+          if (s?.exchange_rate && Number(s.exchange_rate) > 0) {
+            const r = Number(s.exchange_rate);
+            setCurrentRate(r);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('pos_exchange_rate', String(r));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   // Cash Inputs
   const [receivedUsdStr, setReceivedUsdStr] = useState<string>('');
@@ -71,7 +117,10 @@ export default function PaymentModal({
         .then((data) => {
           if (data && data.length > 0) {
             setMethods(data);
-            const defaultMethod = data.find((m) => m.code === 'CASH') || data[0];
+            const defaultMethod =
+              (initialMethod && data.find((m) => m.code === initialMethod)) ||
+              data.find((m) => m.code === 'CASH') ||
+              data[0];
             if (defaultMethod) setActiveCode(defaultMethod.code);
           }
         })
@@ -86,43 +135,63 @@ export default function PaymentModal({
     }
   }, [isOpen]);
 
+  const hasInitializedRef = useRef(false);
+
   // Sync selected customer when modal opens
   useEffect(() => {
     setDebtCustomerId(selectedCustomerId);
   }, [selectedCustomerId, isOpen]);
 
-  // Set default received amount to exact total when opening Cash modal
+  // Set default received amount to exact total ONCE when opening Cash modal
   const currentMethod = methods.find((m) => m.code === activeCode);
   const isCash = activeCode === 'CASH' || currentMethod?.type === 'CASH';
 
   useEffect(() => {
-    if (isOpen && isCash && !receivedUsdStr && !receivedKhrStr) {
-      setReceivedUsdStr(totalAmount.toString());
+    if (isOpen) {
+      if (!hasInitializedRef.current) {
+        setReceivedUsdStr(totalAmount > 0 ? totalAmount.toString() : '');
+        setReceivedKhrStr('');
+        hasInitializedRef.current = true;
+      }
+    } else {
+      hasInitializedRef.current = false;
     }
-  }, [isOpen, isCash, totalAmount]);
+  }, [isOpen, totalAmount]);
 
   if (!isOpen) return null;
 
-  const totalKhr = totalAmount * exchangeRate;
+  const totalKhr = totalAmount * currentRate;
   const receivedUsd = parseFloat(receivedUsdStr) || 0;
   const receivedKhr = parseFloat(receivedKhrStr) || 0;
-  const totalReceivedInUsd = receivedUsd + receivedKhr / exchangeRate;
+  const totalReceivedInUsd = receivedUsd + receivedKhr / currentRate;
+
+  const isUnderpaid = isCash && totalReceivedInUsd > 0 && totalReceivedInUsd < totalAmount;
+  const shortageUsd = Math.max(0, totalAmount - totalReceivedInUsd);
+  const shortageKhr = Math.round(shortageUsd * currentRate);
 
   const changeUsd = Math.max(0, totalReceivedInUsd - totalAmount);
-  const changeKhr = Math.round(changeUsd * exchangeRate);
+  const changeKhr = Math.round(changeUsd * currentRate);
 
   const initialDeposit = parseFloat(initialDepositStr) || 0;
   const debtBalance = Math.max(0, totalAmount - initialDeposit);
 
-  // Fast cash presets
-  const fastCashPresets = [
-    totalAmount,
-    Math.ceil(totalAmount / 5) * 5 || 5,
-    Math.ceil(totalAmount / 10) * 10 || 10,
-    20,
-    50,
-    100,
-  ].filter((v, i, self) => self.indexOf(v) === i && v >= totalAmount);
+  // Fast cash presets with smart rounded bills
+  const fastCashPresets = (() => {
+    const presets: number[] = [totalAmount];
+    if (totalAmount > 0) {
+      const next5 = Math.ceil((totalAmount + 0.01) / 5) * 5;
+      const next10 = Math.ceil((totalAmount + 0.01) / 10) * 10;
+      const next50 = Math.ceil((totalAmount + 0.01) / 50) * 50;
+      const next100 = Math.ceil((totalAmount + 0.01) / 100) * 100;
+      [next5, next10, next50, next100].forEach((p) => {
+        if (p > totalAmount && !presets.includes(p)) presets.push(p);
+      });
+    }
+    [10, 20, 50, 100, 500].forEach((b) => {
+      if (b >= totalAmount && !presets.includes(b)) presets.push(b);
+    });
+    return Array.from(new Set(presets)).sort((a, b) => a - b).slice(0, 5);
+  })();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,8 +220,16 @@ export default function PaymentModal({
       }
     } else if (isCash) {
       finalMethod = activeCode;
-      initial_paid = totalAmount;
-      finalReceived = Math.max(totalAmount, totalReceivedInUsd);
+      if (isUnderpaid) {
+        // Customer pays partial cash, rest is saved as debt
+        payment_type = 'PARTIAL';
+        initial_paid = totalReceivedInUsd;
+        finalReceived = totalReceivedInUsd;
+      } else {
+        payment_type = 'PAID';
+        initial_paid = totalAmount;
+        finalReceived = Math.max(totalAmount, totalReceivedInUsd);
+      }
     } else {
       // Bank / QR / Card
       finalMethod = activeCode;
@@ -169,6 +246,7 @@ export default function PaymentModal({
       received_khr: receivedKhr,
       change_usd: changeUsd,
       change_khr: changeKhr,
+      exchange_rate: currentRate,
       reference_number: referenceNumber.trim(),
       notes: notes.trim(),
       customer_id,
@@ -204,7 +282,7 @@ export default function PaymentModal({
             <div className="text-2xl font-black text-primary">${totalAmount.toFixed(2)} USD</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] font-bold text-foreground/50">KHR Rate ({exchangeRate.toLocaleString()})</div>
+            <div className="text-[10px] font-bold text-foreground/50">KHR Rate ({currentRate.toLocaleString()})</div>
             <div className="text-lg font-extrabold text-foreground/80">{totalKhr.toLocaleString()} ៛</div>
           </div>
         </div>
@@ -304,11 +382,16 @@ export default function PaymentModal({
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs font-black text-foreground/40">$</span>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                      type="text"
+                      inputMode="decimal"
                       value={receivedUsdStr}
-                      onChange={(e) => setReceivedUsdStr(e.target.value)}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const clean = raw.replace(/[^0-9.]/g, '');
+                        const parts = clean.split('.');
+                        const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : clean;
+                        setReceivedUsdStr(sanitized);
+                      }}
                       placeholder="0.00"
                       className="w-full pl-7 pr-3 py-2 bg-secondary/30 border border-border/60 rounded-xl text-sm font-black focus:outline-none focus:border-primary"
                     />
@@ -322,11 +405,13 @@ export default function PaymentModal({
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs font-black text-foreground/40">៛</span>
                     <input
-                      type="number"
-                      step="100"
-                      min="0"
+                      type="text"
+                      inputMode="numeric"
                       value={receivedKhrStr}
-                      onChange={(e) => setReceivedKhrStr(e.target.value)}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/[^0-9]/g, '');
+                        setReceivedKhrStr(clean);
+                      }}
                       placeholder="0"
                       className="w-full pl-7 pr-3 py-2 bg-secondary/30 border border-border/60 rounded-xl text-sm font-black focus:outline-none focus:border-primary"
                     />
@@ -334,17 +419,76 @@ export default function PaymentModal({
                 </div>
               </div>
 
-              {/* Calculated Change Display */}
-              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider">Change Due</div>
-                  <div className="text-xl font-black text-emerald-600">${changeUsd.toFixed(2)} USD</div>
+              {/* Calculated Change / Shortage Display */}
+              {isUnderpaid ? (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center justify-between animate-fade-in">
+                  <div>
+                    <div className="text-[10px] font-extrabold uppercase text-amber-600 tracking-wider">
+                      Amount Short / នៅខ្វះ
+                    </div>
+                    <div className="text-xl font-black text-amber-600">
+                      -${shortageUsd.toFixed(2)} USD
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-amber-600/70">In Riel</div>
+                    <div className="text-base font-extrabold text-amber-600">
+                      -{shortageKhr.toLocaleString()} ៛
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-emerald-600/70">In Riel</div>
-                  <div className="text-base font-extrabold text-emerald-600">{changeKhr.toLocaleString()} ៛</div>
+              ) : (
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between animate-fade-in">
+                  <div>
+                    <div className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider">
+                      Change Due / ប្រាក់អាប់
+                    </div>
+                    <div className="text-xl font-black text-emerald-600">
+                      ${changeUsd.toFixed(2)} USD
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-emerald-600/70">In Riel</div>
+                    <div className="text-base font-extrabold text-emerald-600">
+                      {changeKhr.toLocaleString()} ៛
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* If underpaid, prompt for customer debt recording */}
+              {isUnderpaid && (
+                <div className="p-3 bg-secondary/30 border border-border/50 rounded-2xl space-y-2 animate-fade-in">
+                  <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                    <span>Record remaining balance as Customer Debt:</span>
+                    <span className="font-mono text-rose-500 font-black">${shortageUsd.toFixed(2)}</span>
+                  </div>
+                  <SearchableSelect
+                    value={debtCustomerId}
+                    onChange={(val) => setDebtCustomerId(String(val))}
+                    placeholder="-- Select Customer to attach Debt --"
+                    searchPlaceholder="Search customer name or phone..."
+                    options={[
+                      { value: 'walk-in', label: '-- Select Customer to attach Debt --', disabled: true },
+                      ...customers.map((c) => ({
+                        value: String(c.customerId),
+                        label: c.fullName,
+                        sublabel: c.phone ? `Phone: ${c.phone}` : 'No phone number',
+                        badge: Number(c.totalDebt || 0) > 0 ? `Debt: $${Number(c.totalDebt).toFixed(2)}` : undefined,
+                      })),
+                    ]}
+                  />
+                  {debtCustomerId === 'walk-in' ? (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                      💡 Customer account is required to record the remaining ${shortageUsd.toFixed(2)} as debt. Otherwise, collect the full ${totalAmount.toFixed(2)}.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      ✓ ${totalReceivedInUsd.toFixed(2)} paid now. Remaining ${shortageUsd.toFixed(2)} will be saved to this customer&apos;s debt.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -493,10 +637,20 @@ export default function PaymentModal({
             </button>
             <button
               type="submit"
-              disabled={isProcessing || (activeCode === 'DEBT' && debtCustomerId === 'walk-in')}
+              disabled={
+                isProcessing ||
+                (activeCode === 'DEBT' && debtCustomerId === 'walk-in') ||
+                (isUnderpaid && debtCustomerId === 'walk-in')
+              }
               className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-md shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              {isProcessing ? 'Processing...' : 'Confirm & Print Receipt'}
+              {isProcessing
+                ? 'Processing...'
+                : isUnderpaid && debtCustomerId === 'walk-in'
+                ? `Need Customer for Shortage (-$${shortageUsd.toFixed(2)})`
+                : isUnderpaid
+                ? `Confirm Partial Cash ($${totalReceivedInUsd.toFixed(2)})`
+                : 'Confirm & Print Receipt'}
             </button>
           </div>
         </form>

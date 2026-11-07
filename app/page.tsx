@@ -12,10 +12,17 @@ export default function Home() {
     const token = tokenStorage.getAccessToken();
 
     if (token && user) {
-      if (user.role === 'ADMIN') {
-        router.replace('/admin/dashboard');
+      const uRole = (user.role || '').toUpperCase();
+      const perms = Array.isArray(user.permissions) ? user.permissions : [];
+      const hasDashboard =
+        uRole === 'ADMINISTRATOR' ||
+        perms.some((p: any) => (typeof p === 'string' ? p === 'dashboard.view' : p?.featureKey === 'dashboard.view')) ||
+        (uRole === 'ADMIN' && perms.length === 0);
+
+      if (uRole === 'ADMIN' || uRole === 'ADMINISTRATOR') {
+        router.replace(hasDashboard ? '/admin/dashboard' : '/admin/products');
       } else {
-        router.replace('/cashier/dashboard');
+        router.replace(hasDashboard ? '/cashier/dashboard' : '/cashier/checkout');
       }
     } else {
       router.replace('/login');

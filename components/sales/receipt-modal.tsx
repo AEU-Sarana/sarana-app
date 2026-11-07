@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../../features/product/types';
 import { printReceipt } from '../../libs/printReceipt';
+import { receiptSettingService } from '../../services/receiptSettingService';
+import { ReceiptSetting } from '../../features/receipt/types';
 
 export interface CartItem {
   product: Product;
@@ -27,7 +29,8 @@ export interface CompletedOrder {
 interface ReceiptModalProps {
   isOpen: boolean;
   order: CompletedOrder | null;
-  paymentMethod: 'CASH' | 'ABA' | 'WING';
+  paymentMethod: string;
+  exchangeRate?: number;
   onClose: () => void;
   onNewOrder: () => void;
 }
@@ -36,10 +39,38 @@ export default function ReceiptModal({
   isOpen,
   order,
   paymentMethod,
+  exchangeRate: propExchangeRate,
   onClose,
   onNewOrder,
 }: ReceiptModalProps) {
+  const [storeSettings, setStoreSettings] = useState<ReceiptSetting | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      receiptSettingService
+        .getSettings()
+        .then(setStoreSettings)
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!isOpen || !order) return null;
+
+  const logoSrc = storeSettings?.logo_path || '/logo.jpg';
+  const showLogo = storeSettings?.is_logo_enabled ?? true;
+  const storeName = storeSettings?.store_name || 'ឱសថស្ថាន';
+  const storePhone = storeSettings?.phone || '017 62 26 26';
+  const storeAddress = storeSettings?.address;
+  const storeTaxId = storeSettings?.tax_id;
+  const footerNote = storeSettings?.footer_note || 'Thank you for your purchase!';
+  const showFooter = storeSettings?.is_footer_enabled ?? true;
+
+  const cachedRate = typeof window !== 'undefined' ? Number(localStorage.getItem('pos_exchange_rate')) : 0;
+  const exchangeRate =
+    propExchangeRate ||
+    (order as any)?.exchangeRate ||
+    (storeSettings?.exchange_rate ? Number(storeSettings.exchange_rate) : 0) ||
+    (cachedRate > 0 ? cachedRate : 4000);
 
   const handlePrint = () => {
     if (!order) return;
@@ -65,7 +96,16 @@ export default function ReceiptModal({
       total_amount: order.total,
       received_amount: order.cashReceived,
       change_amount: order.change,
-      exchange_rate: 4100
+      exchange_rate: exchangeRate,
+      // Dynamic store settings
+      store_name: storeName,
+      store_logo: logoSrc,
+      store_phone: storePhone,
+      store_address: storeAddress,
+      store_tax_id: storeTaxId,
+      footer_note: footerNote,
+      is_logo_enabled: showLogo,
+      is_footer_enabled: showFooter,
     });
   };
 
@@ -92,34 +132,48 @@ export default function ReceiptModal({
           {/* Header Pharmacy Logo & Bilingual Labels */}
           <div className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3">
             <div className="flex flex-col items-start space-y-1 w-[40%] shrink-0">
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  minWidth: '48px',
-                  maxWidth: '48px',
-                  minHeight: '48px',
-                  maxHeight: '48px',
-                  overflow: 'hidden',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  flexShrink: 0,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo.jpg"
-                  alt="Logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-              <span className="text-[8px] font-bold text-gray-700 whitespace-nowrap pt-1">ទូរស័ព្ទ: 017 62 26 26</span>
+              {showLogo && (
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    minWidth: '48px',
+                    maxWidth: '48px',
+                    minHeight: '48px',
+                    maxHeight: '48px',
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoSrc}
+                    alt="Logo"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              )}
+              {storePhone && (
+                <span className="text-[8px] font-bold text-gray-700 whitespace-nowrap pt-1">
+                  ទូរស័ព្ទ: {storePhone}
+                </span>
+              )}
+              {storeAddress && (
+                <span className="text-[7px] text-gray-500 leading-tight">
+                  {storeAddress}
+                </span>
+              )}
             </div>
             <div className="text-right flex flex-col flex-1 pl-3 space-y-0.5 select-none">
-              <h2 className="text-[11px] font-bold text-black leading-tight">ឱសថស្ថាន</h2>
+              <h2 className="text-[11px] font-bold text-black leading-tight">{storeName}</h2>
               <h3 className="text-[9px] font-extrabold uppercase text-gray-700 tracking-wider">PHARMACIE</h3>
               <h2 className="text-[12px] font-bold text-black tracking-tight pt-1.5">វិក្កយបត្រ</h2>
               <h3 className="text-[10px] font-black text-black tracking-wide uppercase leading-tight">INVOICE</h3>
+              {storeTaxId && (
+                <span className="text-[7px] text-gray-500">VATTIN: {storeTaxId}</span>
+              )}
             </div>
           </div>
 
@@ -187,8 +241,14 @@ export default function ReceiptModal({
               </div>
             )}
             <div className="flex justify-between items-center font-black border border-black p-2 mt-2">
-              <span className="text-[10px] uppercase text-black font-extrabold">សរុប TOTAL</span>
-              <span className="text-sm text-black tracking-tight">${order.total.toFixed(2)}</span>
+              <div>
+                <span className="text-[10px] uppercase text-black font-extrabold block">សរុប TOTAL</span>
+                <span className="text-[8px] font-bold text-gray-500 block">Rate: $1 = {exchangeRate.toLocaleString()} ៛</span>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-black tracking-tight block">${order.total.toFixed(2)}</span>
+                <span className="text-[10px] font-bold text-black block">{Math.round(order.total * exchangeRate).toLocaleString()} ៛</span>
+              </div>
             </div>
           </div>
 
@@ -213,14 +273,14 @@ export default function ReceiptModal({
               </>
             ) : (
               <div className="flex justify-between text-emerald-600 font-bold">
-                <span>ABA / WING:</span>
+                <span>{paymentMethod}:</span>
                 <span>PAID - reference sync</span>
               </div>
             )}
           </div>
 
-          {/* Mock QR payment code if ABA Pay is selected */}
-          {(paymentMethod === 'ABA' || paymentMethod === 'WING') && (
+          {/* Mock QR payment code if electronic Pay is selected */}
+          {paymentMethod !== 'CASH' && paymentMethod !== 'DEBT' && (
             <div className="pt-2 flex flex-col items-center justify-center space-y-1 select-none">
               {/* Fake ABA Pay QR container */}
               <div className="w-24 h-24 bg-gray-50 border border-gray-200 rounded-lg p-1.5 flex items-center justify-center relative">
@@ -257,10 +317,12 @@ export default function ReceiptModal({
             </div>
             <div className="h-4" /> {/* space for signature */}
             <div className="border-t border-dashed border-gray-300 pb-2" />
-            <div className="text-center space-y-1">
-              <p className="text-[9px] font-bold uppercase tracking-wider">Thank you for your purchase!</p>
-              <p className="text-[7px] text-gray-400">Medicines are non-refundable once opened. Please check expiry dates.</p>
-            </div>
+            {showFooter && (
+              <div className="text-center space-y-1">
+                <p className="text-[9px] font-bold uppercase tracking-wider">{footerNote}</p>
+                <p className="text-[7px] text-gray-400">Medicines are non-refundable once opened. Please check expiry dates.</p>
+              </div>
+            )}
           </div>
 
         </div>

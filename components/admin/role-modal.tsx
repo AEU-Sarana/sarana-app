@@ -30,6 +30,14 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
   all: 'All Actions',
 };
 
+export const ADMIN_FORBIDDEN_FEATURES = [
+  'users.manage',
+  'roles.manage',
+  'settings.manage',
+  'backup.manage',
+  'security.audit_logs',
+];
+
 export default function RoleModal({ isOpen, role, onClose, onSaved }: RoleModalProps) {
   const [key, setKey] = useState('');
   const [name, setName] = useState('');
@@ -66,8 +74,18 @@ export default function RoleModal({ isOpen, role, onClose, onSaved }: RoleModalP
         setDescription(role.description || '');
 
         const initialMap: Record<string, PermissionAction[]> = {};
-        for (const p of role.permissions || []) {
-          initialMap[p.feature_key] = (p.actions as PermissionAction[]) || ['read'];
+        if (role.key === 'ADMINISTRATOR') {
+          // Administrator has all features enabled
+          for (const f of allFeatures) {
+            initialMap[f.key] = ['all', 'read', 'create', 'update', 'delete'];
+          }
+        } else {
+          for (const p of role.permissions || []) {
+            if (role.key === 'ADMIN' && ADMIN_FORBIDDEN_FEATURES.includes(p.feature_key)) {
+              continue; // Do not load forbidden admin features for Store Admin
+            }
+            initialMap[p.feature_key] = (p.actions as PermissionAction[]) || ['read'];
+          }
         }
         setPermissionMap(initialMap);
       } else {
@@ -301,14 +319,25 @@ export default function RoleModal({ isOpen, role, onClose, onSaved }: RoleModalP
                             'all',
                           ];
 
+                          const isForbiddenForStoreAdmin = role?.key === 'ADMIN' && ADMIN_FORBIDDEN_FEATURES.includes(feature.key);
+
                           return (
                             <div
                               key={feature.key}
-                              className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-secondary/10 transition"
+                              className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition ${
+                                isForbiddenForStoreAdmin ? 'bg-destructive/5 opacity-75' : 'hover:bg-secondary/10'
+                              }`}
                             >
                               <div className="max-w-md">
-                                <div className="font-bold text-sm text-foreground">
-                                  {feature.name}
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-foreground">
+                                    {feature.name}
+                                  </span>
+                                  {isForbiddenForStoreAdmin && (
+                                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
+                                      Admin Role Cannot Access
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-xs text-foreground/50 mt-0.5">
                                   {feature.description}
@@ -317,24 +346,30 @@ export default function RoleModal({ isOpen, role, onClose, onSaved }: RoleModalP
 
                               {/* Action checkboxes */}
                               <div className="flex flex-wrap items-center gap-2">
-                                {availableActions.map((act) => {
-                                  const isChecked = currentActions.includes(act);
-                                  return (
-                                    <button
-                                      key={act}
-                                      type="button"
-                                      onClick={() => handleActionToggle(feature.key, act)}
-                                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-                                        isChecked
-                                          ? 'bg-primary/10 border-primary/40 text-primary'
-                                          : 'bg-card border-border/60 text-foreground/50 hover:text-foreground hover:bg-secondary/30'
-                                      }`}
-                                    >
-                                      {isChecked ? '✓ ' : ''}
-                                      {ACTION_LABELS[act] || act}
-                                    </button>
-                                  );
-                                })}
+                                {isForbiddenForStoreAdmin ? (
+                                  <span className="text-xs font-semibold text-destructive/70 italic px-2 py-1">
+                                    Administrator Only
+                                  </span>
+                                ) : (
+                                  availableActions.map((act) => {
+                                    const isChecked = currentActions.includes(act);
+                                    return (
+                                      <button
+                                        key={act}
+                                        type="button"
+                                        onClick={() => handleActionToggle(feature.key, act)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                                          isChecked
+                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            : 'bg-card border-border/60 text-foreground/50 hover:text-foreground hover:bg-secondary/30'
+                                        }`}
+                                      >
+                                        {isChecked ? '✓ ' : ''}
+                                        {ACTION_LABELS[act] || act}
+                                      </button>
+                                    );
+                                  })
+                                )}
                               </div>
                             </div>
                           );
