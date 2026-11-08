@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { reportService } from '../../../services/reportService';
+import { reportService, ProfitLossPeriod, ProfitLossReportResponse } from '../../../services/reportService';
 import { useLanguage } from '../../../contexts/language-context';
+import { useAuth } from '../../../hooks/useAuth';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-type TabId       = 'daily' | 'sales' | 'income' | 'stock';
+type TabId       = 'daily' | 'sales' | 'income' | 'profit_loss' | 'stock';
 type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock' | 'negative';
 type Period      = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -167,6 +168,8 @@ const BoxIcon      = () => ic('M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4
 const WarningIcon  = () => ic('M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z');
 const BanIcon      = () => ic('M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636');
 const AlertIcon    = () => ic('M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9');
+const ShieldIcon   = () => ic('M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z');
+const PrintIcon    = () => ic('M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z');
 
 // ─── Daily Tab ─────────────────────────────────────────────────────────────────
 interface DailyTabProps {
@@ -709,9 +712,576 @@ function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportT
   );
 }
 
+// ─── Profit & Loss (P&L) Tab (Administrator) ───────────────────────────────────
+function ProfitLossTab() {
+  const { t } = useLanguage();
+  const [period, setPeriod] = useState<ProfitLossPeriod>('monthly');
+  const [customStart, setCustomStart] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [comparePrevious, setComparePrevious] = useState(true);
+  const [data, setData] = useState<ProfitLossReportResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReport = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await reportService.getProfitLossReport({
+        period,
+        start_date: period === 'custom' ? customStart : undefined,
+        end_date: period === 'custom' ? customEnd : undefined,
+        compare_previous: comparePrevious,
+      });
+      if (res) setData(res);
+    } catch (err: any) {
+      console.error('Profit & Loss fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [period, customStart, customEnd, comparePrevious]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  const periods: { id: ProfitLossPeriod; labelKey: string; defaultLabel: string }[] = [
+    { id: 'daily',   labelKey: 'reports.period_daily',   defaultLabel: 'Daily'   },
+    { id: 'weekly',  labelKey: 'reports.period_weekly',  defaultLabel: 'Weekly'  },
+    { id: 'monthly', labelKey: 'reports.period_monthly', defaultLabel: 'Monthly' },
+    { id: 'yearly',  labelKey: 'reports.period_yearly',  defaultLabel: 'Yearly'  },
+    { id: 'custom',  labelKey: 'reports.period_custom',  defaultLabel: 'Custom'  },
+  ];
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportCSV = () => {
+    if (!data) return;
+    const s = data.summary;
+    const rows = [
+      ['PHARMACY FINANCIAL STATEMENT - PROFIT & LOSS (P&L)'],
+      ['Period', data.period.toUpperCase()],
+      ['Date Range', `${data.date_range.start.slice(0, 10)} to ${data.date_range.end.slice(0, 10)}`],
+      ['Generated At', new Date().toLocaleString()],
+      [],
+      ['1. FINANCIAL METRICS SUMMARY', 'AMOUNT (USD)'],
+      ['Gross Sales Revenue', s.gross_sales.toFixed(2)],
+      ['Sales Discounts Deduction', `-${s.discounts.toFixed(2)}`],
+      ['Net Sales Revenue', s.net_sales.toFixed(2)],
+      ['Cost of Goods Sold (COGS)', `-${s.cogs.toFixed(2)}`],
+      ['Gross Operating Profit', s.gross_profit.toFixed(2)],
+      ['Gross Margin (%)', `${s.gross_margin_pct}%`],
+      ['Stock Shrinkage Losses (Damage/Expired)', `-${s.stock_loss.toFixed(2)}`],
+      ['Net Bottom-Line Profit / (Loss)', s.net_profit.toFixed(2)],
+      ['Net Profit Margin (%)', `${s.net_margin_pct}%`],
+      ['Total Completed Orders', s.total_orders],
+      ['Total Medicine Units Sold', s.total_items_sold],
+      [],
+      ['2. CATEGORY PROFIT CONTRIBUTION', 'UNITS SOLD', 'REVENUE ($)', 'COGS ($)', 'GROSS PROFIT ($)', 'MARGIN (%)'],
+      ...data.category_breakdown.map((c) => [
+        `"${c.category_name.replace(/"/g, '""')}"`,
+        c.quantity_sold,
+        c.revenue.toFixed(2),
+        c.cogs.toFixed(2),
+        c.profit.toFixed(2),
+        `${c.margin_pct}%`,
+      ]),
+      [],
+      ['3. TOP PROFITABLE MEDICINES', 'PRODUCT CODE', 'CATEGORY', 'UNITS SOLD', 'REVENUE ($)', 'COGS ($)', 'PROFIT ($)', 'MARGIN (%)'],
+      ...data.top_profitable_products.map((p) => [
+        `"${p.product_name.replace(/"/g, '""')}"`,
+        p.product_code,
+        `"${p.category_name.replace(/"/g, '""')}"`,
+        p.quantity_sold,
+        p.revenue.toFixed(2),
+        p.cogs.toFixed(2),
+        p.profit.toFixed(2),
+        `${p.margin_pct}%`,
+      ]),
+      [],
+      ['4. DAMAGED & EXPIRED STOCK WRITE-OFFS', 'DATE', 'REASON / MOVEMENT', 'QUANTITY', 'COST LOSS ($)'],
+      ...data.stock_loss_items.map((i) => [
+        `"${i.product_name.replace(/"/g, '""')}"`,
+        i.date.slice(0, 10),
+        `"${i.movement_type.replace(/"/g, '""')}"`,
+        i.quantity,
+        i.cost_loss.toFixed(2),
+      ]),
+    ];
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map((e) => e.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Profit_Loss_Statement_${data.period}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const s = data?.summary || {
+    gross_sales: 0,
+    discounts: 0,
+    net_sales: 0,
+    cogs: 0,
+    gross_profit: 0,
+    gross_margin_pct: 0,
+    stock_loss: 0,
+    net_profit: 0,
+    net_margin_pct: 0,
+    total_orders: 0,
+    total_items_sold: 0,
+  };
+
+  const growth = data?.growth_comparison;
+  const isProfitable = s.net_profit >= 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Top Banner / Confidential Clearance */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
+            <ShieldIcon />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base font-black text-foreground">
+                {t('reports.profit_loss_title', 'Profit and Loss Statement (P&L)')}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                Administrator
+              </span>
+            </div>
+            <p className="text-[11px] font-bold text-foreground/50 mt-0.5">
+              {t('reports.profit_loss_subtitle', 'Comprehensive income statement, COGS, gross margin, stock write-offs, and net earnings')}
+            </p>
+          </div>
+        </div>
+
+        {/* Action buttons (Print & Export) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-3.5 py-2 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/70 hover:text-foreground text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95"
+          >
+            <PrintIcon />
+            {t('reports.print_statement', 'Print Statement')}
+          </button>
+          <button
+            onClick={handleExportCSV}
+            disabled={!data || isLoading}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md disabled:opacity-50 active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {t('reports.export_excel', 'Export P&L (CSV)')}
+          </button>
+        </div>
+      </div>
+
+      {/* Period & Filter Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-card border border-border/40 rounded-3xl p-4 shadow-sm">
+        <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl select-none flex-wrap">
+          {periods.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer ${
+                period === p.id
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-foreground/50 hover:text-foreground'
+              }`}
+            >
+              {t(p.labelKey, p.defaultLabel)}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Range Picker */}
+        {period === 'custom' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="bg-secondary/40 border border-border/40 text-foreground text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary"
+            />
+            <span className="text-xs font-bold text-foreground/40">→</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="bg-secondary/40 border border-border/40 text-foreground text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary"
+            />
+            <button
+              onClick={fetchReport}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm"
+            >
+              {t('reports.apply', 'Apply')}
+            </button>
+          </div>
+        )}
+
+        {/* Compare Previous Checkbox */}
+        <label className="flex items-center gap-2 text-xs font-bold text-foreground/60 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={comparePrevious}
+            onChange={(e) => setComparePrevious(e.target.checked)}
+            className="w-4 h-4 rounded border-border/40 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+          />
+          <span>{t('reports.growth_vs_previous', 'Compare with Previous Period')}</span>
+        </label>
+      </div>
+
+      {isLoading && !data ? (
+        <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
+          <div className="w-10 h-10 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+          <span className="text-xs font-bold text-foreground/50 tracking-wider">
+            {t('reports.loading', 'Calculating Profit & Loss Statement...')}
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* 5 KPI Metric Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <StatCard
+              label={t('reports.net_sales', 'Net Revenue')}
+              value={fmtUSD(s.net_sales)}
+              sub={`Gross: ${fmtUSD(s.gross_sales)} • Disc: -${fmtUSD(s.discounts)}`}
+              accent="emerald"
+              icon={<DollarIcon />}
+            />
+            <StatCard
+              label={t('reports.cogs', 'COGS')}
+              value={fmtUSD(s.cogs)}
+              sub={`${s.total_items_sold.toLocaleString()} units sold`}
+              accent="rose"
+              icon={<BarIcon />}
+            />
+            <StatCard
+              label={t('reports.gross_profit_title', 'Gross Profit')}
+              value={fmtUSD(s.gross_profit)}
+              sub={`${s.gross_margin_pct}% margin`}
+              accent="indigo"
+              icon={<TrendIcon />}
+            />
+            <StatCard
+              label={t('reports.inventory_loss', 'Stock Shrinkage')}
+              value={`-${fmtUSD(s.stock_loss)}`}
+              sub={`${data?.stock_loss_items?.length || 0} damage/expiry items`}
+              accent="orange"
+              icon={<WarningIcon />}
+            />
+            <StatCard
+              label={t('reports.net_profit', 'Net Profit')}
+              value={fmtUSD(s.net_profit)}
+              sub={`${s.net_margin_pct}% net margin`}
+              accent={isProfitable ? 'emerald' : 'rose'}
+              icon={<CashIcon />}
+            />
+          </div>
+
+          {/* Growth Comparison Banner (if enabled) */}
+          {growth && (
+            <div className="flex items-center justify-between gap-4 bg-card border border-border/40 rounded-2xl p-4 shadow-sm text-xs font-bold text-foreground/70 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-black tracking-widest text-foreground/40">
+                  {t('reports.growth_vs_previous', 'vs Previous Period')}:
+                </span>
+                <span className={`inline-flex items-center gap-1 font-black ${growth.sales_growth_pct >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {growth.sales_growth_pct >= 0 ? '▲' : '▼'} {Math.abs(growth.sales_growth_pct)}% Sales
+                </span>
+                <span className="text-foreground/20">•</span>
+                <span className={`inline-flex items-center gap-1 font-black ${growth.profit_growth_pct >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {growth.profit_growth_pct >= 0 ? '▲' : '▼'} {Math.abs(growth.profit_growth_pct)}% Net Profit
+                </span>
+              </div>
+              <div className="text-[11px] text-foreground/40 font-semibold">
+                Previous Net Sales: <span className="font-bold text-foreground/60">{fmtUSD(growth.previous_net_sales)}</span> | Previous Net Profit: <span className="font-bold text-foreground/60">{fmtUSD(growth.previous_net_profit)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Financial Statement Structured Waterfall Sheet */}
+          <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-border/20 pb-4">
+              <div>
+                <h3 className="text-sm font-black text-foreground tracking-tight">
+                  {t('reports.statement_heading', 'Income Statement Summary')}
+                </h3>
+                <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">
+                  Accounting Waterfall (Revenue → Costs → Gross Profit → Losses → Net Profit)
+                </p>
+              </div>
+              <div className="text-right">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                  isProfitable ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${isProfitable ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  {isProfitable ? 'Net Profitable' : 'Net Deficit / Loss'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-xs">
+              {/* 1. Operating Revenue */}
+              <div className="p-3 bg-secondary/15 rounded-xl flex items-center justify-between font-black text-foreground">
+                <span>{t('reports.operating_revenue', '1. Operating Revenue')}</span>
+                <span>{fmtUSD(s.net_sales)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between text-foreground/60 font-semibold border-b border-border/10">
+                <span>Gross Pharmacy Sales (before discounts)</span>
+                <span className="font-bold text-foreground">{fmtUSD(s.gross_sales)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between text-foreground/60 font-semibold border-b border-border/10">
+                <span>Less: Customer Discounts Deductions</span>
+                <span className="font-bold text-rose-500">-{fmtUSD(s.discounts)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between font-bold text-foreground bg-secondary/10 rounded-lg">
+                <span>Total Net Sales Revenue (100.0%)</span>
+                <span className="font-black text-emerald-600 dark:text-emerald-400">{fmtUSD(s.net_sales)}</span>
+              </div>
+
+              {/* 2. Direct Cost of Goods Sold */}
+              <div className="p-3 bg-secondary/15 rounded-xl flex items-center justify-between font-black text-foreground mt-3">
+                <span>{t('reports.direct_costs', '2. Cost of Sales (COGS)')}</span>
+                <span className="text-rose-500">-{fmtUSD(s.cogs)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between text-foreground/60 font-semibold border-b border-border/10">
+                <span>Cost of Medicine Stock Sold at Sale ({s.total_items_sold.toLocaleString()} items)</span>
+                <span className="font-bold text-rose-500">-{fmtUSD(s.cogs)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between font-bold text-foreground bg-secondary/10 rounded-lg">
+                <span>Gross Operating Profit (Gross Margin: {s.gross_margin_pct}%)</span>
+                <span className="font-black text-indigo-600 dark:text-indigo-400">{fmtUSD(s.gross_profit)}</span>
+              </div>
+
+              {/* 3. Operating & Inventory Shrinkage Losses */}
+              <div className="p-3 bg-secondary/15 rounded-xl flex items-center justify-between font-black text-foreground mt-3">
+                <span>{t('reports.operating_expenses', '3. Shrinkage & Inventory Losses')}</span>
+                <span className="text-orange-500">-{fmtUSD(s.stock_loss)}</span>
+              </div>
+              <div className="pl-6 pr-4 py-2 flex items-center justify-between text-foreground/60 font-semibold border-b border-border/10">
+                <span>Damaged & Expired Medicine Stock Write-offs ({data?.stock_loss_items?.length || 0} batches)</span>
+                <span className="font-bold text-orange-500">-{fmtUSD(s.stock_loss)}</span>
+              </div>
+
+              {/* 4. Bottom Line Net Earnings */}
+              <div className={`p-4 rounded-2xl flex items-center justify-between mt-4 text-sm font-black shadow-sm ${
+                isProfitable
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+              }`}>
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-foreground/50 font-black">
+                    {t('reports.net_earnings', '4. Net Profit / (Loss)')}
+                  </p>
+                  <p className="text-base font-black mt-0.5">
+                    {isProfitable ? 'Net Bottom-Line Profit' : 'Net Bottom-Line Deficit'} ({s.net_margin_pct}% Net Margin)
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-black">{fmtUSD(s.net_profit)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tables Grid: Category Contribution & Top Profitable Products */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Category Breakdown Table */}
+            <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-foreground tracking-tight">
+                  {t('reports.category_contribution', 'Profit Contribution by Category')}
+                </h3>
+                <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">
+                  Category Profit & Margin Performance
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/20 text-[10px] font-black text-foreground/45 uppercase tracking-wider">
+                      <th className="py-2.5">Category</th>
+                      <th className="py-2.5 text-right">Sold</th>
+                      <th className="py-2.5 text-right">Revenue</th>
+                      <th className="py-2.5 text-right">Profit</th>
+                      <th className="py-2.5 text-right">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10 text-xs">
+                    {data?.category_breakdown && data.category_breakdown.length > 0 ? (
+                      data.category_breakdown.map((cat) => (
+                        <tr key={cat.category_id} className="hover:bg-secondary/20 transition-colors">
+                          <td className="py-3 font-bold text-foreground">
+                            {cat.category_name}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-foreground/60">
+                            {cat.quantity_sold.toLocaleString()}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-foreground/70">
+                            {fmtUSD(cat.revenue)}
+                          </td>
+                          <td className="py-3 text-right font-black text-indigo-500">
+                            {fmtUSD(cat.profit)}
+                          </td>
+                          <td className="py-3 text-right font-bold text-foreground/50">
+                            <span className="px-2 py-0.5 bg-secondary/50 rounded-md text-[10px] font-black">
+                              {cat.margin_pct}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs font-bold text-foreground/40 italic">
+                          No category sales recorded for this period.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Top Profitable Medicines Table */}
+            <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-foreground tracking-tight">
+                  {t('reports.top_profitable_title', 'Top Profitable Medicines')}
+                </h3>
+                <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">
+                  Medicines Driving Highest Bottom-Line Margins
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/20 text-[10px] font-black text-foreground/45 uppercase tracking-wider">
+                      <th className="py-2.5">Medicine</th>
+                      <th className="py-2.5 text-right">Qty</th>
+                      <th className="py-2.5 text-right">Revenue</th>
+                      <th className="py-2.5 text-right">Profit</th>
+                      <th className="py-2.5 text-right">Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10 text-xs">
+                    {data?.top_profitable_products && data.top_profitable_products.length > 0 ? (
+                      data.top_profitable_products.map((prod) => (
+                        <tr key={prod.product_id} className="hover:bg-secondary/20 transition-colors">
+                          <td className="py-3 font-bold text-foreground">
+                            <div>{prod.product_name}</div>
+                            {prod.product_code && (
+                              <div className="text-[10px] font-bold text-foreground/40">{prod.product_code}</div>
+                            )}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-foreground/60">
+                            {prod.quantity_sold.toLocaleString()}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-foreground/70">
+                            {fmtUSD(prod.revenue)}
+                          </td>
+                          <td className="py-3 text-right font-black text-emerald-600 dark:text-emerald-400">
+                            {fmtUSD(prod.profit)}
+                          </td>
+                          <td className="py-3 text-right font-bold text-foreground/50">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-black">
+                              {prod.margin_pct}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs font-bold text-foreground/40 italic">
+                          No product sales recorded for this period.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Damaged & Expired Stock Write-offs Table */}
+          {data?.stock_loss_items && data.stock_loss_items.length > 0 && (
+            <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-foreground tracking-tight">
+                    {t('reports.stock_loss_title', 'Damaged & Expired Stock Write-offs')}
+                  </h3>
+                  <p className="text-[10px] text-foreground/45 font-bold uppercase tracking-widest mt-0.5">
+                    Inventory Shrinkage Impacting Net Profitability
+                  </p>
+                </div>
+                <span className="text-xs font-black text-orange-500">
+                  Total Shrinkage: -{fmtUSD(s.stock_loss)}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/20 text-[10px] font-black text-foreground/45 uppercase tracking-wider">
+                      <th className="py-2.5">Date</th>
+                      <th className="py-2.5">Medicine</th>
+                      <th className="py-2.5">Write-off Reason</th>
+                      <th className="py-2.5 text-right">Quantity</th>
+                      <th className="py-2.5 text-right">Cost Loss ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/10 text-xs">
+                    {data.stock_loss_items.map((loss) => (
+                      <tr key={loss.movement_id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="py-3 font-bold text-foreground/50 text-[11px]">
+                          {loss.date.slice(0, 10)}
+                        </td>
+                        <td className="py-3 font-bold text-foreground">
+                          {loss.product_name}
+                        </td>
+                        <td className="py-3">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                            {loss.movement_type}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right font-black text-foreground">
+                          {loss.quantity}
+                        </td>
+                        <td className="py-3 text-right font-black text-rose-500">
+                          -{fmtUSD(loss.cost_loss)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminReportsPage() {
   const { t } = useLanguage();
+  const { user: authUser } = useAuth();
+  const isAdministrator = authUser?.role?.toUpperCase() === 'ADMINISTRATOR' || authUser?.role?.toUpperCase() === 'SUPER_ADMIN';
+  const isAdmin = isAdministrator || authUser?.role?.toUpperCase() === 'ADMIN';
+
   const [activeTab,   setActiveTab]   = useState<TabId>('daily');
   const [showExport,  setShowExport]  = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -778,6 +1348,7 @@ export default function AdminReportsPage() {
     { id: 'daily',  labelKey: 'reports.tab_daily',  defaultLabel: 'Daily Report'  },
     { id: 'sales',  labelKey: 'reports.tab_sales',  defaultLabel: 'Sales History' },
     { id: 'income', labelKey: 'reports.tab_income', defaultLabel: 'Income Report' },
+    ...(isAdmin ? [{ id: 'profit_loss' as TabId, labelKey: 'reports.tab_profit_loss', defaultLabel: 'Profit & Loss (P&L)' }] : []),
     { id: 'stock',  labelKey: 'reports.tab_stock',  defaultLabel: 'Stock Report'  },
   ];
 
@@ -786,7 +1357,7 @@ export default function AdminReportsPage() {
       {/* Controls bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Tab switcher */}
-        <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl select-none">
+        <div className="flex gap-1 p-1 bg-secondary/30 rounded-2xl select-none flex-wrap">
           {tabs.map(tItem => (
             <button key={tItem.id} onClick={() => setActiveTab(tItem.id)}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer ${
@@ -798,7 +1369,7 @@ export default function AdminReportsPage() {
         </div>
 
         {/* Export dropdown */}
-        {activeTab !== 'income' && (
+        {activeTab !== 'income' && activeTab !== 'profit_loss' && (
           <div className="relative" ref={exportRef}>
             <button onClick={() => setShowExport(!showExport)} disabled={isExporting}
               className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary border border-border/40 hover:border-border/80 rounded-xl text-foreground/60 hover:text-foreground text-xs font-black transition-all cursor-pointer disabled:opacity-50">
@@ -842,10 +1413,11 @@ export default function AdminReportsPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'daily'  && <DailyTab date={dailyDate} setDate={setDailyDate} />}
-      {activeTab === 'sales'  && <SalesHistoryTab startDate={salesStartDate} setStartDate={setSalesStartDate} endDate={salesEndDate} setEndDate={setSalesEndDate} />}
-      {activeTab === 'income' && <IncomeTab period={incomePeriod} setPeriod={setIncomePeriod} />}
-      {activeTab === 'stock'  && <StockReportTab lowOnly={stockLowOnly} setLowOnly={setStockLowOnly} search={stockSearch} setSearch={setStockSearch} />}
+      {activeTab === 'daily'       && <DailyTab date={dailyDate} setDate={setDailyDate} />}
+      {activeTab === 'sales'       && <SalesHistoryTab startDate={salesStartDate} setStartDate={setSalesStartDate} endDate={salesEndDate} setEndDate={setSalesEndDate} />}
+      {activeTab === 'income'      && <IncomeTab period={incomePeriod} setPeriod={setIncomePeriod} />}
+      {activeTab === 'profit_loss' && <ProfitLossTab />}
+      {activeTab === 'stock'       && <StockReportTab lowOnly={stockLowOnly} setLowOnly={setStockLowOnly} search={stockSearch} setSearch={setStockSearch} />}
     </div>
   );
 }

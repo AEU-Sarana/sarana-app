@@ -110,6 +110,75 @@ export interface IncomeReportResponse {
   purchasesQty: number;
 }
 
+export type ProfitLossPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+export interface ProfitLossSummary {
+  gross_sales: number;
+  discounts: number;
+  net_sales: number;
+  cogs: number;
+  gross_profit: number;
+  gross_margin_pct: number;
+  stock_loss: number;
+  net_profit: number;
+  net_margin_pct: number;
+  total_orders: number;
+  total_items_sold: number;
+}
+
+export interface ProfitLossGrowthComparison {
+  sales_growth_pct: number;
+  profit_growth_pct: number;
+  previous_net_sales: number;
+  previous_net_profit: number;
+}
+
+export interface ProfitLossCategoryBreakdown {
+  category_id: number;
+  category_name: string;
+  quantity_sold: number;
+  revenue: number;
+  cogs: number;
+  profit: number;
+  margin_pct: number;
+}
+
+export interface ProfitLossProductItem {
+  product_id: number;
+  product_name: string;
+  product_code: string;
+  category_name: string;
+  quantity_sold: number;
+  revenue: number;
+  cogs: number;
+  profit: number;
+  margin_pct: number;
+}
+
+export interface ProfitLossStockLossItem {
+  movement_id: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  movement_type: string;
+  cost_loss: number;
+  date: string;
+}
+
+export interface ProfitLossReportResponse {
+  period: ProfitLossPeriod;
+  date_range: {
+    start: string;
+    end: string;
+  };
+  summary: ProfitLossSummary;
+  growth_comparison: ProfitLossGrowthComparison | null;
+  category_breakdown: ProfitLossCategoryBreakdown[];
+  top_profitable_products: ProfitLossProductItem[];
+  least_profitable_products: ProfitLossProductItem[];
+  stock_loss_items: ProfitLossStockLossItem[];
+}
+
 export interface ExportReportResponse {
   file_url: string;
   file_name: string;
@@ -150,6 +219,18 @@ export const reportService = {
   async getIncomeReport(period?: 'daily' | 'weekly' | 'monthly' | 'yearly'): Promise<IncomeReportResponse> {
     const response = await apiClient.get<ApiResponse<IncomeReportResponse>>('/reports/income', {
       params: period ? { period } : undefined,
+    });
+    return response.data;
+  },
+
+  async getProfitLossReport(params?: {
+    period?: ProfitLossPeriod;
+    start_date?: string;
+    end_date?: string;
+    compare_previous?: boolean;
+  }): Promise<ProfitLossReportResponse> {
+    const response = await apiClient.get<ApiResponse<ProfitLossReportResponse>>('/reports/profit-loss', {
+      params,
     });
     return response.data;
   },
