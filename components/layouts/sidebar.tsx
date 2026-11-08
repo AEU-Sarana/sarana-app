@@ -86,11 +86,13 @@ export default function Sidebar({
     const [basePath, query] = itemPath.split('?');
     if (basePath === '/admin') return pathname === '/admin';
     if (!pathname.startsWith(basePath)) return false;
-    if (query && typeof window !== 'undefined') {
-      const targetTab = new URLSearchParams(query).get('tab');
-      const currentTab = new URLSearchParams(window.location.search).get('tab') || (basePath === '/admin/settings' ? 'invoice' : null);
-      if (targetTab && currentTab) {
+    if (typeof window !== 'undefined') {
+      const currentTab = new URLSearchParams(window.location.search).get('tab');
+      if (query) {
+        const targetTab = new URLSearchParams(query).get('tab');
         return targetTab === currentTab;
+      } else if (currentTab === 'profit_loss' && basePath === '/admin/reports') {
+        return false;
       }
     }
     return true;
@@ -193,6 +195,27 @@ export default function Sidebar({
     {
       title: t('sidebar.operations', 'Operations'),
       items: [
+        {
+          name: t('sidebar.reports', 'Reports & Analytics'),
+          path: '/admin/reports',
+          featureKey: 'reports.full_analytics',
+          icon: (
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          )
+        },
+        {
+          name: t('sidebar.profit_loss', 'Profit & Loss (P&L)'),
+          path: '/admin/reports?tab=profit_loss',
+          featureKey: 'reports.profit_loss',
+          badge: 'ADMIN',
+          icon: (
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        },
         {
           name: t('sidebar.sales', 'Sales History'),
           path: '/admin/sales',

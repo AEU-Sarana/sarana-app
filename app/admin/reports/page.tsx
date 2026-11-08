@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { reportService, ProfitLossPeriod, ProfitLossReportResponse } from '../../../services/reportService';
 import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
@@ -1276,13 +1277,27 @@ function ProfitLossTab() {
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
-export default function AdminReportsPage() {
+function ReportsContent() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const tabFromQuery = searchParams?.get('tab') as TabId | null;
   const { user: authUser } = useAuth();
   const isAdministrator = authUser?.role?.toUpperCase() === 'ADMINISTRATOR' || authUser?.role?.toUpperCase() === 'SUPER_ADMIN';
   const isAdmin = isAdministrator || authUser?.role?.toUpperCase() === 'ADMIN';
 
-  const [activeTab,   setActiveTab]   = useState<TabId>('daily');
+  const [activeTab,   setActiveTab]   = useState<TabId>(() => {
+    if (tabFromQuery && ['daily', 'sales', 'income', 'profit_loss', 'stock'].includes(tabFromQuery)) {
+      return tabFromQuery;
+    }
+    return 'daily';
+  });
+
+  useEffect(() => {
+    if (tabFromQuery && ['daily', 'sales', 'income', 'profit_loss', 'stock'].includes(tabFromQuery)) {
+      setActiveTab(tabFromQuery);
+    }
+  }, [tabFromQuery]);
+
   const [showExport,  setShowExport]  = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -1419,5 +1434,17 @@ export default function AdminReportsPage() {
       {activeTab === 'profit_loss' && <ProfitLossTab />}
       {activeTab === 'stock'       && <StockReportTab lowOnly={stockLowOnly} setLowOnly={setStockLowOnly} search={stockSearch} setSearch={setStockSearch} />}
     </div>
+  );
+}
+
+export default function AdminReportsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px] select-none">
+        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    }>
+      <ReportsContent />
+    </Suspense>
   );
 }
