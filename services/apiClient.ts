@@ -1,6 +1,20 @@
 import { tokenStorage } from './tokenStorage';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export const getBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost) {
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+        return envUrl.replace(/\/$/, '');
+      }
+      return 'https://sarana-api.vercel.app/api/v1';
+    }
+  }
+  return (envUrl || 'http://localhost:3001/api/v1').replace(/\/$/, '');
+};
+
+export const BASE_URL = getBaseUrl();
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
@@ -13,7 +27,8 @@ class ApiClient {
     const { params, headers, ...customOptions } = options;
 
     // 1. Build URL with query params
-    let url = `${BASE_URL}${endpoint}`;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    let url = `${getBaseUrl()}${normalizedEndpoint}`;
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, val]) => {
@@ -129,4 +144,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
-export { BASE_URL };
