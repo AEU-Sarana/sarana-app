@@ -7,16 +7,12 @@ import { useLanguage } from '../../../contexts/language-context';
 import { useAuth } from '../../../hooks/useAuth';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-type TabId       = 'daily' | 'sales' | 'income' | 'profit_loss' | 'stock';
+type TabId       = 'daily' | 'income' | 'profit_loss';
 type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock' | 'negative';
 type Period      = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 interface TopProduct    { product_id: number; product_name: string; product_code: string; quantity_sold: number; revenue: number; average_price: number; }
 interface ShiftRow      { seller_id: number; seller_name: string; shift_count: number; total_sales: number; total_orders: number; start_time: string; end_time: string; }
-interface LowStockItem  { product_id: number; product_name: string; product_code: string; current_stock: number; low_stock_threshold: number; status: StockStatus; }
-interface SalesDay      { date: string; total_sales: number; total_orders: number; total_shifts: number; }
-interface StockItem     { product_id: number; product_name: string; product_code: string; category: string; current_stock: number; low_stock_threshold: number; status: StockStatus; }
-interface SalesReportItem { date: string; total_sales: number; total_orders: number; total_shifts: number; }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmtUSD   = (n: number) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -87,72 +83,6 @@ function SectionCard({ title, children, action }: { title?: string; children: Re
 const TH = ({ children }: { children: React.ReactNode }) => (
   <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-foreground/45">{children}</th>
 );
-
-// ─── Bar Chart ─────────────────────────────────────────────────────────────────
-function SalesBarChart({ data = [] }: { data: SalesReportItem[] }) {
-  const { t } = useLanguage();
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[180px] text-xs font-bold text-foreground/45">
-        {t('reports.no_orders_range', 'No sales data available for this range')}
-      </div>
-    );
-  }
-  
-  const maxSale = Math.max(...data.map(d => d.total_sales));
-  const MAX_V = maxSale > 0 ? Math.ceil(maxSale / 500) * 500 : 500;
-  const BAR_W = 52, GAP = 26, L = 58, R = 16, CH = 180, CB = 215, CT = CB - CH;
-  const VW    = L + data.length * BAR_W + (data.length - 1) * GAP + R;
-  const VH    = CB + 38;
-  const ticks = Array.from({ length: 6 }, (_, i) => Math.round((MAX_V / 5) * i));
-
-  return (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-[580px]">
-        <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" className="overflow-visible">
-          <defs>
-            <linearGradient id="rpt-bar-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.3" />
-            </linearGradient>
-          </defs>
-
-          {/* Grid + Y labels */}
-          {ticks.map(t => {
-            const y = CB - (t / MAX_V) * CH;
-            return (
-              <g key={t}>
-                <line x1={L} y1={y} x2={VW - R} y2={y} stroke="currentColor" strokeWidth="1" className="text-foreground/10" />
-                <text x={L - 8} y={y + 4} textAnchor="end" className="text-[10px] font-bold fill-foreground/40 select-none">
-                  {t === 0 ? '$0' : `$${(t / 1000).toFixed(1)}K`}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Bars */}
-          {data.map((d, i) => {
-            const x = L + i * (BAR_W + GAP);
-            const h = (d.total_sales / MAX_V) * CH;
-            const y = CB - h;
-            return (
-              <g key={d.date}>
-                <rect x={x} y={CT} width={BAR_W} height={CH} rx="8" fill="currentColor" className="text-secondary/20" />
-                <rect x={x} y={y}  width={BAR_W} height={h}  rx="8" fill="url(#rpt-bar-grad)" />
-                <text x={x + BAR_W / 2} y={y - 6} textAnchor="middle" className="text-[9px] font-black fill-emerald-500 select-none">
-                  ${(d.total_sales / 1000).toFixed(1)}K
-                </text>
-                <text x={x + BAR_W / 2} y={CB + 22} textAnchor="middle" className="text-[10px] font-bold fill-foreground/40 select-none">
-                  {fmtShort(d.date)}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </div>
-  );
-}
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 const ic = (path: string) => (
@@ -337,7 +267,7 @@ function DailyTab({ date, setDate }: DailyTabProps) {
           )}
         </SectionCard>
 
-        <SectionCard title="+s">
+        <SectionCard title={t('reports.low_stock_alerts', 'Low Stock Alerts')}>
           {d.low_stock_items.length === 0 ? (
             <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
               All active product inventory stocks are healthy.
@@ -363,118 +293,6 @@ function DailyTab({ date, setDate }: DailyTabProps) {
           )}
         </SectionCard>
       </div>
-    </div>
-  );
-}
-
-// ─── Sales History Tab ──────────────────────────────────────────────────────────
-interface SalesHistoryTabProps {
-  startDate: string;
-  setStartDate: (d: string) => void;
-  endDate: string;
-  setEndDate: (d: string) => void;
-}
-
-function SalesHistoryTab({ startDate, setStartDate, endDate, setEndDate }: SalesHistoryTabProps) {
-  const { t } = useLanguage();
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchReport = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const res = await reportService.getSalesHistoryReport({
-        start_date: startDate,
-        end_date: endDate,
-        limit: 100,
-      });
-      setData(res);
-    } catch (err) {
-      console.error('Sales history report fetch error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [startDate, endDate]);
-
-  useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
-
-  if (isLoading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
-        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.loading', 'Loading...')}</span>
-      </div>
-    );
-  }
-
-  const s = data || {
-    sales: [],
-    summary: { total_sales: 0, total_orders: 0, average_daily_sales: 0 },
-  };
-
-  return (
-    <div className="space-y-5">
-      {/* Date range */}
-      <div className="flex items-end gap-3 flex-wrap select-none bg-card p-4 rounded-2xl border border-border/40">
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">{t('reports.from', 'From')}</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-            className="px-3.5 py-2.5 bg-secondary/20 border border-border/50 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:border-primary cursor-pointer min-h-[42px]" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pl-1">{t('reports.to', 'To')}</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-            className="px-3.5 py-2.5 bg-secondary/20 border border-border/50 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:border-primary cursor-pointer min-h-[42px]" />
-        </div>
-        <div>
-          <button onClick={fetchReport} disabled={isLoading}
-            className="px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 min-h-[42px]">
-            {isLoading ? t('reports.loading', 'Loading...') : t('reports.apply', 'Apply')}
-          </button>
-        </div>
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label={t('reports.total_revenue', 'Total Revenue')}     value={fmtUSD(s.summary.total_sales)}        sub={t('reports.in_selected_range', 'In selected range')} accent="emerald" icon={<DollarIcon />} />
-        <StatCard label={t('reports.total_orders', 'Total Orders')}      value={String(s.summary.total_orders)}         sub={t('reports.total_transactions', 'Total transactions')}        accent="indigo"  icon={<CartIcon />}   />
-        <StatCard label={t('reports.avg_daily_revenue', 'Avg Daily Revenue')} value={fmtUSD(s.summary.average_daily_sales)} sub={t('reports.per_trading_day', 'Per trading day')}   accent="sky"     icon={<BarIcon />}    />
-      </div>
-
-      {/* Bar chart */}
-      <SectionCard title={t('reports.daily_revenue', 'Daily Revenue')}>
-        <div className="p-5 pt-4">
-          <SalesBarChart data={s.sales} />
-        </div>
-      </SectionCard>
-
-      {/* Daily table */}
-      <SectionCard title={t('reports.day_by_day_summary', 'Day-by-Day Summary')}>
-        {s.sales.length === 0 ? (
-          <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-            {t('reports.no_orders_range', 'No orders found within this date range.')}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-secondary/20 border-b border-border/30">
-                <TH>{t('reports.date', 'Date')}</TH><TH>{t('reports.orders', 'Orders')}</TH><TH>{t('reports.total_revenue', 'Revenue')}</TH>
-              </tr>
-            </thead>
-            <tbody>
-              {s.sales.map((item: any) => (
-                <tr key={item.date} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
-                  <td className="px-5 py-4 font-black text-foreground">{fmtFull(item.date)}</td>
-                  <td className="px-5 py-4 font-bold text-foreground/70">{item.total_orders}</td>
-                  <td className="px-5 py-4 font-black text-emerald-500">{fmtUSD(item.total_sales)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </SectionCard>
     </div>
   );
 }
@@ -595,120 +413,6 @@ function IncomeTab({ period, setPeriod }: IncomeTabProps) {
           <p className="text-[9px] font-bold text-foreground/35 mt-1">{t('reports.units_restocked', 'units restocked')}</p>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Stock Report Tab ───────────────────────────────────────────────────────────
-interface StockReportTabProps {
-  lowOnly: boolean;
-  setLowOnly: (l: boolean) => void;
-  search: string;
-  setSearch: (s: string) => void;
-}
-
-function StockReportTab({ lowOnly, setLowOnly, search, setSearch }: StockReportTabProps) {
-  const { t } = useLanguage();
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchReport = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const res = await reportService.getStockReport({
-        low_stock_only: lowOnly ? true : undefined,
-      });
-      setData(res);
-    } catch (err) {
-      console.error('Stock report fetch error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lowOnly]);
-
-  useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
-
-  if (isLoading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-28 gap-4 select-none">
-        <div className="w-10 h-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <span className="text-xs font-bold text-foreground/50 tracking-wider">{t('reports.loading', 'Generating Stock Report...')}</span>
-      </div>
-    );
-  }
-
-  const d = data || {
-    summary: { total_products: 0, low_stock_count: 0, out_of_stock_count: 0, negative_stock_count: 0 },
-    stock_report: [],
-  };
-
-  const filtered = d.stock_report.filter((item: any) => {
-    const q = search.toLowerCase();
-    if (q && !item.product_name.toLowerCase().includes(q) && !(item.product_code || '').toLowerCase().includes(q)) return false;
-    return true;
-  });
-
-  return (
-    <div className="space-y-5">
-      {/* Filter row */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder={t('reports.search_product_code', 'Search product or code…')}
-          className="px-3 py-2 bg-secondary/40 border border-border/40 rounded-xl text-sm font-bold text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-emerald-500/50 w-56" />
-        <button onClick={() => setLowOnly(!lowOnly)}
-          className={`px-4 py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
-            lowOnly
-              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25'
-              : 'bg-secondary/40 text-foreground/60 border-border/40 hover:border-border/80'
-          }`}>
-          {lowOnly ? t('reports.low_out_only', '⚠ Low / Out Only') : t('reports.show_all', 'Show All')}
-        </button>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label={t('reports.total_products', 'Total Products')}  value={String(d.summary.total_products)}       sub={t('reports.in_inventory', 'In inventory')}    accent="sky"     icon={<BoxIcon />}     />
-        <StatCard label={t('reports.low_stock', 'Low Stock')}        value={String(d.summary.low_stock_count)}       sub={t('reports.need_reorder', 'Need reorder')}    accent="amber"   icon={<WarningIcon />} />
-        <StatCard label={t('reports.out_of_stock', 'Out of Stock')}     value={String(d.summary.out_of_stock_count)}    sub={t('reports.critical', 'Critical')}        accent="rose"    icon={<BanIcon />}     />
-        <StatCard label={t('reports.negative_stock', 'Negative Stock')}   value={String(d.summary.negative_stock_count)}  sub={t('reports.check_movement', 'Check movement')}  accent="indigo"  icon={<AlertIcon />}   />
-      </div>
-
-      {/* Table */}
-      <SectionCard title={`${t('reports.stock_inventory', 'Stock Inventory')} (${filtered.length})`}>
-        {filtered.length === 0 ? (
-          <div className="py-12 text-center text-xs font-bold text-foreground/45 bg-secondary/5 border-t border-border/30">
-            {t('reports.no_products_filter', 'No products found matching active filters.')}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-secondary/20 border-b border-border/30">
-                <TH>{t('dashboard.col_name', 'Product')}</TH><TH>Code</TH><TH>{t('products.col_category', 'Category')}</TH><TH>{t('stock.current_stock', 'Current Stock')}</TH><TH>{t('stock.low_stock_threshold', 'Min Threshold')}</TH><TH>{t('products.col_status', 'Status')}</TH>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item: any) => (
-                <tr key={item.product_id} className="border-b border-border/20 hover:bg-secondary/20 transition-colors last:border-0">
-                  <td className="px-5 py-3.5 font-bold text-foreground">{item.product_name}</td>
-                  <td className="px-5 py-3.5 font-mono text-xs text-foreground/50">{item.product_code || 'N/A'}</td>
-                  <td className="px-5 py-3.5 text-foreground/60 font-bold">{item.category || 'Uncategorized'}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`text-base font-black ${
-                      item.current_stock === 0            ? 'text-rose-500'
-                      : item.current_stock <= (item.low_stock_threshold || 0) ? 'text-amber-500'
-                      : 'text-foreground'
-                    }`}>{item.current_stock}</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-foreground/50 font-bold">{item.low_stock_threshold ?? 'N/A'}</td>
-                  <td className="px-5 py-3.5"><StatusBadge status={item.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </SectionCard>
     </div>
   );
 }
@@ -1286,14 +990,14 @@ function ReportsContent() {
   const isAdmin = isAdministrator || authUser?.role?.toUpperCase() === 'ADMIN';
 
   const [activeTab,   setActiveTab]   = useState<TabId>(() => {
-    if (tabFromQuery && ['daily', 'sales', 'income', 'profit_loss', 'stock'].includes(tabFromQuery)) {
+    if (tabFromQuery && ['daily', 'income', 'profit_loss'].includes(tabFromQuery)) {
       return tabFromQuery;
     }
     return 'daily';
   });
 
   useEffect(() => {
-    if (tabFromQuery && ['daily', 'sales', 'income', 'profit_loss', 'stock'].includes(tabFromQuery)) {
+    if (tabFromQuery && ['daily', 'income', 'profit_loss'].includes(tabFromQuery)) {
       setActiveTab(tabFromQuery);
     }
   }, [tabFromQuery]);
@@ -1304,14 +1008,6 @@ function ReportsContent() {
 
   // Lifted Shared Filter States
   const [dailyDate, setDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [salesStartDate, setSalesStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 10);
-    return d.toISOString().slice(0, 10);
-  });
-  const [salesEndDate, setSalesEndDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [stockLowOnly, setStockLowOnly] = useState(false);
-  const [stockSearch, setStockSearch] = useState('');
   const [incomePeriod, setIncomePeriod] = useState<Period>('monthly');
 
   useEffect(() => {
@@ -1326,26 +1022,12 @@ function ReportsContent() {
     setShowExport(false);
     try {
       setIsExporting(true);
-      let report_type: 'daily_sales' | 'sales_history' | 'stock_summary';
-      let exportParams: any = {};
-
-      if (activeTab === 'daily') {
-        report_type = 'daily_sales';
-        exportParams = { date: dailyDate };
-      } else if (activeTab === 'sales') {
-        report_type = 'sales_history';
-        exportParams = { start_date: salesStartDate, end_date: salesEndDate };
-      } else if (activeTab === 'stock') {
-        report_type = 'stock_summary';
-        exportParams = { low_stock_only: stockLowOnly };
-      } else {
-        return;
-      }
+      if (activeTab !== 'daily') return;
 
       const res = await reportService.exportReport({
-        report_type,
+        report_type: 'daily_sales',
         format,
-        ...exportParams
+        date: dailyDate,
       });
 
       if (res && res.file_url) {
@@ -1361,10 +1043,8 @@ function ReportsContent() {
 
   const tabs: { id: TabId; labelKey: string; defaultLabel: string }[] = [
     { id: 'daily',  labelKey: 'reports.tab_daily',  defaultLabel: 'Daily Report'  },
-    { id: 'sales',  labelKey: 'reports.tab_sales',  defaultLabel: 'Sales History' },
     { id: 'income', labelKey: 'reports.tab_income', defaultLabel: 'Income Report' },
     ...(isAdmin ? [{ id: 'profit_loss' as TabId, labelKey: 'reports.tab_profit_loss', defaultLabel: 'Profit & Loss (P&L)' }] : []),
-    { id: 'stock',  labelKey: 'reports.tab_stock',  defaultLabel: 'Stock Report'  },
   ];
 
   return (
@@ -1429,10 +1109,8 @@ function ReportsContent() {
 
       {/* Tab Content */}
       {activeTab === 'daily'       && <DailyTab date={dailyDate} setDate={setDailyDate} />}
-      {activeTab === 'sales'       && <SalesHistoryTab startDate={salesStartDate} setStartDate={setSalesStartDate} endDate={salesEndDate} setEndDate={setSalesEndDate} />}
       {activeTab === 'income'      && <IncomeTab period={incomePeriod} setPeriod={setIncomePeriod} />}
       {activeTab === 'profit_loss' && <ProfitLossTab />}
-      {activeTab === 'stock'       && <StockReportTab lowOnly={stockLowOnly} setLowOnly={setStockLowOnly} search={stockSearch} setSearch={setStockSearch} />}
     </div>
   );
 }
